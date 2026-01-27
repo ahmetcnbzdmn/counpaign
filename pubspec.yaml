@@ -1,0 +1,58 @@
+name: counpaign
+description: A new Flutter project for Counpaign application.
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # State Management
+  provider: ^6.1.5+1
+  
+  # Navigation
+  go_router: ^13.0.0
+  
+  # UI & Assets
+  google_fonts: ^6.1.0
+  cupertino_icons: ^1.0.6
+  
+  # Maps
+  google_maps_flutter: ^2.5.3
+  
+  # QR Codes
+  qr_flutter: ^4.1.0       # For displaying QR
+  mobile_scanner: ^5.2.3   # For scanning QR
+  
+  # Analytics/Charts
+  fl_chart: ^0.66.0
+  
+  # Local Storage
+  shared_preferences: ^2.2.2
+  dio: ^5.9.0
+  image_picker: ^1.2.1
+  intl: ^0.20.2
+  shake: ^3.0.0
+  vibration: ^3.1.5
+  translator: ^1.0.4+1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  flutter_launcher_icons: "^0.13.1"
+
+flutter_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/splash_logo.png"
+  min_sdk_android: 21
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - lib/core/constants/
