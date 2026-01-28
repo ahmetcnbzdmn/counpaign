@@ -13,7 +13,9 @@ class SwipeBackDetector extends StatelessWidget {
         // Detect swipe direction: Left to Right (Velocity > 0)
         // Adjust threshold as needed
         if (details.primaryVelocity! > 200) {
-          context.go('/home');
+          if (context.canPop()) {
+            context.pop();
+          }
         }
       },
       child: child,

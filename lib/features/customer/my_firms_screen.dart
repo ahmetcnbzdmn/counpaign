@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/business_provider.dart';
+import '../../core/widgets/swipe_back_detector.dart';
+import '../../core/utils/ui_utils.dart';
 
 class MyFirmsScreen extends StatefulWidget {
   const MyFirmsScreen({super.key});
@@ -28,8 +30,10 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
       final orderedIds = firms.map((f) => f['id'].toString()).toList();
       await api.reorderWallet(orderedIds);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sıralama kaydedilemedi: $e')),
+      showCustomPopup(
+        context,
+        message: 'Sıralama kaydedilemedi: $e',
+        type: PopupType.error,
       );
     }
   }
@@ -56,10 +60,11 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text('Eklenen Dükkanlar', style: GoogleFonts.outfit(color: textColor)),
+        title: Text('Eklenen Dükkanlar', style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
+        centerTitle: true,
       ),
       body: provider.isLoading && firms.isEmpty
           ? const Center(child: CircularProgressIndicator())
@@ -67,6 +72,21 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
               padding: const EdgeInsets.all(16),
               itemCount: firms.length,
               onReorder: _onReorder,
+              proxyDecorator: (child, index, animation) {
+                return AnimatedBuilder(
+                  animation: animation,
+                  builder: (BuildContext context, Widget? child) {
+                    return Material(
+                      elevation: 8,
+                      color: Colors.transparent, // Important for custom shapes
+                      shadowColor: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                      child: child,
+                    );
+                  },
+                  child: child,
+                );
+              },
               itemBuilder: (context, index) {
                 final firm = firms[index];
                 
@@ -233,11 +253,10 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     );
 
                     if (deleted == true) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Mağaza başarıyla silindi.', style: GoogleFonts.outfit(color: Colors.white)),
-                          backgroundColor: Colors.green,
-                        ),
+                      showCustomPopup(
+                        context,
+                        message: 'Mağaza başarıyla silindi.',
+                        type: PopupType.success,
                       );
                       return true; // Item dismissed
                     } 

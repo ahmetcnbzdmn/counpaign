@@ -13,6 +13,8 @@ import '../../core/widgets/campaign_slider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/icons/takeaway_cup_icon.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
@@ -32,6 +34,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   late String _businessId;
   bool _isAddingLoading = false;
 
+  bool _isNew = false;
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +45,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _giftsCount = data['giftsCount'] ?? 0;
     _points = (data['points'] ?? '0').toString();
     _businessId = data['id'] ?? '';
+    _isNew = data['isNew'] ?? false;
 
     // Fetch campaigns for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,8 +79,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     if (user == null) return;
 
     if (_giftsCount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Harcayacak hediye ürününüz bulunmuyor! 🥐"))
+      showCustomPopup(
+        context,
+        message: "Harcayacak hediye ürününüz bulunmuyor! 🥐",
+        type: PopupType.error,
       );
       return;
     }
@@ -107,106 +114,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Colors.black),
               ),
               const SizedBox(height: 24),
-              // Simulation Button
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: widget.businessData['color'] ?? const Color(0xFFEE2C2C),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () async {
-                        try {
-                          final api = context.read<ApiService>();
-                          final result = await api.simulateRedeemGift(user.id, _businessId);
-                          
-                          if (mounted) {
-                            setState(() {
-                              _giftsCount = result['giftsCount'];
-                            });
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("Afiyet olsun! Hediye ürün harcandı. ☕️🎉"))
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Hata: $e"))
-                          );
-                        }
-                      },
-                      child: Text("Hediye Harca", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      onPressed: () async {
-                        try {
-                          final api = context.read<ApiService>();
-                          final result = await api.simulateAddPoints(user.id, _businessId, 10);
-                          
-                          if (mounted) {
-                            setState(() {
-                              _points = result['points'].toString();
-                            });
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text("10 Puan Eklendi! ⭐️"))
-                            );
-                          }
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Hata: $e"))
-                          );
-                        }
-                      },
-                      child: Text("Puan (+10)", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                    ),
-                  ),
-                ],
-              ),
+              // Simulation Buttons Removed
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: widget.businessData['color'] ?? const Color(0xFFEE2C2C)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  onPressed: () async {
-                    try {
-                      final api = context.read<ApiService>();
-                      final result = await api.simulateProcessTransaction(user.id, _businessId);
-                      
-                      if (mounted) {
-                        setState(() {
-                          _stamps = result['stamps'];
-                          _stampsTarget = result['stampsTarget'];
-                          _giftsCount = result['giftsCount'];
-                        });
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Stamp Eklendi! ☕️"))
-                        );
-                      }
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Hata: $e"))
-                      );
-                    }
-                  },
-                  child: Text("Stamp (+1)", style: GoogleFonts.outfit(color: widget.businessData['color'] ?? const Color(0xFFEE2C2C), fontWeight: FontWeight.bold)),
-                ),
-              ),
+              // Stamp (+1) Button Removed
               TextButton(
                 onPressed: () => Navigator.pop(context),
                 child: Text("Kapat", style: GoogleFonts.outfit(color: Colors.grey)),
@@ -365,10 +275,30 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final userName = user?.fullName ?? "Misafir";
     final lang = context.watch<LanguageProvider>();
 
+    // Dynamic Greeting Logic
+    final hour = DateTime.now().hour;
+    String greetingKey;
+    if (hour >= 6 && hour < 12) {
+      greetingKey = 'good_morning';
+    } else if (hour >= 12 && hour < 18) {
+      greetingKey = 'good_afternoon';
+    } else if (hour >= 18 && hour < 22) {
+      greetingKey = 'good_evening';
+    } else {
+      greetingKey = 'good_night';
+    }
+    final greeting = lang.translate(greetingKey);
+
     return Scaffold(
       backgroundColor: brandColor, 
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: Stack(
+        children: [
+          AbsorbPointer(
+            absorbing: _isNew,
+            child: CustomScrollView(
+              physics: _isNew 
+                  ? const NeverScrollableScrollPhysics() 
+                  : const BouncingScrollPhysics(),
         slivers: [
           SliverAppBar(
             expandedHeight: 350.0,
@@ -382,6 +312,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
               onPressed: () => context.pop(),
             ),
+            title: Transform.translate(
+              offset: const Offset(-8, 0),
+              child: Text(
+                name,
+                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+              ),
+            ),
+            centerTitle: false,
+            titleSpacing: 0,
             actions: [
                const SizedBox(width: 48),
             ],
@@ -419,7 +358,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(lang.translate('guest_user'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)), // Fallback greeting
+                                  Text(greeting, style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)), // Dynamic greeting
                                   Text(userName, style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                                 ],
                               ),
@@ -444,6 +383,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         // [2] STATS ROW
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.end, // Align bottom
                           children: [
                             SizedBox(
                               width: 80, height: 90,
@@ -472,32 +412,38 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             ),
 
                             Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Text(lang.translate('gifts'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 16),
+                                Text("Kahvelerim", style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
+                                const SizedBox(height: 12),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Text("$_giftsCount", style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.card_giftcard, color: Colors.white, size: 24),
+                                    Text("$_giftsCount", style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
+                                    const SizedBox(width: 6),
+                                    const TakeawayCupIcon(color: Colors.white, size: 24),
                                   ],
                                 ),
+                                const SizedBox(height: 8), // Alignment correction
                               ],
                             ),
 
                             Column(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 Text(lang.translate('my_points'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 8),
+                                const SizedBox(height: 12),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    Text(_points, style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.loyalty, color: Colors.white, size: 24),
+                                    Text(_points, style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.stars_rounded, color: Colors.white, size: 28),
                                   ],
                                 ),
+                                const SizedBox(height: 8), // Alignment correction
                               ],
                             ),
                           ],
@@ -542,7 +488,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         height: 100,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFD54F), // Yellow
+                          color: brandColor, // Dynamic Brand Color
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -552,15 +498,23 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(lang.translate('gift_store').replaceFirst(' ', '\n'), style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 18, height: 1.0)),
-                                const Icon(Icons.stars_rounded, color: Colors.black),
+                                Expanded(
+                                  child: Text(
+                                    "QR Okut", 
+                                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.stars_rounded, color: Colors.white),
                               ],
                             ),
                             Row(
                               children: [
-                                Text(lang.translate('explore'), style: GoogleFonts.outfit(color: Colors.black, fontSize: 12)),
+                                Text("Hediyelerini harca", style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_ios, color: Colors.black, size: 10),
+                                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
                               ],
                             )
                           ],
@@ -576,7 +530,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         height: 100,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF00695C), // Teal/Green
+                          color: brandColor, // Dynamic Brand Color
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Column(
@@ -585,8 +539,17 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           children: [
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.start, // Align icon to top
                               children: [
-                                Text(lang.translate('order_history').replaceFirst(' ', '\n'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.0)),
+                                Expanded(
+                                  child: Text(
+                                    lang.translate('order_history').replaceFirst(' ', '\n'), 
+                                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
                                 const Icon(Icons.history, color: Colors.white),
                               ],
                             ),
@@ -618,7 +581,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 30.0, bottom: 16.0),
-                    child: Text("Haberler ve Fırsatlar", style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: Text("Kampanyalar", style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   
                    // Slider (Full width)
@@ -656,9 +619,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               ),
             ),
           ),
+          ],
+        ),
+      ),
+          if (_isNew)
+            Positioned.fill(
+              child: Container(
+                color: Colors.grey.withOpacity(0.2), // Light grey overlay
+              ),
+            ),
+          // [FIX] Active Back Button even when locked
+          if (_isNew)
+             Positioned(
+               top: 0, 
+               left: 0,
+               child: SafeArea(
+                 child: Container(
+                   margin: const EdgeInsets.only(left: 4), // Match usual leading padding roughly
+                   child: IconButton(
+                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.transparent),
+                     onPressed: () => context.pop(),
+                   ),
+                 ),
+               ),
+             ),
         ],
       ),
-      bottomNavigationBar: widget.businessData['isNew'] == true 
+      bottomNavigationBar: _isNew 
         ? Container(
             padding: EdgeInsets.fromLTRB(20, 10, 20, 10 + MediaQuery.of(context).padding.bottom),
             decoration: BoxDecoration(
@@ -688,18 +675,25 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     try {
       await context.read<ApiService>().addFirm(_businessId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Bu işletme artık cüzdanında! 🎉"))
+        showCustomPopup(
+          context,
+          message: "Bu işletme artık cüzdanında! 🎉",
+          type: PopupType.success,
         );
         // Refresh providers
         context.read<BusinessProvider>().fetchMyFirms();
         context.read<BusinessProvider>().fetchExploreFirms();
-        context.pop(); // Go back to explore list
+        // Unlock screen instead of popping
+        setState(() {
+           _isNew = false;
+        });
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Hata: $e"))
+        showCustomPopup(
+          context,
+          message: "Hata: $e",
+          type: PopupType.error,
         );
       }
     } finally {

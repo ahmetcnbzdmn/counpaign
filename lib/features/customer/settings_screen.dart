@@ -60,7 +60,13 @@ class SettingsScreen extends StatelessWidget {
                           alignment: Alignment.centerLeft,
                           child: IconButton(
                             icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-                            onPressed: () => context.go('/home'),
+                            onPressed: () {
+                              if (context.canPop()) {
+                                context.pop();
+                              } else {
+                                context.go('/home');
+                              }
+                            },
                           ),
                         ),
                         Container(
@@ -77,7 +83,7 @@ class SettingsScreen extends StatelessWidget {
                           child: CircleAvatar(
                             backgroundImage: (user?.profileImage != null)
                                 ? MemoryImage(base64Decode(user!.profileImage!)) as ImageProvider
-                                : const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200'),
+                                : const AssetImage('assets/images/default_profile.png'),
                           ),
                         ),
                       ],
@@ -93,7 +99,7 @@ class SettingsScreen extends StatelessWidget {
                     
                     // Edit Button
                     ElevatedButton.icon(
-                      onPressed: () => context.go('/settings/edit-profile'),
+                      onPressed: () => context.push('/edit-profile'),
                       icon: const Icon(Icons.edit_rounded, size: 16),
                       label: Text(context.watch<LanguageProvider>().translate('edit_profile')),
                       style: ElevatedButton.styleFrom(
@@ -120,10 +126,10 @@ class SettingsScreen extends StatelessWidget {
                          _buildSectionHeader(lang.translate('general'), textColor),
                          const SizedBox(height: 12),
                          
-                         _buildSettingsTile(icon: Icons.notifications_none_rounded, title: lang.translate('notifications'), textColor: textColor, cardColor: cardColor, onTap: () => context.go('/settings/notifications')),
-                         _buildSettingsTile(icon: Icons.store_mall_directory_rounded, title: lang.translate('added_shops'), textColor: textColor, cardColor: cardColor, onTap: () => context.go('/settings/my-firms')),
-                         _buildSettingsTile(icon: Icons.history_rounded, title: lang.translate('order_history'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/settings/order-history')),
-                         _buildSettingsTile(icon: Icons.star_outline_rounded, title: lang.translate('my_reviews'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/settings/my-reviews')),
+                         _buildSettingsTile(icon: Icons.notifications_none_rounded, title: lang.translate('notifications'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/notifications')),
+                         _buildSettingsTile(icon: Icons.store_mall_directory_rounded, title: lang.translate('added_shops'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/my-firms')),
+                         _buildSettingsTile(icon: Icons.history_rounded, title: lang.translate('order_history'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/order-history')),
+                         _buildSettingsTile(icon: Icons.star_outline_rounded, title: lang.translate('my_reviews'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/my-reviews')),
                          
                          const SizedBox(height: 24),
                          
@@ -132,8 +138,7 @@ class SettingsScreen extends StatelessWidget {
                          _buildSettingsTile(icon: Icons.shield_outlined, title: lang.translate('privacy_security'), textColor: textColor, cardColor: cardColor, onTap: () {}),
                          _buildSettingsTile(icon: Icons.help_outline_rounded, title: lang.translate('help_support'), textColor: textColor, cardColor: cardColor, onTap: () {}),
                          
-                         _buildSettingsTile(icon: Icons.settings_outlined, title: lang.translate('notification_settings'), textColor: textColor, cardColor: cardColor, onTap: () {}),
-                         _buildSettingsTile(icon: Icons.thumb_up_alt_outlined, title: lang.translate('rate_app'), textColor: textColor, cardColor: cardColor, onTap: () {}),
+                         // Removed notification settings and rate app items as requested
                          
                          // Theme Toggle
                          AnimatedContainer(

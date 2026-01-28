@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../core/models/campaign_model.dart';
+import '../../core/services/api_service.dart';
 import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/providers/participation_provider.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/widgets/auto_text.dart';
+import '../../core/utils/ui_utils.dart';
 
 class CampaignDetailScreen extends StatelessWidget {
   final CampaignModel campaign;
@@ -65,15 +67,14 @@ class CampaignDetailScreen extends StatelessWidget {
                         onPressed: isJoining || isAlreadyParticipating 
                           ? null 
                           : () async {
-                              if (!isInWallet) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text("Bu kampanyaya katılmak için önce işletmeyi cüzdanına eklemelisin! 🛍️"),
-                                    backgroundColor: Colors.orange,
-                                  )
-                                );
-                                return;
-                              }
+                                if (!isInWallet) {
+                                  showCustomPopup(
+                                    context,
+                                    message: "Bu kampanyaya katılmak için önce işletmeyi cüzdanına eklemelisin! 🛍️",
+                                    type: PopupType.info,
+                                  );
+                                  return;
+                                }
                               await partProvider.joinCampaign(campaign.id);
                             },
                         style: ElevatedButton.styleFrom(
@@ -169,6 +170,36 @@ class CampaignDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // [NEW] Business Name Box (Top Left)
+            FutureBuilder<Map<String, dynamic>?>(
+              future: context.read<ApiService>().getBusinessById(campaign.businessId),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return const SizedBox.shrink();
+                final businessName = snapshot.data!['companyName'] ?? 'İşletme';
+                final color = (snapshot.data!['cardColor'] != null) 
+                    ? Color(int.parse(snapshot.data!['cardColor'].replaceAll('#', '0xFF')))
+                    : accentColor;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    businessName,
+                    style: GoogleFonts.outfit(
+                      color: color,
+                      fontWeight: FontWeight.bold, 
+                      fontSize: 13
+                    ),
+                  ),
+                );
+              },
+            ),
+
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [

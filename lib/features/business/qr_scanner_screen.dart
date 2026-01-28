@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/ui_utils.dart';
 import '../../core/providers/terminal_provider.dart';
 
 class QRScannerScreen extends StatefulWidget {
@@ -73,7 +74,11 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+      showCustomPopup(
+        context,
+        message: '$e',
+        type: PopupType.error,
+      );
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);

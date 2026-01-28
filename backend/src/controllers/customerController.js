@@ -15,13 +15,14 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
     try {
-        const { name, surname, email, profileImage, gender, birthDate } = req.body;
+        const { name, surname, email, phoneNumber, profileImage, gender, birthDate } = req.body;
 
         // Build update object
         const updates = {};
         if (name) updates.name = name;
         if (surname) updates.surname = surname;
         if (email) updates.email = email;
+        if (phoneNumber) updates.phoneNumber = phoneNumber;
         if (profileImage !== undefined) updates.profileImage = profileImage;
         if (gender !== undefined) updates.gender = gender;
         if (birthDate !== undefined) updates.birthDate = birthDate;

@@ -29,7 +29,7 @@ class AppLocalizations {
       // Order History
       'no_orders_yet': 'Henüz hiç siparişiniz yok.',
       'no_orders_filter': 'Bu tarih aralığında işlem yok.',
-      'stamp_earned': 'Stamp Kazanıldı',
+      'stamp_earned': 'Damga Kazanıldı',
       'point_earned': 'Puan Kazanıldı',
       'gift_redeemed': 'Hediye Harcandı',
       'transaction': 'İşlem',
@@ -55,7 +55,7 @@ class AppLocalizations {
       'good_evening': 'İyi Akşamlar,',
       'good_night': 'İyi Geceler,',
       'my_points': 'Puanlarım',
-      'stamps': 'Pul',
+      'stamps': 'Damga',
       'explore': 'Keşfet',
       'deals': 'Fırsatlar',
       'active_campaigns': 'Aktif Kampanya',
@@ -93,7 +93,7 @@ class AppLocalizations {
       'scan_for_points': 'Puan Kazan',
       'gift_store': 'Hediye Mağazası',
       'your_balance': 'Bakiyeniz',
-      'stamps_progress': 'Sadakat Kartı Durumu',
+      'stamps_progress': 'Damga Kartı Durumu',
       'loading': 'Yükleniyor...',
 
       // Explore Cafes

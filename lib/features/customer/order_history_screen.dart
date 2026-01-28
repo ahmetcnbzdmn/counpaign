@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/widgets/swipe_back_detector.dart';
+import '../../core/utils/ui_utils.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -87,10 +89,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text(lang.translate('order_history'), style: GoogleFonts.outfit(color: textColor)),
+        title: Text(lang.translate('order_history'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -156,7 +159,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             IconData icon = Icons.receipt_long_rounded;
         
                             if (type == 'STAMP') {
-                              title = lang.translate('stamp_earned');
+                              title = lang.translate('damga_earned'); // Changing key if suitable or just relying on updating the value in lang provider
                               amount = "+$value";
                               amountColor = Colors.orange;
                               icon = Icons.local_cafe_rounded;
@@ -328,17 +331,21 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       if (context.mounted) {
                          Navigator.pop(context);
                          _fetchTransactions(); // Refresh list
-                         ScaffoldMessenger.of(context).showSnackBar(
-                           SnackBar(content: Text(lang.translate('success_review')), backgroundColor: Colors.green),
-                         );
-                      }
-                    } catch (e) {
-                      setState(() => _isSubmitting = false);
-                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(content: Text('${lang.translate('error')}: $e')),
-                       );
-                    }
-                  },
+                          showCustomPopup(
+                            context,
+                            message: lang.translate('success_review'),
+                            type: PopupType.success,
+                          );
+                       }
+                     } catch (e) {
+                       setState(() => _isSubmitting = false);
+                        showCustomPopup(
+                          context,
+                          message: '$e',
+                          type: PopupType.error,
+                        );
+                     }
+                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
                     disabledBackgroundColor: Colors.amber.withOpacity(0.3),

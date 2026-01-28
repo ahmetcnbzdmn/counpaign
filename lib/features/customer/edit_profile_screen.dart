@@ -2,11 +2,15 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:image_cropper/image_cropper.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/widgets/swipe_back_detector.dart';
+import '../../core/utils/ui_utils.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -21,6 +25,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _surnameController;
   late TextEditingController _emailController;
+  late TextEditingController _phoneNumberController;
   
   String? _selectedGender;
   DateTime? _selectedBirthDate;
@@ -36,6 +41,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController = TextEditingController(text: user?.name);
     _surnameController = TextEditingController(text: user?.surname);
     _emailController = TextEditingController(text: user?.email);
+    _phoneNumberController = TextEditingController(text: user?.phoneNumber);
     _selectedGender = user?.gender;
     _selectedBirthDate = user?.birthDate;
     
@@ -53,13 +59,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _surnameController.dispose();
     _emailController.dispose();
+    _phoneNumberController.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 800);
     if (image != null) {
-      final bytes = await image.readAsBytes();
+      await _cropImage(image.path);
+    }
+  }
+
+  Future<void> _cropImage(String path) async {
+    final croppedFile = await ImageCropper().cropImage(
+      sourcePath: path,
+      aspectRatioPresets: [
+        CropAspectRatioPreset.square,
+      ],
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: 'Fotoğrafı Kırp',
+          toolbarColor: const Color(0xFFEE2C2C),
+          toolbarWidgetColor: Colors.white,
+          initAspectRatio: CropAspectRatioPreset.square,
+          lockAspectRatio: true,
+          activeControlsWidgetColor: const Color(0xFFEE2C2C),
+          dimmedLayerColor: Colors.black.withOpacity(0.8),
+        ),
+        IOSUiSettings(
+          title: 'Fotoğrafı Kırp',
+          doneButtonTitle: 'Bitti',
+          cancelButtonTitle: 'İptal',
+          aspectRatioLockEnabled: true,
+          aspectRatioPickerButtonHidden: true,
+          resetButtonHidden: true,
+        ),
+      ],
+    );
+
+    if (croppedFile != null) {
+      final bytes = await xFileToBytes(croppedFile);
       setState(() {
         _newProfileImageBase64 = base64Encode(bytes);
         _profileImageBytes = bytes;
@@ -67,66 +106,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  Future<void> _pickDate() async {
-    final initialDate = _selectedBirthDate ?? DateTime(2000);
-    DateTime tempPickedDate = initialDate;
-    
-    // iOS Style Date Picker
-    showCupertinoModalPopup(
-      context: context,
-      builder: (_) => Container(
-        height: 300,
-        color: Theme.of(context).cardColor,
-        child: Column(
-          children: [
-            // Toolbar
-            Container(
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor))
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  CupertinoButton(
-                    child: const Text('İptal', style: TextStyle(color: Colors.grey)),
-                    onPressed: () => Navigator.of(context, rootNavigator: true).pop(),
-                  ),
-                  CupertinoButton(
-                    child: const Text('Bitti', style: TextStyle(color: Color(0xFFEE2C2C), fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      setState(() {
-                        // Normalize to noon to avoid timezone issues
-                        _selectedBirthDate = DateTime(
-                          tempPickedDate.year,
-                          tempPickedDate.month,
-                          tempPickedDate.day,
-                          12,
-                        );
-                      });
-                      Navigator.of(context, rootNavigator: true).pop();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(
-              height: 240,
-              child: CupertinoDatePicker(
-                mode: CupertinoDatePickerMode.date,
-                initialDateTime: initialDate,
-                minimumDate: DateTime(1900),
-                maximumDate: DateTime.now(),
-                use24hFormat: true,
-                onDateTimeChanged: (val) {
-                  tempPickedDate = val;
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<Uint8List> xFileToBytes(CroppedFile file) async {
+    return await file.readAsBytes();
   }
 
   void _saveProfile() async {
@@ -136,19 +117,74 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           name: _nameController.text,
           surname: _surnameController.text,
           email: _emailController.text,
+          phoneNumber: _phoneNumberController.text,
           profileImage: _newProfileImageBase64,
           gender: _selectedGender,
           birthDate: _selectedBirthDate,
         );
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Profil güncellendi!")));
-           Navigator.pop(context);
+           // Show Success Dialog
+           showDialog(
+             context: context,
+             barrierDismissible: false,
+             builder: (ctx) => Dialog(
+               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+               child: Padding(
+                 padding: const EdgeInsets.all(24),
+                 child: Column(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     Container(
+                       padding: const EdgeInsets.all(16),
+                       decoration: BoxDecoration(
+                         color: Colors.green.withOpacity(0.1),
+                         shape: BoxShape.circle,
+                       ),
+                       child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
+                     ),
+                     const SizedBox(height: 16),
+                     Text(
+                       "Profil Guncellendi!",
+                       style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+                     ),
+                     const SizedBox(height: 8),
+                     Text(
+                       "Değişikliklerin başarıyla kaydedildi.",
+                       textAlign: TextAlign.center,
+                       style: GoogleFonts.outfit(color: Colors.grey),
+                     ),
+                     const SizedBox(height: 24),
+                     SizedBox(
+                       width: double.infinity,
+                       child: ElevatedButton(
+                         onPressed: () {
+                           Navigator.pop(ctx); // Close dialog
+                           Navigator.pop(context); // Close screen
+                         },
+                         style: ElevatedButton.styleFrom(
+                           backgroundColor: const Color(0xFFEE2C2C),
+                           foregroundColor: Colors.white,
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                           padding: const EdgeInsets.symmetric(vertical: 16),
+                         ),
+                         child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+             ),
+           );
         }
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Hata: $e")));
-      }
-    }
-  }
+       } catch (e) {
+         showCustomPopup(
+           context,
+           message: e.toString(),
+           type: PopupType.error,
+         );
+       }
+     }
+   }
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +198,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (_profileImageBytes != null) {
       imageProvider = MemoryImage(_profileImageBytes!);
     } else {
-      imageProvider = const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200');
+      imageProvider = const AssetImage('assets/images/default_profile.png');
     }
 
     return Scaffold(
@@ -172,10 +208,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: textColor),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -235,6 +267,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               _buildDatePickerField(),
               
               const SizedBox(height: 16),
+
+              // PHONE NUMBER FIELD (Above Email)
+              TextFormField(
+                controller: _phoneNumberController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                validator: (val) {
+                  if (val == null || val.isEmpty) return "Telefon numarası gerekli";
+                  if (val.length != 10) return "10 hane olmalıdır (Başında 0 olmadan)";
+                  if (!val.startsWith('5')) return "Numara 5 ile başlamalıdır";
+                  return null;
+                },
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                  _StartsWithFiveFormatter(), 
+                ],
+                style: TextStyle(color: textColor),
+                decoration: InputDecoration(
+                  labelText: "Telefon Numarası",
+                  counterText: "", // Hide character counter
+                  labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
+                  prefixIcon: Icon(Icons.phone_iphone_rounded, color: textColor.withOpacity(0.54)),
+                  prefixText: "+90 ", // Visual hint
+                  prefixStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                  filled: true,
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                ),
+              ),
+
+              const SizedBox(height: 16),
               _buildTextField(controller: _emailController, label: "E-posta", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               
               const SizedBox(height: 48),
@@ -246,7 +310,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   onPressed: _saveProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryBrand,
-                    foregroundColor: Colors.black,
+                    foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
@@ -289,7 +353,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildDropdownField() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
 
@@ -328,25 +391,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
     
-    return GestureDetector(
-      onTap: _pickDate,
-      child: AbsorbPointer(
-        child: TextFormField(
-          controller: TextEditingController(
-            text: _selectedBirthDate == null ? "" : DateFormat('dd.MM.yyyy').format(_selectedBirthDate!)
-          ),
-          style: TextStyle(color: textColor),
-          decoration: InputDecoration(
-            labelText: "Doğum Tarihi",
-            labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
-            prefixIcon: Icon(Icons.calendar_today, color: textColor.withOpacity(0.54)),
-            filled: true,
-            fillColor: cardColor,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-            suffixIcon: Icon(Icons.arrow_drop_down, color: textColor.withOpacity(0.54)),
-          ),
+    return AbsorbPointer(
+      child: TextFormField(
+        enabled: false, // Visual feedback that it's disabled
+        controller: TextEditingController(
+          text: _selectedBirthDate == null ? "" : DateFormat('dd.MM.yyyy').format(_selectedBirthDate!)
+        ),
+        style: TextStyle(color: textColor.withOpacity(0.5)), // Dimmed text
+        decoration: InputDecoration(
+          labelText: "Doğum Tarihi",
+          labelStyle: TextStyle(color: textColor.withOpacity(0.4)),
+          prefixIcon: Icon(Icons.calendar_today, color: textColor.withOpacity(0.3)), // Dimmed icon
+          filled: true,
+          fillColor: cardColor.withOpacity(0.5), // Dimmed background
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+          suffixIcon: Icon(Icons.lock_outline, color: textColor.withOpacity(0.3)), // Lock icon instead of arrow
         ),
       ),
     );
+  }
+}
+
+// Helper Class for strict '5' start
+class _StartsWithFiveFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+
+    // If the first character is NOT '5', prevent the update (return old value)
+    if (!newValue.text.startsWith('5')) {
+      // If they are deleting the first character, allow it (becomes empty)
+      if (oldValue.text.isNotEmpty && oldValue.text.length > newValue.text.length) {
+         // Allow deletion (which might leave empty)
+         return newValue;
+      }
+      // Otherwise (typing), block non-5 start
+      return oldValue; 
+    }
+    return newValue;
   }
 }

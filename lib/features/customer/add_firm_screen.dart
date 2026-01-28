@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/utils/ui_utils.dart';
 import '../../core/utils/location_helper.dart';
 
 class AddFirmScreen extends StatefulWidget {
@@ -187,8 +188,10 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Veri yüklenemedi: $e')),
+      showCustomPopup(
+        context,
+        message: '$e',
+        type: PopupType.error,
       );
     }
   }
@@ -205,12 +208,16 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         _addedFirms.add(id);
         _applyFilters(); 
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('İşletme eklendi!'), backgroundColor: Colors.green, duration: Duration(milliseconds: 700)),
+      showCustomPopup(
+        context,
+        message: 'İşletme eklendi!',
+        type: PopupType.success,
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('İşlem başarısız: $e'), backgroundColor: Colors.red),
+      showCustomPopup(
+        context,
+        message: '$e',
+        type: PopupType.error,
       );
     }
   }

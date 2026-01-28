@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final int initialPageIndex;
+  const LoginScreen({super.key, this.initialPageIndex = 0});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -21,7 +24,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final _confirmPasswordController = TextEditingController();
 
   // State
-  int _activePageIndex = 0; // 0: Login, 1: Register
+  late int _activePageIndex; // 0: Login, 1: Register
+
+  @override
+  void initState() {
+    super.initState();
+    _activePageIndex = widget.initialPageIndex;
+  }
+  String? _selectedGender;
+  DateTime? _selectedBirthDate;
 
   @override
   void dispose() {
@@ -32,6 +43,71 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
+  }
+
+  void _showCupertinoDatePicker(BuildContext context) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        color: Theme.of(context).cardColor,
+        child: Column(
+          children: [
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: Text('İptal', style: TextStyle(color: Colors.red.shade400)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  CupertinoButton(
+                    child: const Text('Tamam', style: TextStyle(color: Colors.blue)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Localizations.override(
+                context: context,
+                locale: const Locale('tr', 'TR'),
+                child: Builder(
+                  builder: (context) {
+                    final now = DateTime.now();
+                    final maxDate = DateTime(now.year - 12, now.month, now.day);
+                    final minDate = DateTime(1900);
+                    
+                    // Clamp initial date to be within range
+                    DateTime initialDate = _selectedBirthDate ?? DateTime(now.year - 18, now.month, now.day);
+                    if (initialDate.isAfter(maxDate)) {
+                      initialDate = maxDate;
+                    } else if (initialDate.isBefore(minDate)) {
+                      initialDate = minDate;
+                    }
+
+                    return CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: initialDate,
+                      maximumDate: maxDate,
+                      minimumDate: minDate,
+                      onDateTimeChanged: (date) {
+                        setState(() => _selectedBirthDate = date);
+                      },
+                    );
+                  }
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _submit() async {
@@ -49,10 +125,14 @@ class _LoginScreenState extends State<LoginScreen> {
       } else { // Register
          if (_nameController.text.isEmpty || _surnameController.text.isEmpty || 
              _phoneController.text.isEmpty || _emailController.text.isEmpty || 
-             _passwordController.text.isEmpty) {
+             _passwordController.text.isEmpty || _selectedGender == null || _selectedBirthDate == null) {
              throw Exception("Lütfen tüm alanları doldurun.");
          }
          
+         if (!_phoneController.text.startsWith('5')) {
+           throw Exception("Telefon numarası 5 ile başlamalıdır.");
+         }
+
          // Email Validation
          final emailRegex = RegExp(r"^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$");
          if (!emailRegex.hasMatch(_emailController.text)) {
@@ -64,34 +144,28 @@ class _LoginScreenState extends State<LoginScreen> {
          }
          
          await auth.register(
-           _nameController.text, 
-           _surnameController.text,
-           _phoneController.text, 
-           _emailController.text, 
-           _passwordController.text
+           name: _nameController.text, 
+           surname: _surnameController.text,
+           phoneNumber: _phoneController.text, 
+           email: _emailController.text, 
+           password: _passwordController.text,
+           gender: _selectedGender,
+           birthDate: _selectedBirthDate,
         );
       }
     } catch (e) {
       if (mounted) {
-        // DEBUG MODE: Show RAW error to understand what's happening
         String errorMessage = e.toString();
         
         if (e.toString().contains("DioException")) {
-           // Try to show the server response body directly
-           // We can't access e.response.data cleanly in catch(Object e) without casting, 
-           // but we can suggest the user to look at the console or try to print it if possible.
-           // Let's rely on AuthService printing it to console as well.
            errorMessage = "Sunucu Hatası (Detay): $e";
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("HATA: $errorMessage", maxLines: 4), // Allow more lines
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ));
+        showCustomPopup(
+          context,
+          message: errorMessage,
+          type: PopupType.error,
+        );
       }
     }
   }
@@ -126,16 +200,25 @@ class _LoginScreenState extends State<LoginScreen> {
                  const SizedBox(height: 60),
                  
                    // [1] Header Area
-                   AnimatedSwitcher(
-                     duration: const Duration(milliseconds: 300),
-                     child: Text(
-                       _activePageIndex == 0 ? 'Hoşgeldin.\nGiriş Yap.' : 'Hesap\nOluştur.',
-                       key: ValueKey<int>(_activePageIndex),
-                       style: GoogleFonts.outfit(
-                         fontSize: 40,
-                         fontWeight: FontWeight.bold,
-                         height: 1.1,
-                         color: textColor,
+                   SizedBox(
+                     height: 100, // Fixed height to prevent jitter
+                     child: AnimatedSwitcher(
+                       duration: const Duration(milliseconds: 300),
+                       transitionBuilder: (Widget child, Animation<double> animation) {
+                         return FadeTransition(opacity: animation, child: child);
+                       },
+                       child: Align(
+                         alignment: Alignment.centerLeft,
+                         key: ValueKey<int>(_activePageIndex),
+                         child: Text(
+                           _activePageIndex == 0 ? 'Hoşgeldin.\nGiriş Yap.' : 'Hesap\nOluştur.',
+                           style: GoogleFonts.outfit(
+                             fontSize: 40,
+                             fontWeight: FontWeight.bold,
+                             height: 1.1,
+                             color: textColor,
+                           ),
+                         ),
                        ),
                      ),
                    ),
@@ -182,13 +265,77 @@ class _LoginScreenState extends State<LoginScreen> {
                          inputFormatters: [
                            FilteringTextInputFormatter.digitsOnly,
                            LengthLimitingTextInputFormatter(10),
-                           FilteringTextInputFormatter.deny(RegExp(r'^0+')), // Deny starting with 0
+                           FilteringTextInputFormatter.allow(RegExp(r'^5[0-9]*')), // Only permit numbers starting with 5
                          ]
                        ),
                        const SizedBox(height: 16),
 
                        if (_activePageIndex == 1) ...[
                          _buildModernTextField(controller: _emailController, hint: 'E-posta', icon: Icons.alternate_email, keyboardType: TextInputType.emailAddress),
+                         const SizedBox(height: 16),
+                         
+                         // Gender Selection (Vertical)
+                         Container(
+                           padding: const EdgeInsets.symmetric(horizontal: 16),
+                           decoration: BoxDecoration(
+                             color: isDark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB),
+                             borderRadius: BorderRadius.circular(16),
+                           ),
+                           child: DropdownButtonHideUnderline(
+                             child: DropdownButton<String>(
+                               value: _selectedGender,
+                               hint: Text("Cinsiyet", style: TextStyle(color: textColor.withOpacity(0.3), fontSize: 14)),
+                               isExpanded: true,
+                               icon: const Icon(Icons.keyboard_arrow_down_rounded),
+                               items: [
+                                 DropdownMenuItem(value: 'male', child: Text("Erkek", style: TextStyle(color: textColor))),
+                                 DropdownMenuItem(value: 'female', child: Text("Kadın", style: TextStyle(color: textColor))),
+                                 DropdownMenuItem(value: 'other', child: Text("Diğer", style: TextStyle(color: textColor))),
+                               ],
+                               onChanged: (val) => setState(() => _selectedGender = val),
+                             ),
+                           ),
+                         ),
+                         const SizedBox(height: 16),
+
+                         // Birth Date Picker (iOS Style)
+                         InkWell(
+                           onTap: () => _showCupertinoDatePicker(context),
+                           child: Container(
+                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                             decoration: BoxDecoration(
+                               color: isDark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB),
+                               borderRadius: BorderRadius.circular(16),
+                             ),
+                             child: Row(
+                               children: [
+                                 Icon(Icons.calendar_today_rounded, size: 18, color: textColor.withOpacity(0.5)),
+                                 const SizedBox(width: 12),
+                                 Expanded(
+                                   child: Text(
+                                     _selectedBirthDate == null 
+                                         ? "Doğum Tarihi" 
+                                         : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
+                                     style: TextStyle(
+                                       color: _selectedBirthDate == null ? textColor.withOpacity(0.3) : textColor,
+                                       fontSize: 14,
+                                     ),
+                                   ),
+                                 ),
+                                 Icon(Icons.arrow_forward_ios_rounded, size: 14, color: textColor.withOpacity(0.3)),
+                               ],
+                             ),
+                           ),
+                         ),
+                         
+                         const SizedBox(height: 8),
+                         Padding(
+                           padding: const EdgeInsets.only(left: 4),
+                           child: Text(
+                             "* Kayıt olduktan sonra doğum tarihini değiştiremezsiniz.",
+                             style: TextStyle(color: primaryBrand.withOpacity(0.8), fontSize: 11, fontStyle: FontStyle.italic),
+                           ),
+                         ),
                          const SizedBox(height: 16),
                        ],
 

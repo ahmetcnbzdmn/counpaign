@@ -50,10 +50,26 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> register(String name, String surname, String phoneNumber, String email, String password) async {
+  Future<void> register({
+    required String name, 
+    required String surname, 
+    required String phoneNumber, 
+    required String email, 
+    required String password,
+    String? gender,
+    DateTime? birthDate,
+  }) async {
     _setLoading(true);
     try {
-      await _authService.register(name, surname, phoneNumber, email, password);
+      await _authService.register(
+        name: name,
+        surname: surname,
+        phoneNumber: phoneNumber,
+        email: email,
+        password: password,
+        gender: gender,
+        birthDate: birthDate,
+      );
       await fetchProfile();
     } finally {
       _setLoading(false);
@@ -67,6 +83,7 @@ class AuthProvider extends ChangeNotifier {
     String? profileImage,
     String? gender,
     DateTime? birthDate,
+    String? phoneNumber,
   }) async {
     _setLoading(true);
     try {
@@ -74,6 +91,7 @@ class AuthProvider extends ChangeNotifier {
         name: name,
         surname: surname,
         email: email,
+        phoneNumber: phoneNumber,
         profileImage: profileImage,
         gender: gender,
         birthDate: birthDate,

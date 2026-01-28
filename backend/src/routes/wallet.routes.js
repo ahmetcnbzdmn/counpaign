@@ -13,6 +13,9 @@ router.get('/explore', businessController.getAllBusinesses);
 // Get newest businesses
 router.get('/explore/newest', businessController.getNewestBusinesses);
 
+// Get specific business details
+router.get('/explore/:id', businessController.getBusinessById);
+
 // Add business to wallet
 router.post('/add', businessController.addBusinessToWallet);
 

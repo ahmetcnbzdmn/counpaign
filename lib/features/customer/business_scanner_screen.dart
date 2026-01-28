@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/api_service.dart';
+import '../../core/utils/ui_utils.dart';
 
 class BusinessScannerScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
@@ -33,12 +34,24 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
   void initState() {
     super.initState();
     final data = widget.businessData;
-    _stamps = data['stamps'] ?? 0;
-    _stampsTarget = data['stampsTarget'] ?? 6;
-    _giftsCount = data['giftsCount'] ?? 0;
-    _points = data['points'] ?? '0';
-    _businessId = data['id'] ?? '';
-    _brandColor = data['color'] ?? const Color(0xFFEE2C2C);
+    _stamps = (data['stamps'] as num?)?.toInt() ?? 0;
+    _stampsTarget = (data['stampsTarget'] as num?)?.toInt() ?? 6;
+    _giftsCount = (data['giftsCount'] as num?)?.toInt() ?? 0;
+    _points = (data['points'] ?? '0').toString();
+    _businessId = (data['id'] ?? '').toString();
+    
+    // Color check
+    if (data['color'] is Color) {
+      _brandColor = data['color'];
+    } else if (data['color'] is String) {
+      try {
+        _brandColor = Color(int.parse((data['color'] as String).replaceAll('#', '0xFF')));
+      } catch (_) {
+        _brandColor = const Color(0xFFEE2C2C);
+      }
+    } else {
+      _brandColor = const Color(0xFFEE2C2C);
+    }
   }
 
   @override
@@ -62,18 +75,18 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
           _giftsCount = result['giftsCount'];
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("İşlem Başarılı! 🎉"),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          )
+        showCustomPopup(
+          context,
+          message: "İşlem Başarılı! 🎉",
+          type: PopupType.success,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Hata: $e"), backgroundColor: Colors.red)
+        showCustomPopup(
+          context,
+          message: "$e",
+          type: PopupType.error,
         );
       }
     }
@@ -92,18 +105,18 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
           _points = result['points'].toString();
         });
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("10 Puan Eklendi! ⭐️"),
-            backgroundColor: Colors.blue,
-            behavior: SnackBarBehavior.floating,
-          )
+        showCustomPopup(
+          context,
+          message: "10 Puan Eklendi! ⭐️",
+          type: PopupType.success,
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Hata: $e"), backgroundColor: Colors.red)
+        showCustomPopup(
+          context,
+          message: "$e",
+          type: PopupType.error,
         );
       }
     }
@@ -230,38 +243,7 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
 
                   const SizedBox(height: 24),
 
-                  // [SIMULATION BUTTONS]
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _brandColor,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
-                          ),
-                          onPressed: _processScan,
-                          child: Text("Stamp (+1)", 
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            elevation: 0,
-                          ),
-                          onPressed: _addPoints,
-                          child: Text("Puan (+10)", 
-                            style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Simulation Buttons Removed
                 ],
               ),
             ),

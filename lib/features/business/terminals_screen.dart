@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/utils/ui_utils.dart';
 import '../../core/providers/business_provider.dart';
 
 class TerminalsScreen extends StatefulWidget {
@@ -46,9 +47,17 @@ class _TerminalsScreenState extends State<TerminalsScreen> {
                   passwordController.text
                 );
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Terminal oluşturuldu')));
+                showCustomPopup(
+                  context,
+                  message: 'Terminal oluşturuldu',
+                  type: PopupType.success,
+                );
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+                showCustomPopup(
+                  context,
+                  message: '$e',
+                  type: PopupType.error,
+                );
               }
             },
             child: const Text('Oluştur'),

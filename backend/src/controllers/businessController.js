@@ -241,3 +241,19 @@ exports.getTerminals = async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 };
+// Get single business by ID
+exports.getBusinessById = async (req, res) => {
+    try {
+        const business = await Business.findById(req.params.id, 'companyName category logo cardColor cardIcon settings city district neighborhood');
+        if (!business) {
+            return res.status(404).json({ message: 'İşletme bulunamadı' });
+        }
+        res.json(business);
+    } catch (err) {
+        console.error(err);
+        if (err.kind === 'ObjectId') {
+            return res.status(404).json({ message: 'İşletme bulunamadı' });
+        }
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

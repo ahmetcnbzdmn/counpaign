@@ -17,7 +17,7 @@ const customerSchema = new mongoose.Schema({
         required: true,
         unique: true,
         trim: true,
-        match: [/^[1-9][0-9]{9}$/, 'Telefon numarası 0 ile başlayamaz ve 10 hane olmalıdır.']
+        match: [/^5[0-9]{9}$/, 'Telefon numarası 5 ile başlamalı ve 10 hane olmalıdır.']
     },
     email: {
         type: String,

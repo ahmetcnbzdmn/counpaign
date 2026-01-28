@@ -44,6 +44,11 @@ class ApiService {
     return response.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> getBusinessById(String id) async {
+    final response = await _dio.get('/wallet/explore/$id');
+    return response.data as Map<String, dynamic>;
+  }
+
   Future<void> addFirm(String businessId) async {
     await _dio.post('/wallet/add', data: {'businessId': businessId});
   }

@@ -14,7 +14,7 @@ exports.register = async (req, res) => {
     try {
         console.log("👉 Register Request Body:", req.body); // DEBUG LOG
 
-        const { name, surname, phoneNumber, email, password } = req.body;
+        const { name, surname, phoneNumber, email, password, gender, birthDate } = req.body;
 
         // Check if user exists (Detail specific error)
         let existingEmail = await Customer.findOne({ email });
@@ -35,6 +35,8 @@ exports.register = async (req, res) => {
             phoneNumber,
             email,
             password,
+            gender,
+            birthDate,
             role: 'customer' // Default role
         });
 

@@ -15,11 +15,9 @@ class NotificationsScreen extends StatefulWidget {
 class _NotificationsScreenState extends State<NotificationsScreen> {
   // Store only stateful data here (ID, read status)
   // Content will be derived from LanguageProvider
-  List<Map<String, dynamic>> _notificationStates = [
-    {'id': '1', 'key': 'welcome', 'time': '2h', 'isRead': true},
-    {'id': '2', 'key': 'coffee', 'time': '1d', 'isRead': false},
-    {'id': '3', 'key': 'points', 'time': '3d', 'isRead': true},
-  ];
+  // Store only stateful data here (ID, read status)
+  // Content will be derived from LanguageProvider
+  List<Map<String, dynamic>> _notificationStates = [];
 
   void _deleteNotification(String id) {
     setState(() {
@@ -49,13 +47,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         backgroundColor: bgColor,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-          onPressed: () => context.pop(),
-        ),
         title: Text(
           lang.translate('notifications'),
-          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (_notificationStates.isNotEmpty)

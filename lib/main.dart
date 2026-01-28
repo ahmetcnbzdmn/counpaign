@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -12,9 +13,6 @@ import 'features/customer/campaigns_screen.dart';
 import 'features/customer/explore_cafes_screen.dart';
 import 'features/customer/settings_screen.dart';
 import 'features/customer/edit_profile_screen.dart';
-import 'features/business/manager_dashboard.dart';
-import 'features/business/standard_dashboard.dart';
-import 'features/business/qr_scanner_screen.dart';
 import 'features/customer/scanner_screen.dart';
 import 'features/customer/add_firm_screen.dart';
 import 'features/customer/business_detail_screen.dart';
@@ -32,12 +30,10 @@ import 'core/services/api_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/providers/auth_provider.dart';
 import 'features/auth/login_screen.dart';
+import 'features/auth/introduction_screen.dart';
 import 'features/splash/splash_screen.dart';
 
 import 'core/providers/business_provider.dart';
-import 'features/business/terminals_screen.dart';
-import 'core/providers/terminal_provider.dart';
-import 'core/providers/terminal_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/language_provider.dart';
 import 'core/providers/campaign_provider.dart';
@@ -54,7 +50,6 @@ void main() async {
   final authService = AuthService(apiService, storageService);
   final authProvider = AuthProvider(authService, storageService);
   final businessProvider = BusinessProvider(apiService);
-  final terminalProvider = TerminalProvider(apiService);
 
   await authProvider.loadUserSession();
 
@@ -63,7 +58,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider.value(value: businessProvider),
-        ChangeNotifierProvider.value(value: terminalProvider),
         ChangeNotifierProvider(create: (_) => CampaignProvider(apiService)),
         ChangeNotifierProvider(create: (_) => ParticipationProvider(apiService)),
         Provider<ApiService>.value(value: apiService),
@@ -103,8 +97,15 @@ class _CounpaignAppState extends State<CounpaignApp> {
           builder: (context, state) => const SplashScreen(),
         ),
         GoRoute(
+          path: '/intro',
+          builder: (context, state) => const IntroductionScreen(),
+        ),
+        GoRoute(
           path: '/login',
-          builder: (context, state) => const LoginScreen(),
+          builder: (context, state) {
+            final extras = state.extra as Map<String, dynamic>?;
+            return LoginScreen(initialPageIndex: extras?['pageIndex'] ?? 0);
+          },
         ),
         StatefulShellRoute(
           branches: [
@@ -140,36 +141,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
                 ),
               ],
             ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(
-                  path: '/settings',
-                  builder: (context, state) => const SettingsScreen(),
-                  routes: [
-                    GoRoute(
-                      path: 'edit-profile',
-                      builder: (context, state) => const EditProfileScreen(),
-                    ),
-                    GoRoute(
-                      path: 'my-firms',
-                      builder: (context, state) => const MyFirmsScreen(),
-                    ),
-                    GoRoute(
-                      path: 'order-history',
-                      builder: (context, state) => const OrderHistoryScreen(),
-                    ),
-                    GoRoute(
-                      path: 'my-reviews',
-                      builder: (context, state) => const MyReviewsScreen(),
-                    ),
-                    GoRoute(
-                      path: 'notifications',
-                      builder: (context, state) => const NotificationsScreen(), // New Route
-                    ),
-                  ],
-                ),
-              ],
-            ),
+
           ],
           navigatorContainerBuilder: (context, navigationShell, children) {
             return ScaffoldWithNavBar(
@@ -224,32 +196,6 @@ class _CounpaignAppState extends State<CounpaignApp> {
           },
         ),
         GoRoute(
-          path: '/business/manager',
-          builder: (context, state) => const ManagerDashboard(),
-        ),
-        GoRoute(
-          path: '/business/standard',
-          builder: (context, state) => const StandardDashboard(),
-        ),
-        GoRoute(
-          path: '/business/scanner',
-          builder: (context, state) => const QRScannerScreen(),
-        ),
-        GoRoute(
-          path: '/business/terminals',
-          builder: (context, state) => const TerminalsScreen(),
-        ),
-        GoRoute(
-          path: '/business-campaigns',
-          builder: (context, state) {
-            final extras = state.extra as Map<String, dynamic>;
-            return CampaignsScreen(
-              firmId: extras['firmId'],
-              firmName: extras['firmName'],
-            );
-          },
-        ),
-        GoRoute(
           path: '/campaign-detail',
           builder: (context, state) {
             final campaign = state.extra as CampaignModel;
@@ -260,6 +206,30 @@ class _CounpaignAppState extends State<CounpaignApp> {
           path: '/participations',
           builder: (context, state) => const ParticipationsScreen(),
         ),
+        GoRoute(
+          path: '/edit-profile',
+          builder: (context, state) => const EditProfileScreen(),
+        ),
+        GoRoute(
+          path: '/my-firms',
+          builder: (context, state) => const MyFirmsScreen(),
+        ),
+        GoRoute(
+          path: '/order-history',
+          builder: (context, state) => const OrderHistoryScreen(),
+        ),
+        GoRoute(
+          path: '/my-reviews',
+          builder: (context, state) => const MyReviewsScreen(),
+        ),
+        GoRoute(
+          path: '/notifications',
+          builder: (context, state) => const NotificationsScreen(),
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (context, state) => const SettingsScreen(),
+        ),
       ],
       redirect: (context, state) {
         // SPLASH GUARD
@@ -268,14 +238,12 @@ class _CounpaignAppState extends State<CounpaignApp> {
         // AUTH GUARD
         final isLoggedIn = authProvider.isAuthenticated;
         final isLoggingIn = state.uri.toString() == '/login';
+        final isIntro = state.uri.toString() == '/intro';
 
-        if (!isLoggedIn && !isLoggingIn) return '/login';
+        if (!isLoggedIn && !isLoggingIn && !isIntro) return '/intro';
 
-        if (isLoggedIn && isLoggingIn) {
-          // Redirect based on role
-          if (authProvider.currentUser?.role == 'business') return '/business/manager';
-          if (authProvider.currentUser?.role == 'terminal') return '/business/scanner'; // Assuming terminal goes to scanner
-          return '/home'; // Customer
+        if (isLoggedIn && (isLoggingIn || isIntro)) {
+          return '/home'; // All users go to Customer Home
         }
 
         return null;
@@ -294,6 +262,15 @@ class _CounpaignAppState extends State<CounpaignApp> {
       darkTheme: ThemeProvider.darkTheme,
       themeMode: themeProvider.themeMode,
       routerConfig: _router,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('tr', 'TR'),
+        Locale('en', 'US'),
+      ],
       builder: (context, child) {
         return GestureDetector(
           onTap: () {

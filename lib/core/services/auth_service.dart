@@ -38,7 +38,15 @@ class AuthService {
     }
   }
 
-  Future<Map<String, dynamic>> register(String name, String surname, String phoneNumber, String email, String password) async {
+  Future<Map<String, dynamic>> register({
+    required String name, 
+    required String surname, 
+    required String phoneNumber, 
+    required String email, 
+    required String password,
+    String? gender,
+    DateTime? birthDate,
+  }) async {
     try {
       final response = await _apiService.client.post(
         '/auth/register', // Unified register endpoint
@@ -48,6 +56,8 @@ class AuthService {
           'phoneNumber': phoneNumber,
           'email': email,
           'password': password,
+          'gender': gender,
+          'birthDate': birthDate?.toIso8601String(),
         },
       );
       
@@ -89,12 +99,14 @@ class AuthService {
     String? profileImage,
     String? gender,
     DateTime? birthDate,
+    String? phoneNumber,
   }) async {
     try {
       final data = <String, dynamic>{};
       if (name != null) data['name'] = name;
       if (surname != null) data['surname'] = surname;
       if (email != null) data['email'] = email;
+      if (phoneNumber != null) data['phoneNumber'] = phoneNumber;
       if (profileImage != null) data['profileImage'] = profileImage;
       if (gender != null) data['gender'] = gender;
       if (birthDate != null) data['birthDate'] = birthDate.toIso8601String();

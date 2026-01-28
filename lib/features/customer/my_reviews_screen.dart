@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/widgets/swipe_back_detector.dart';
 
 class MyReviewsScreen extends StatefulWidget {
   const MyReviewsScreen({super.key});
@@ -84,10 +85,11 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text(lang.translate('my_reviews'), style: GoogleFonts.outfit(color: textColor)),
+        title: Text(lang.translate('my_reviews'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
+        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

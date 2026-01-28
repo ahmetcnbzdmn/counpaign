@@ -122,7 +122,14 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // Watch providers for counts
     final campaignCount = context.watch<CampaignProvider>().allCampaigns.length;
-    final firmCount = context.watch<BusinessProvider>().exploreFirms.length;
+    final businessProvider = context.watch<BusinessProvider>();
+    final firmCount = businessProvider.exploreFirms.length;
+    final myFirmsCount = businessProvider.myFirms.length;
+
+    // [AUTO RE-SYNC] Force jump to 0 when first cafe is added to avoid offset mismatch
+    if (myFirmsCount > 0 && _currentIndex != 0 && !_pageController.hasClients) {
+       _currentIndex = 0;
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -177,118 +184,142 @@ class _HomeScreenState extends State<HomeScreen> {
                 // [3] EXTERNAL ACTIONS (Kafe Ekle & QR Tara - Unified Card)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Builder(
-                    builder: (context) {
+                  child: Consumer<BusinessProvider>(
+                    builder: (context, provider, child) {
                       final firms = _getFirmBalances(context);
                       
-                      // [FIX] Hide actions if we are on the "Add Cafe" card (extra card at the end)
-                      if (_currentIndex >= firms.length) {
-                        return const SizedBox.shrink();
-                      }
-
-                      // [FIX] Hide actions if "Cüzdan Boş" (Empty Wallet placeholder)
-                      if (firms[_currentIndex]['name'] == 'Cüzdan Boş') {
-                        return const SizedBox.shrink();
-                      }
-
-                      final currentColor = (firms.isNotEmpty && _currentIndex < firms.length) 
-                          ? firms[_currentIndex]['color'] as Color 
-                          : primaryBrand;
+                      // [SYNC FIX] If we went from 0 cafes to 1, or list changed, ensure we are synced
+                      final String syncKey = firms.isEmpty ? 'empty' : '${firms.length}_${firms[0]['id']}';
+                      
+                      return AnimatedBuilder(
+                        key: ValueKey('action_bar_$syncKey'),
+                        animation: _pageController,
+                        builder: (context, child) {
+                          double page = 0.0;
+                          if (_pageController.hasClients && _pageController.page != null) {
+                            page = _pageController.page!;
+                          } else {
+                            page = _currentIndex.toDouble();
+                          }
                           
-                      return Container(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [currentColor, currentColor.withOpacity(0.9)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: currentColor.withOpacity(0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            )
-                          ]
-                        ),
-                        child: Row(
-                          children: [
-                            // QR Tara (Dynamic based on visible card)
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () async {
-                                  final firms = _getFirmBalances(context, listen: false);
-                                  if (firms.isEmpty || firms[_currentIndex]['name'] == 'Cüzdan Boş') {
-                                    // Fallback to general scanner if wallet is empty
-                                    context.push('/customer-scanner');
-                                    return;
-                                  }
-                                  
-                                  final firm = firms[_currentIndex];
-                                  await context.push('/business-scanner', extra: {
-                                    'id': firm['id'],
-                                    'name': firm['name'],
-                                    'color': firm['color'],
-                                    'stamps': firm['stamps'],
-                                    'stampsTarget': firm['stampsTarget'],
-                                    'giftsCount': firm['giftsCount'],
-                                    'points': firm['points'],
-                                  });
-                                  
-                                  // Refresh data after return
-                                  if (context.mounted) {
-                                    context.read<BusinessProvider>().fetchMyFirms();
-                                  }
-                                },
-                                behavior: HitTestBehavior.opaque,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
-                                    const SizedBox(height: 8),
-                                    Text("QR Tara", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                                  ],
-                                ),
+                          int activeIndex = page.round();
+
+                          // [FIX] Hide actions if we are on the "Add Cafe" card (extra card at the end)
+                          if (activeIndex >= firms.length) {
+                            return const SizedBox.shrink();
+                          }
+
+                          // [FIX] Hide actions if "Cüzdan Boş" (Empty Wallet placeholder)
+                          if (firms[activeIndex]['name'] == 'Cüzdan Boş') {
+                            return const SizedBox.shrink();
+                          }
+
+                          final currentColor = (firms.isNotEmpty && activeIndex < firms.length) 
+                              ? firms[activeIndex]['color'] as Color 
+                              : primaryBrand;
+                              
+                          return Container(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [currentColor, currentColor.withOpacity(0.9)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: currentColor.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                )
+                              ]
                             ),
-                            
-                            // Divider
-                            Container(
-                              width: 1,
-                              height: 40,
-                              color: Colors.white.withOpacity(0.2),
-                            ),
-                            
-                                // Fırsatlar (Deals) Button
-                            Expanded(
-                              child: GestureDetector(
-                                onTap: () {
-                                  final firms = _getFirmBalances(context, listen: false);
-                                  if (firms.isEmpty || firms[_currentIndex]['name'] == 'Cüzdan Boş') return;
-                                  
-                                  final firmId = firms[_currentIndex]['id'];
-                                  final firmName = firms[_currentIndex]['name'];
-                                  
-                                  // Navigate to filtered campaigns page ("Ayrı bir sayfa olarak açsın")
-                                  context.push('/business-campaigns', extra: {
-                                    'firmId': firmId,
-                                    'firmName': firmName,
-                                  });
-                                },
-                                behavior: HitTestBehavior.opaque,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.local_offer_rounded, color: Colors.white, size: 28),
-                                    const SizedBox(height: 8),
-                                    Text("Fırsatlar", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
-                                  ],
+                            child: Row(
+                              children: [
+                                // QR Tara (Dynamic based on visible card)
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () async {
+                                      final firms = _getFirmBalances(context, listen: false);
+                                      if (firms.isEmpty || firms[activeIndex]['name'] == 'Cüzdan Boş') {
+                                        // Fallback to general scanner if wallet is empty
+                                        context.push('/customer-scanner');
+                                        return;
+                                      }
+                                      
+                                      final firm = firms[activeIndex];
+                                      await context.push('/business-scanner', extra: {
+                                        'id': firm['id'],
+                                        'name': firm['name'],
+                                        'color': firm['color'],
+                                        'stamps': firm['stamps'],
+                                        'stampsTarget': firm['stampsTarget'],
+                                        'giftsCount': firm['giftsCount'],
+                                        'points': firm['points'],
+                                      });
+                                      
+                                      // Refresh data after return
+                                      if (context.mounted) {
+                                        context.read<BusinessProvider>().fetchMyFirms();
+                                      }
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          Provider.of<LanguageProvider>(context).translate('scan_qr'), 
+                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                
+                                // Divider
+                                Container(
+                                  width: 1,
+                                  height: 40,
+                                  color: Colors.white.withOpacity(0.2),
+                                ),
+                                
+                                    // Fırsatlar (Deals) Button
+                                Expanded(
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      final firms = _getFirmBalances(context, listen: false);
+                                      if (firms.isEmpty || firms[activeIndex]['name'] == 'Cüzdan Boş') return;
+                                      
+                                      final firmId = firms[activeIndex]['id'];
+                                      final firmName = firms[activeIndex]['name'];
+                                      
+                                      // Navigate to filtered campaigns page ("Ayrı bir sayfa olarak açsın")
+                                      context.push('/business-campaigns', extra: {
+                                        'firmId': firmId,
+                                        'firmName': firmName,
+                                      });
+                                    },
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.local_offer_rounded, color: Colors.white, size: 28),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          Provider.of<LanguageProvider>(context).translate('deals'), 
+                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          );
+                        },
                       );
                     }
                   ),
@@ -299,7 +330,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 // [4] "BENTO" GRID Area (Revised Layout)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text("Keşfet", style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
+                child: Text(
+                    Provider.of<LanguageProvider>(context).translate('explore'), 
+                    style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)
+                  ),
                 ),
                 const SizedBox(height: 16),
                  
@@ -313,9 +347,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: _buildBentoCard(
                             context,
-                            color: const Color(0xFF6366F1), // Indigo
-                            title: "Fırsatlar",
-                            subtitle: "$campaignCount Aktif Kampanya",
+                            color: const Color(0xFF009688), // Teal (Matches Orange)
+                            title: Provider.of<LanguageProvider>(context).translate('deals'),
+                            subtitle: "$campaignCount ${Provider.of<LanguageProvider>(context).translate('active_campaigns')}",
                             icon: Icons.local_offer_rounded,
                             onTap: () => context.go('/campaigns'),
                           ),
@@ -324,9 +358,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Expanded(
                           child: _buildBentoCard(
                             context,
-                            color: const Color(0xFFFF4C00), // Orange
-                            title: "Kafeleri Keşfet",
-                            subtitle: "$firmCount Mekan",
+                            color: const Color(0xFFEE2C2C), // Red (Brand)
+                            title: Provider.of<LanguageProvider>(context).translate('explore_cafes'),
+                            subtitle: "$firmCount ${Provider.of<LanguageProvider>(context).translate('venues')}",
                             icon: Icons.explore_rounded,
                             onTap: () => context.push('/explore-cafes'),
                           ),
@@ -391,7 +425,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             context.read<BusinessProvider>().fetchMyFirms();
                           }
                         },
-                        child: _buildAddKafeCard(context),
+                        child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),
                       ),
                     );
                   }
@@ -423,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                       child: _buildSingleBusinessCard(
                         context,
+                        key: ValueKey('firm_card_${firm['id']}'),
                         name: firm['name'],
                         points: firm['points'],
                         value: firm['value'],
@@ -444,8 +479,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAddKafeCard(BuildContext context) {
+  Widget _buildAddKafeCard(BuildContext context, {Key? key}) {
     return Container(
+      key: key,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -516,9 +552,11 @@ class _HomeScreenState extends State<HomeScreen> {
     required int stampsTarget,
     required int giftsCount,
     required String? firmId,
+    Key? key,
   }) {
     // Credit Card Design
     return Container(
+      key: key,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -776,46 +814,47 @@ class _HomeScreenState extends State<HomeScreen> {
     bool isSmall = false,
     VoidCallback? onTap,
   }) {
-    final theme = Theme.of(context);
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    
+    // Premium Design: Gradient + Background Icon + Shadow
     return GestureDetector(
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-           color: cardColor,
            borderRadius: BorderRadius.circular(24),
-           border: Border.all(color: textColor.withOpacity(0.05)),
+           gradient: LinearGradient(
+             colors: [color, color.withOpacity(0.8)],
+             begin: Alignment.topLeft,
+             end: Alignment.bottomRight,
+           ),
+           boxShadow: [
+             BoxShadow(
+               color: color.withOpacity(0.35),
+               blurRadius: 15,
+               offset: const Offset(0, 8),
+             )
+           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              // Background Glow (Subtle)
+              // Background Giant Icon
               Positioned(
-                right: -30,
-                bottom: -30,
-                child: Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.15),
-                        blurRadius: 60,
-                        spreadRadius: 20,
-                      )
-                    ],
+                right: -20,
+                bottom: -20,
+                child: Transform.rotate(
+                  angle: -0.2, // Slight tilt
+                  child: Icon(
+                    icon,
+                    size: 100,
+                    color: Colors.white.withOpacity(0.15),
                   ),
                 ),
               ),
               
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(16.0),
                 child: isHorizontal 
-                  ? Row( // HORIZONTAL LAYOUT (For Map)
+                  ? Row( // HORIZONTAL LAYOUT
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -823,47 +862,67 @@ class _HomeScreenState extends State<HomeScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13)),
+                            Text(
+                              subtitle, 
+                              style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.w500)
+                            ),
                             const SizedBox(height: 4),
-                            Text(title, style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
+                            Text(
+                              title, 
+                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
+                            ),
                           ],
                         ),
-                        // Big Icon on Right
+                        // Icon Circle
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: Colors.white.withOpacity(0.2),
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                           ),
-                          child: Icon(icon, color: color, size: 32),
+                          child: Icon(icon, color: Colors.white, size: 28),
                         ),
                       ],
                     )
-                  : Column( // VERTICAL LAYOUT (For Square Cards)
+                  : Column( // VERTICAL LAYOUT
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Icon Top Left
+                        // Icon Circle
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: Colors.white.withOpacity(0.2), // Frosted glass effect
                             shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
                           ),
-                          child: Icon(icon, color: color, size: 28),
+                          child: Icon(icon, color: Colors.white, size: 24),
                         ),
-                        // Text Bottom Left
+                        const SizedBox(height: 8),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            FittedBox( 
-                              fit: BoxFit.scaleDown,
-                              child: Text(title, style: GoogleFonts.outfit(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                            Text(
+                              title,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                height: 1.1,
+                              ),
                             ),
-                            const SizedBox(height: 6),
-                            Text(subtitle, style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13)),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              style: GoogleFonts.outfit(
+                                color: Colors.white.withOpacity(0.85),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ],
-                        )
+                        ),
                       ],
                     ),
               ),
@@ -873,6 +932,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
 
   void _showDealsModal(BuildContext context, String firmId, String firmName) {
     showModalBottomSheet(
@@ -1058,10 +1118,10 @@ class HomeHeader extends StatelessWidget {
       try {
         imageProvider = MemoryImage(base64Decode(user!.profileImage!));
       } catch (e) {
-        imageProvider = const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200');
+        imageProvider = const AssetImage('assets/images/default_profile.png');
       }
     } else {
-      imageProvider = const NetworkImage('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=200');
+      imageProvider = const AssetImage('assets/images/default_profile.png');
     }
 
     return Row(
@@ -1080,7 +1140,7 @@ class HomeHeader extends StatelessWidget {
           ),
         ),
         GestureDetector(
-          onTap: () => context.go('/settings'),
+          onTap: () => context.push('/settings'),
           child: Container(
             width: 50,
             height: 50,
