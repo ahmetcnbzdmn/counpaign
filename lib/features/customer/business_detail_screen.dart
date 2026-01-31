@@ -35,6 +35,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   bool _isAddingLoading = false;
 
   bool _isNew = false;
+  String? _address;
 
   @override
   void initState() {
@@ -46,6 +47,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _points = (data['points'] ?? '0').toString();
     _businessId = data['id'] ?? '';
     _isNew = data['isNew'] ?? false;
+    
+    // Format Address
+    final city = data['city'] ?? '';
+    final district = data['district'] ?? '';
+    final neighborhood = data['neighborhood'] ?? '';
+    List<String> parts = [];
+    if (neighborhood.toString().isNotEmpty) parts.add(neighborhood.toString());
+    if (district.toString().isNotEmpty) parts.add(district.toString());
+    if (city.toString().isNotEmpty) parts.add(city.toString());
+    _address = parts.isNotEmpty ? parts.join(', ') : null;
 
     // Fetch campaigns for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -479,91 +490,115 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _showSpendQRDialog,
-                      child: Container(
-                        height: 100,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: brandColor, // Dynamic Brand Color
-                          borderRadius: BorderRadius.circular(20),
+                  if (_address != null) ...[
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_rounded, size: 16, color: brandColor.withOpacity(0.7)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            _address!,
+                            style: GoogleFonts.outfit(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showSpendQRDialog,
+                          child: Container(
+                            height: 100,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: brandColor, // Dynamic Brand Color
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    "QR Okut", 
-                                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        "QR Okut", 
+                                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.stars_rounded, color: Colors.white),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.stars_rounded, color: Colors.white),
+                                Row(
+                                  children: [
+                                    Text("Hediyelerini harca", style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
+                                  ],
+                                )
                               ],
                             ),
-                            Row(
-                              children: [
-                                Text("Hediyelerini harca", style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
-                              ],
-                            )
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: _showHistoryBottomSheet,
-                      child: Container(
-                        height: 100,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: brandColor, // Dynamic Brand Color
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: _showHistoryBottomSheet,
+                          child: Container(
+                            height: 100,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: brandColor, // Dynamic Brand Color
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.start, // Align icon to top
                               children: [
-                                Expanded(
-                                  child: Text(
-                                    lang.translate('order_history').replaceFirst(' ', '\n'), 
-                                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.start, // Align icon to top
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        lang.translate('order_history').replaceFirst(' ', '\n'), 
+                                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.history, color: Colors.white),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.history, color: Colors.white),
+                                Row(
+                                  children: [
+                                    Text(lang.translate('all'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12)),
+                                    const SizedBox(width: 4),
+                                    const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 10),
+                                  ],
+                                )
                               ],
                             ),
-                            Row(
-                              children: [
-                                Text(lang.translate('all'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12)),
-                                const SizedBox(width: 4),
-                                const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 10),
-                              ],
-                            )
-                          ],
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -753,7 +788,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               if (campaign.headerImage != null)
                 Positioned.fill(
                   child: Image.network(
-                    campaign.headerImage!,
+                    resolveImageUrl(campaign.headerImage)!,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(color: color.withOpacity(0.1)),
                   ),

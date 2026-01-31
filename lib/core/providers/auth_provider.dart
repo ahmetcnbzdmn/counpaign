@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
@@ -17,16 +18,24 @@ class AuthProvider extends ChangeNotifier {
 
   AuthProvider(this._authService, this._storageService);
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   Future<void> loadUserSession() async {
     final token = await _storageService.getToken();
     if (token != null) {
       try {
         await fetchProfile();
       } catch (e) {
-        // If fetch fails (token expired), clear session
+        print("Session Load Error: $e");
+        // If fetch fails (token expired or net error), clear session
+        // But don't block app start. If net error, user might still want to see cached data?
+        // For now, logout on error implies "Require Login".
         await logout();
       }
     }
+    _isInitialized = true;
+    notifyListeners();
   }
 
   Future<void> fetchProfile() async {

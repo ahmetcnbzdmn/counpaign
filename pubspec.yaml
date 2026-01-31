@@ -27,7 +27,7 @@ dependencies:
   
   # QR Codes
   qr_flutter: ^4.1.0       # For displaying QR
-  mobile_scanner: ^5.2.3   # For scanning QR
+  mobile_scanner: ^6.0.2   # For scanning QR (updated for Firebase compatibility)
   
   # Analytics/Charts
   fl_chart: ^0.66.0
@@ -41,6 +41,10 @@ dependencies:
   shake: ^3.0.0
   vibration: ^3.1.5
   translator: ^1.0.4+1
+  
+  # Firebase (Updated for Xcode 26.2 compatibility)
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
 
 dev_dependencies:
   flutter_test:

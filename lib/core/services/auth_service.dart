@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
+import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
 
@@ -11,29 +13,25 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
     try {
-      final response = await _apiService.client.post(
-        '/auth/login', // Unified login endpoint
-        data: {
-          'phoneNumber': phoneNumber,
-          'password': password,
-        },
+      // Map phone to internal email for Firebase
+      final email = "$phoneNumber@counpaign.local";
+      
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
       );
       
-      final token = response.data['token'];
-      final user = response.data['user'];
+      final user = userCredential.user;
+      if (user != null) {
+        final token = await user.getIdToken();
+        if (token != null) {
+          await _storageService.saveToken(token);
+        }
+      }
       
-      if (token != null) {
-        await _storageService.saveToken(token);
-        // Default to customer role if not provided, or get from backend
-        final role = user != null ? user['role'] : 'customer';
-        await _storageService.saveRole(role ?? 'customer');
-      }
-      return response.data;
+      return {'user': user};
     } catch (e) {
-      if (e is DioException) {
-         // Log the real backend error for debugging
-         print("Backend Error: ${e.response?.data ?? e.message}");
-      }
+      print("Firebase Login Error: $e");
       rethrow;
     }
   }
@@ -48,8 +46,21 @@ class AuthService {
     DateTime? birthDate,
   }) async {
     try {
+      // 1. Register in Firebase
+      final internalEmail = "$phoneNumber@counpaign.local";
+      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: internalEmail,
+        password: password,
+      );
+
+      final user = userCredential.user;
+      if (user != null) {
+        await user.updateDisplayName("$name $surname");
+      }
+
+      // 2. Register in Custom Backend (MongoDB)
       final response = await _apiService.client.post(
-        '/auth/register', // Unified register endpoint
+        '/auth/register',
         data: {
           'name': name,
           'surname': surname,
@@ -58,20 +69,18 @@ class AuthService {
           'password': password,
           'gender': gender,
           'birthDate': birthDate?.toIso8601String(),
+          'firebaseUid': user?.uid, // Added UID for linking if needed later
         },
       );
       
-      // Auto login after register
       final token = response.data['token'];
       if (token != null) {
         await _storageService.saveToken(token);
-        await _storageService.saveRole('customer'); // Default role
       }
+      
       return response.data;
     } catch (e) {
-       if (e is DioException) {
-         print("Backend Error: ${e.response?.data ?? e.message}");
-      }
+       print("Dual Register Error: $e");
       rethrow;
     }
   }
@@ -87,6 +96,7 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
          print("Backend Error: ${e.response?.data ?? e.message}");
+         print("Request URI: ${e.requestOptions.uri}");
       }
       rethrow;
     }

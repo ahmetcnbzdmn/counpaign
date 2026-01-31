@@ -1,5 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../config/api_config.dart';
+
+String? resolveImageUrl(String? path) {
+  if (path == null || path.isEmpty) return null;
+  if (path.startsWith('http')) return path;
+  if (path.startsWith('/')) {
+    final base = ApiConfig.baseUrl.replaceAll('/api', '');
+    return '$base$path';
+  }
+  return path;
+}
+
 
 enum PopupType { success, error, info }
 
@@ -69,52 +81,57 @@ void showCustomPopup(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             contentPadding: EdgeInsets.zero,
             content: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: primaryColor.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: primaryColor, size: 48),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    title ?? defaultTitle,
-                    style: GoogleFonts.outfit(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: theme.textTheme.bodyLarge?.color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    cleanedMessage,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
-                      fontSize: 14,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: type == PopupType.error ? const Color(0xFFEE2C2C) : theme.primaryColor,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 0,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Icon(icon, color: primaryColor, size: 48),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                    Text(
+                      title ?? defaultTitle,
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textTheme.bodyLarge?.color,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      cleanedMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: type == PopupType.error ? const Color(0xFFEE2C2C) : theme.primaryColor,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          elevation: 0,
+                        ),
+                        child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

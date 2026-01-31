@@ -130,7 +130,7 @@ class CampaignDetailScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             campaign.headerImage != null
-                ? Image.network(campaign.headerImage!, fit: BoxFit.cover)
+                ? Image.network(resolveImageUrl(campaign.headerImage)!, fit: BoxFit.cover)
                 : Container(color: accentColor),
             // Gradient to help transition
             Positioned.fill(

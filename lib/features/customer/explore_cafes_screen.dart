@@ -46,6 +46,23 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     }
   }
 
+  String _formatAddress(dynamic business) {
+    final city = business['city'] ?? '';
+    final district = business['district'] ?? '';
+    final neighborhood = business['neighborhood'] ?? '';
+    
+    List<String> parts = [];
+    if (neighborhood.isNotEmpty) parts.add(neighborhood);
+    if (district.isNotEmpty) parts.add(district);
+    if (city.isNotEmpty) parts.add(city);
+    
+    if (parts.isEmpty) {
+      return context.read<LanguageProvider>().translate('no_address');
+    }
+    
+    return parts.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -219,7 +236,10 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               'value': '0.00',
               'color': color,
               'icon': icon,
-              'isNew': true, // Correct, since this list is filtered to only show NEW ones
+              'city': business['city'],
+              'district': business['district'],
+              'neighborhood': business['neighborhood'],
+              'isNew': true, 
             };
             
             context.push('/business-detail', extra: detailData);
@@ -256,7 +276,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        business['address'] ?? lang.translate('no_address'),
+                        _formatAddress(business),
                         style: GoogleFonts.outfit(
                           color: textColor.withOpacity(0.5),
                           fontSize: 13,
@@ -314,6 +334,9 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
             'value': '0.00',
             'color': color,
             'icon': icon,
+            'city': firm['city'],
+            'district': firm['district'],
+            'neighborhood': firm['neighborhood'],
             'isNew': isNew, 
          };
          context.push('/business-detail', extra: detailData);

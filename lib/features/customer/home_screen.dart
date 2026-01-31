@@ -63,6 +63,9 @@ class _HomeScreenState extends State<HomeScreen> {
       'value': e['value']?.toString() ?? '0.00',
       'color': _parseColor(e['cardColor']),
       'icon': _parseIcon(e['cardIcon']),
+      'city': e['city'],
+      'district': e['district'],
+      'neighborhood': e['neighborhood'],
     }).toList();
 
     if (mapped.isEmpty) {
@@ -448,6 +451,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           'value': firm['value'],
                           'color': firm['color'],
                           'icon': firm['icon'], 
+                          'city': firm['city'],
+                          'district': firm['district'],
+                          'neighborhood': firm['neighborhood'],
                         });
 
                         // [SYNC FIX] Refresh data when returning from detail

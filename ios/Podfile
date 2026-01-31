@@ -1,4 +1,4 @@
-platform :ios, '14.0'
+platform :ios, '15.5'
 
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
@@ -42,8 +42,68 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
-      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'arm64'
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+      
+      # Fix C++ language standard for Xcode 26.2 compatibility
+      config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+      
+      # Specific fix for BoringSSL-GRPC's unsupported -G flag with Xcode 26
+      # The issue is that GCC_WARN_INHIBIT_ALL_WARNINGS is being formatted incorrectly
+      if target.name == 'BoringSSL-GRPC'
+        puts "Fixing BoringSSL-GRPC compiler flags for Xcode 26 compatibility..."
+        # Remove the problematic GCC_WARN_INHIBIT_ALL_WARNINGS setting
+        config.build_settings.delete('GCC_WARN_INHIBIT_ALL_WARNINGS')
+        # Also ensure OTHER_CFLAGS doesn't contain -G
+        if config.build_settings['OTHER_CFLAGS']
+          config.build_settings['OTHER_CFLAGS'] = config.build_settings['OTHER_CFLAGS'].reject { |flag|
+            flag.to_s.match?(/^-G(CC_WARN_INHIBIT_ALL_WARNINGS)?$/) || flag.to_s.strip == '-G'
+          }
+        end
+      end
+      
+      # Comprehensive fix for "unsupported option '-G'" error
+      # Remove -G flag from all compiler flag settings
+      ['OTHER_CFLAGS', 'OTHER_CPLUSPLUSFLAGS', 'WARNING_CFLAGS', 'GCC_PREPROCESSOR_DEFINITIONS'].each do |key|
+        current_flags = config.build_settings[key]
+        
+        next if current_flags.nil?
+        
+        if current_flags.is_a?(String)
+          # Remove -G with various spacing patterns
+          new_flags = current_flags.gsub(/\s*-G\s+/, ' ').gsub(/\s+-G$/, '').gsub(/^-G\s*/, '').gsub(/\s+-G\s+/, ' ')
+          config.build_settings[key] = new_flags.strip
+        elsif current_flags.is_a?(Array)
+          config.build_settings[key] = current_flags.reject { |f| f.to_s.strip == '-G' || f.to_s.match?(/^-G\s/) }
+        end
+      end
+      
+      # Ensure we're not using any legacy or incompatible compiler settings
+      config.build_settings.delete('GCC_OPTIMIZATION_LEVEL') if config.build_settings['GCC_OPTIMIZATION_LEVEL'] == '-G'
+    end
+  end
+  
+  # Also fix xcconfig files directly
+  puts "Removing -G flags from xcconfig files..."
+  Dir.glob(File.join(installer.sandbox.root, 'Target Support Files/**/*.xcconfig')).each do |xcconfig_path|
+    content = File.read(xcconfig_path)
+    modified_content = content.gsub(/\s*-G\s+/, ' ').gsub(/\s+-G$/, '').gsub(/^-G\s*/, '').gsub(/\s+-G\s+/, ' ')
+    # Also remove -GCC_WARN_INHIBIT_ALL_WARNINGS if it appears
+    modified_content = modified_content.gsub(/-GCC_WARN_INHIBIT_ALL_WARNINGS/, '')
+    if content != modified_content
+      puts "  Modified: #{File.basename(xcconfig_path)}"
+      File.write(xcconfig_path, modified_content)
+    end
+  end
+  
+  # Fix the Pods project file directly to remove -GCC_WARN_INHIBIT_ALL_WARNINGS
+  puts "Fixing Pods project file..."
+  project_path = File.join(installer.sandbox.root, 'Pods.xcodeproj/project.pbxproj')
+  if File.exist?(project_path)
+    content = File.read(project_path)
+    modified_content = content.gsub(/-GCC_WARN_INHIBIT_ALL_WARNINGS/, '')
+    if content != modified_content
+      puts "  Removed -GCC_WARN_INHIBIT_ALL_WARNINGS from Pods.xcodeproj"
+      File.write(project_path, modified_content)
     end
   end
 end

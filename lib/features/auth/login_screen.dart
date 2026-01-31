@@ -271,7 +271,12 @@ class _LoginScreenState extends State<LoginScreen> {
                        const SizedBox(height: 16),
 
                        if (_activePageIndex == 1) ...[
-                         _buildModernTextField(controller: _emailController, hint: 'E-posta', icon: Icons.alternate_email, keyboardType: TextInputType.emailAddress),
+                         _buildModernTextField(
+                           controller: _emailController, 
+                           hint: 'E-posta Adresi', 
+                           icon: Icons.alternate_email_rounded,
+                           keyboardType: TextInputType.emailAddress,
+                         ),
                          const SizedBox(height: 16),
                          
                          // Gender Selection (Vertical)

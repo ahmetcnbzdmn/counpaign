@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1151855697",
+    "project_id": "counpaign-c1ec6",
+    "storage_bucket": "counpaign-c1ec6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1151855697:android:7eb8836bc393090a1e1c70",
+        "android_client_info": {
+          "package_name": "com.ahmetcan.counpaign"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdMCqvnnnDTntvw8f7PLLJFYF8gXCxuz4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

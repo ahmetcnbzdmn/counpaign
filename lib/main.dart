@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:go_router/go_router.dart';
@@ -28,7 +31,7 @@ import 'core/models/campaign_model.dart';
 import 'core/services/storage_service.dart';
 import 'core/services/api_service.dart';
 import 'core/services/auth_service.dart';
-import 'core/providers/auth_provider.dart';
+import 'core/providers/auth_provider.dart' as app;
 import 'features/auth/login_screen.dart';
 import 'features/auth/introduction_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -41,6 +44,9 @@ import 'core/providers/participation_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
@@ -48,15 +54,16 @@ void main() async {
   final storageService = StorageService();
   final apiService = ApiService(storageService);
   final authService = AuthService(apiService, storageService);
-  final authProvider = AuthProvider(authService, storageService);
+  final authProvider = app.AuthProvider(authService, storageService);
   final businessProvider = BusinessProvider(apiService);
 
-  await authProvider.loadUserSession();
+  // Don't await here! It blocks runApp if network is slow/down.
+  authProvider.loadUserSession();
 
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider<app.AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider.value(value: businessProvider),
         ChangeNotifierProvider(create: (_) => CampaignProvider(apiService)),
         ChangeNotifierProvider(create: (_) => ParticipationProvider(apiService)),
@@ -83,7 +90,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
   @override
   void initState() {
     super.initState();
-    final authProvider = context.read<AuthProvider>();
+    final authProvider = context.read<app.AuthProvider>();
     
     _router = GoRouter(
       initialLocation: '/', // Start at Splash
@@ -236,6 +243,8 @@ class _CounpaignAppState extends State<CounpaignApp> {
         if (state.uri.toString() == '/') return null; // Allow splash
 
         // AUTH GUARD
+        if (!authProvider.isInitialized) return null; // Wait for initialization (Stay on Splash)
+
         final isLoggedIn = authProvider.isAuthenticated;
         final isLoggingIn = state.uri.toString() == '/login';
         final isIntro = state.uri.toString() == '/intro';

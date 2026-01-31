@@ -47,6 +47,19 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     _saveOrder(newOrder); 
   }
 
+  String _formatAddress(dynamic business) {
+    final city = business['city'] ?? '';
+    final district = business['district'] ?? '';
+    final neighborhood = business['neighborhood'] ?? '';
+    
+    List<String> parts = [];
+    if (neighborhood != null && neighborhood.toString().isNotEmpty) parts.add(neighborhood.toString());
+    if (district != null && district.toString().isNotEmpty) parts.add(district.toString());
+    if (city != null && city.toString().isNotEmpty) parts.add(city.toString());
+    
+    return parts.join(', ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -286,7 +299,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                         style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        firm['category'] ?? '',
+                        "${firm['category'] ?? ''}${_formatAddress(firm).isNotEmpty ? ' • ${_formatAddress(firm)}' : ''}",
                         style: GoogleFonts.outfit(color: textColor.withOpacity(0.7)),
                       ),
                       trailing: Icon(Icons.drag_handle_rounded, color: textColor.withOpacity(0.3)),

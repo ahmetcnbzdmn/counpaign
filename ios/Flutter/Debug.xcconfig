@@ -3,3 +3,5 @@
 SUPPORTED_PLATFORMS = iphoneos iphonesimulator
 SUPPORTS_MACCATALYST = NO
 SUPPORTS_MAC_DESIGNED_FOR_IPAD = NO
+// Override Flutter's EXCLUDED_ARCHS to support arm64 simulator on Apple Silicon
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386
