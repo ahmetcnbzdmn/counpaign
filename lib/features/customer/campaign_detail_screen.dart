@@ -10,6 +10,7 @@ import '../../core/providers/participation_provider.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/providers/language_provider.dart';
 
 class CampaignDetailScreen extends StatelessWidget {
   final CampaignModel campaign;
@@ -251,8 +252,10 @@ class CampaignDetailScreen extends StatelessWidget {
                         _buildInfoItem(
                           context,
                           Icons.stars_rounded,
-                          "Ödül", // This will be handled inside _buildInfoItem
-                          campaign.rewardType == 'points' ? "+${campaign.rewardValue} Puan" : "Kahve", // Partial dynamic
+                          Provider.of<LanguageProvider>(context).translate('reward_label'), // Add key
+                          campaign.rewardType == 'points' 
+                              ? "+${campaign.rewardValue} ${Provider.of<LanguageProvider>(context).translate('points_reward')}" 
+                              : Provider.of<LanguageProvider>(context).translate('coffee_reward'),
                           accentColor,
                         ),
                         Padding(
@@ -262,7 +265,7 @@ class CampaignDetailScreen extends StatelessWidget {
                         _buildInfoItem(
                           context,
                           Icons.calendar_today_rounded,
-                          "Son Tarih",
+                          Provider.of<LanguageProvider>(context).translate('date_label'), // Add key
                           DateFormat('dd.MM.yyyy').format(campaign.endDate),
                           Colors.blueAccent,
                         ),
@@ -271,18 +274,18 @@ class CampaignDetailScreen extends StatelessWidget {
                   ),
               
               const SizedBox(height: 40),
-              _buildSectionTitle("Kampanya Hakkında"),
+              _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('about_campaign')),
               const SizedBox(height: 12),
               AutoText(
                 campaign.content,
                 style: GoogleFonts.outfit(fontSize: 15, color: textColor.withOpacity(0.7), height: 1.6),
               ),
               const SizedBox(height: 32),
-              _buildSectionTitle("Nasıl Faydalanırım?"),
+              _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('how_to_use')),
               const SizedBox(height: 12),
-              _buildStepItem(1, "Hemen Katıl butonuna basıp kampanyaya dahil ol."),
-              _buildStepItem(2, "QR kodunla ödemeni tamamla."),
-              _buildStepItem(3, "Kazandığın ödülleri anında cüzdanında gör."),
+              _buildStepItem(1, Provider.of<LanguageProvider>(context).translate('step_1')),
+              _buildStepItem(2, Provider.of<LanguageProvider>(context).translate('step_2')),
+              _buildStepItem(3, Provider.of<LanguageProvider>(context).translate('step_3')),
             ],
           ),
         ),

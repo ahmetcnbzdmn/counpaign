@@ -69,8 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
 
     if (mapped.isEmpty) {
+        // Need context to access provider for translation
+        final lang = Provider.of<LanguageProvider>(context, listen: false);
        return [{
-         'name': 'Cüzdan Boş',
+         'name': lang.translate('wallet_empty'),
          'points': '0',
          'value': '0.00',
          'color': Colors.grey,
@@ -213,7 +215,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
 
                           // [FIX] Hide actions if "Cüzdan Boş" (Empty Wallet placeholder)
-                          if (firms[activeIndex]['name'] == 'Cüzdan Boş') {
+                          final lang = context.read<LanguageProvider>();
+                          if (firms[activeIndex]['name'] == lang.translate('wallet_empty')) {
                             return const SizedBox.shrink();
                           }
 
@@ -294,7 +297,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: GestureDetector(
                                     onTap: () {
                                       final firms = _getFirmBalances(context, listen: false);
-                                      if (firms.isEmpty || firms[activeIndex]['name'] == 'Cüzdan Boş') return;
+                                      final lang = context.read<LanguageProvider>();
+                                      if (firms.isEmpty || firms[activeIndex]['name'] == lang.translate('wallet_empty')) return;
                                       
                                       final firmId = firms[activeIndex]['id'];
                                       final firmName = firms[activeIndex]['name'];
@@ -439,7 +443,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: GestureDetector(
                       onTap: () async {
                         // Don't navigate if it's the "Empty Wallet" placeholder
-                        if (firm['name'] == 'Cüzdan Boş') return;
+                        final lang = context.read<LanguageProvider>();
+                        if (firm['name'] == lang.translate('wallet_empty')) return;
                         
                         await context.push('/business-detail', extra: {
                           'id': firm['id'],
@@ -486,6 +491,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildAddKafeCard(BuildContext context, {Key? key}) {
+    final lang = Provider.of<LanguageProvider>(context);
     return Container(
       key: key,
       width: double.infinity,
@@ -523,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  "Yeni Kafe Ekle",
+                  lang.translate('new_cafe_add'),
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontSize: 20,
@@ -532,7 +538,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  "Kampanyalara katılmak için\nkodu okut veya gir",
+                  lang.translate('scan_or_enter_code'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.8),

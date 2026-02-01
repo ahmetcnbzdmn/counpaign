@@ -5,6 +5,7 @@ import '../../core/services/api_service.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/providers/language_provider.dart';
 
 class MyFirmsScreen extends StatefulWidget {
   const MyFirmsScreen({super.key});
@@ -32,7 +33,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     } catch (e) {
       showCustomPopup(
         context,
-        message: 'Sıralama kaydedilemedi: $e',
+        message: '${Provider.of<LanguageProvider>(context, listen: false).translate('error_reorder')}: $e',
         type: PopupType.error,
       );
     }
@@ -73,7 +74,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        title: Text('Eklenen Dükkanlar', style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(Provider.of<LanguageProvider>(context).translate('my_firms_title'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
@@ -134,17 +135,17 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                         backgroundColor: cardColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                         title: Text(
-                          'Mağazayı Sil', 
+                          Provider.of<LanguageProvider>(context, listen: false).translate('delete_firm_title'), 
                           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)
                         ),
                         content: Text(
-                          'Bu Mağazayı Silmeniz Durumunda Kazandığınız Puanlar Silinecektir.\n\nOnaylıyor musunuz?',
+                          Provider.of<LanguageProvider>(context, listen: false).translate('delete_firm_content'),
                           style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 16),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(false),
-                            child: Text('Vazgeç', style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
+                            child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
                           ),
                           Container(
                             decoration: BoxDecoration(
@@ -153,7 +154,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                             ),
                             child: TextButton(
                               onPressed: () => Navigator.of(context).pop(true),
-                              child: Text('Evet, Sil', style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold)),
+                              child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('yes_delete'), style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold)),
                             ),
                           ),
                         ],
@@ -180,7 +181,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                               backgroundColor: cardColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                               title: Text(
-                                'Güvenlik Doğrulaması', 
+                                Provider.of<LanguageProvider>(context, listen: false).translate('security_verification'), 
                                 style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)
                               ),
                               content: Column(
@@ -188,7 +189,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'İşlemi tamamlamak için lütfen şifrenizi giriniz.',
+                                    Provider.of<LanguageProvider>(context, listen: false).translate('enter_password_msg'),
                                     style: GoogleFonts.outfit(color: textColor.withOpacity(0.8)),
                                   ),
                                   const SizedBox(height: 20),
@@ -197,7 +198,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                     obscureText: true,
                                     style: GoogleFonts.outfit(color: textColor),
                                     decoration: InputDecoration(
-                                      hintText: 'Şifreniz',
+                                      hintText: Provider.of<LanguageProvider>(context, listen: false).translate('your_password'),
                                       hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
                                       filled: true,
                                       fillColor: bgColor,
@@ -215,7 +216,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                               actions: [
                                 TextButton(
                                   onPressed: isLoading ? null : () => Navigator.of(context).pop(false),
-                                  child: Text('İptal', style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
+                                  child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
                                 ),
                                 isLoading 
                                 ? const Padding(
@@ -249,14 +250,14 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                       setState(() {
                                         isLoading = false;
                                         if (e.toString().contains('401') || e.toString().contains('Şifre hatalı')) {
-                                          errorText = 'Şifreniz yanlış.';
+                                          errorText = Provider.of<LanguageProvider>(context, listen: false).translate('wrong_password');
                                         } else {
-                                          errorText = 'Bir hata oluştu.';
+                                          errorText = Provider.of<LanguageProvider>(context, listen: false).translate('error');
                                         }
                                       });
                                     }
                                   },
-                                  child: Text('Onayla', style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('confirm'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             );
@@ -268,7 +269,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     if (deleted == true) {
                       showCustomPopup(
                         context,
-                        message: 'Mağaza başarıyla silindi.',
+                        message: Provider.of<LanguageProvider>(context, listen: false).translate('firm_deleted_success'),
                         type: PopupType.success,
                       );
                       return true; // Item dismissed
@@ -299,7 +300,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                         style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        "${firm['category'] ?? ''}${_formatAddress(firm).isNotEmpty ? ' • ${_formatAddress(firm)}' : ''}",
+                        "${firm['category'] ?? Provider.of<LanguageProvider>(context).translate('general')}${_formatAddress(firm).isNotEmpty ? ' • ${_formatAddress(firm)}' : ''}",
                         style: GoogleFonts.outfit(color: textColor.withOpacity(0.7)),
                       ),
                       trailing: Icon(Icons.drag_handle_rounded, color: textColor.withOpacity(0.3)),

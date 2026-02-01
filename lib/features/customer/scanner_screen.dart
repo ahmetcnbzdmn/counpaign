@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/providers/participation_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
+import '../../core/providers/language_provider.dart';
 
 class CustomerScannerScreen extends StatefulWidget {
   final Map<String, dynamic>? extra; // To accept expectedBusinessId etc.
@@ -103,13 +104,13 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                    const CircularProgressIndicator(color: Color(0xFFEE2C2C)),
                    const SizedBox(height: 24),
                    Text(
-                     "İşletme Onayı Bekleniyor...",
+                     Provider.of<LanguageProvider>(context, listen: false).translate('waiting_approval'),
                      textAlign: TextAlign.center,
                      style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
                    ),
                    const SizedBox(height: 8),
                    Text(
-                     "Lütfen kasiyerin işlemi onaylamasını bekleyin.",
+                     Provider.of<LanguageProvider>(context, listen: false).translate('waiting_approval_msg'),
                      textAlign: TextAlign.center,
                      style: GoogleFonts.outfit(color: Colors.grey),
                    ),
@@ -158,7 +159,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          if (mounted) {
             await showCustomPopup(
               context,
-              message: "İşlem Onaylandı! 🎉",
+              message: Provider.of<LanguageProvider>(context, listen: false).translate('approved'),
               type: PopupType.success,
             );
          }
@@ -168,7 +169,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          if (mounted) {
             await showCustomPopup(
               context,
-              message: "Zaman aşımı. Lütfen tekrar deneyin veya kasiyere danışın.",
+              message: Provider.of<LanguageProvider>(context, listen: false).translate('timeout_msg'),
               type: PopupType.error,
             );
          }
@@ -178,19 +179,19 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
     } catch (e) {
       if (!mounted) return;
       
-      String errorMessage = "QR Okuma Hatası";
+      String errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('scan_error_title');
       
       // Improved Error Handling
       if (e.toString().contains("FIRM_MISMATCH")) {
-          errorMessage = "Hatalı İşletme!\nBeklenen: $_expectedBusinessName";
+          errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('firm_mismatch_error')}$_expectedBusinessName";
       } else if (e.toString().contains("404") || e.toString().contains("Invalid or expired")) {
-         errorMessage = "Bu QR kodun süresi dolmuş veya geçersiz.";
+         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('expired_qr_error');
       } else if (e.toString().contains("400")) { 
-         errorMessage = "Hatalı QR kodu.";
+         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('invalid_qr_error');
       } else if (e.toString().contains("401")) {
-         errorMessage = "Oturum hatası. Lütfen tekrar giriş yapın.";
+         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('session_error');
       } else {
-         errorMessage = "Hata: $e";
+         errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('error')}: $e";
       }
 
       showCustomPopup(
@@ -232,7 +233,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                     const Icon(Icons.error_outline, color: Colors.white, size: 48),
                     const SizedBox(height: 16),
                     Text(
-                      'Kamera Hatası: ${error.errorCode}',
+                      '${Provider.of<LanguageProvider>(context).translate('camera_error')}: ${error.errorCode}',
                       style: const TextStyle(color: Colors.white),
                     ),
                   ],
@@ -292,7 +293,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                     
                     // Title
                     Text(
-                      "QR TARA",
+                      Provider.of<LanguageProvider>(context).translate('scan_qr_title'),
                       style: GoogleFonts.outfit(
                         color: Colors.white,
                         fontSize: 18,
@@ -355,7 +356,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                              crossAxisAlignment: CrossAxisAlignment.start,
                              children: [
                                Text(
-                                 _expectedBusinessName ?? "İşletme", 
+                                 _expectedBusinessName ?? Provider.of<LanguageProvider>(context).translate('unknown_business'), 
                                  style: GoogleFonts.outfit(
                                    color: Colors.black, 
                                    fontSize: 20, 
@@ -363,7 +364,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                                  )
                                ),
                                Text(
-                                 "QR kodu tarayarak puan kazanın",
+                                 Provider.of<LanguageProvider>(context).translate('earn_points_msg'),
                                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
                                ),
                              ],
@@ -407,7 +408,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                                  Column(
                                    crossAxisAlignment: CrossAxisAlignment.start,
                                    children: [
-                                     Text("Hediye", style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
+                                     Text(Provider.of<LanguageProvider>(context).translate('gift'), style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
                                      Text("$_currentGifts", style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                                    ],
                                  )
@@ -430,7 +431,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                                  Column(
                                    crossAxisAlignment: CrossAxisAlignment.start,
                                    children: [
-                                     Text("Toplam Puan", style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
+                                     Text(Provider.of<LanguageProvider>(context).translate('total_points'), style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
                                      Text(_currentPoints, style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
                                    ],
                                  )

@@ -65,6 +65,11 @@ class AppLocalizations {
       'scan_or_enter_code': 'Kampanyalara katılmak için\nkodu okut veya gir',
       'wallet_empty': 'Cüzdan Boş',
       'scan_qr': 'QR Tara',
+      'points_reward': 'Puan',
+      'coffee_reward': 'Kahve',
+      'all': 'Tümü',
+      'in_wallet': 'Cüzdandakiler',
+      'others': 'Diğerleri',
  
       // Auth & Profile
        'login_title': 'Hoşgeldin.\nGiriş Yap.',
@@ -103,8 +108,165 @@ class AppLocalizations {
        'passwords_dont_match': 'Şifreler eşleşmiyor.',
        'invalid_email': 'Geçersiz e-posta adresi.',
        'phone_start_5': 'Telefon numarası 5 ile başlamalıdır.',
+      'search_deal_venue': 'Fırsat veya mekan ara...',
+      'no_deals_found': 'Kriterlere uygun fırsat bulunamadı.',
+      'no_active_deals_firm': 'aktif fırsatı yok.',
+
+      // Notifications
+      'delete_all': 'Tümünü Temizle',
+      'no_notifications': 'Bildirim yok.',
+      'notification_deleted': 'Bildirim silindi.',
+      'notif_welcome_title': 'Hoşgeldin! 🎉',
+      'notif_welcome_msg': 'Kayıt olduğun için teşekkürler.',
+      'notif_coffee_title': 'Kahve Kampanyası ☕',
+      'notif_coffee_msg': 'Espresso Lab\'de tüm kahvelerde %20 indirim!',
+      'notif_points_title': 'Puan Kazanıldı',
+      'notif_points_msg': 'Son harcamandan 150 puan kazandın.',
+
+      // Business Detail
+      'gifts': 'Hediyeler',
+      'past_transactions': 'Geçmiş İşlemler',
+      'scan_for_points': 'Puan için Okut',
+      'gift_store': 'Hediye Mağazası',
+      'your_balance': 'Bakiyen',
+      'stamps_progress': 'Sadakat Kartı Durumu',
+      'loading': 'Yükleniyor...',
+
+      // Explore Cafes
+      'search_cafe': 'Kafe ara...',
+      'no_cafes_found': 'Kriterlere uygun kafe bulunamadı.',
+      'newly_added': 'Yeni Eklenenler',
+      'all_businesses': 'Tüm İşletmeler',
+      'no_address': 'Adres bilgisi yok',
+      'no_cafes_yet': 'Henüz keşfedilecek yeni mekan yok.',
+      
+      // Campaign Detail
+      'reward_label': 'Ödül',
+      'date_label': 'Son Tarih',
+      'about_campaign': 'Kampanya Hakkında',
+      'how_to_use': 'Nasıl Faydalanırım?',
+      'step_1': 'Hemen Katıl butonuna basıp kampanyaya dahil ol.',
+      'step_2': 'QR kodunla ödemeni tamamla.',
+      'step_3': 'Kazandığın ödülleri anında cüzdanında gör.',
+      
+      // Business Detail (Extra)
+      'no_gift_to_spend': 'Harcayacak hediye ürününüz bulunmuyor! 🥐',
+      'payment_qr': 'Ödeme QR Kodu',
+      'scan_to_redeem': 'Kasiyere okutarak hediye ürününü alabilirsin.',
+      'close': 'Kapat',
+      'my_coffees': 'Kahvelerim',
+      'spend_qr': 'Harcama QR',
+      'spend_gifts': 'Hediyelerini harca',
+      'campaigns': 'Kampanyalar',
+      'no_campaigns_soon': 'Yakında yeni fırsatlar burada olacak! ✨',
+      'add_to_wallet': 'Cüzdana Ekle',
+      'added_to_wallet_msg': 'Bu işletme artık cüzdanında! 🎉',
+      
+      // Add Firm Screen
+      'page_title_add_cafe': 'Kafe Ekle',
+      'dropdown_city': 'İl',
+      'dropdown_district': 'İlçe',
+      'dropdown_neighborhood': 'Semt',
+      'section_new_cafes': 'Yeni Eklenen Kafeler',
+      'section_all_cafes': 'Tüm Kafeler',
+      'success_firm_added': 'İşletme eklendi!',
+      
+      // My Firms Screen
+      'my_firms_title': 'Eklenen Dükkanlar',
+      'delete_firm_title': 'Mağazayı Sil',
+      'delete_firm_content': 'Bu Mağazayı Silmeniz Durumunda Kazandığınız Puanlar Silinecektir.\n\nOnaylıyor musunuz?',
+      'yes_delete': 'Evet, Sil',
+      'security_verification': 'Güvenlik Doğrulaması',
+      'enter_password_msg': 'İşlemi tamamlamak için lütfen şifrenizi giriniz.',
+      'your_password': 'Şifreniz',
+      'confirm': 'Onayla',
+      'wrong_password': 'Şifreniz yanlış.',
+      'firm_deleted_success': 'Mağaza başarıyla silindi.',
+      'error_reorder': 'Sıralama kaydedilemedi',
+
+      'info': 'Bilgi',
+      
+      // Scanner Screen
+      'scan_qr_title': 'QR TARA',
+      'camera_error': 'Kamera Hatası',
+      'waiting_approval': 'İşletme Onayı Bekleniyor...',
+      'waiting_approval_msg': 'Lütfen kasiyerin işlemi onaylamasını bekleyin.',
+      'approved': 'İşlem Onaylandı! 🎉',
+      'timeout_msg': 'Zaman aşımı. Lütfen tekrar deneyin veya kasiyere danışın.',
+      'scan_error_title': 'QR Okuma Hatası',
+      'firm_mismatch_error': 'Hatalı İşletme!\nBeklenen: ',
+      'expired_qr_error': 'Bu QR kodun süresi dolmuş veya geçersiz.',
+      'invalid_qr_error': 'Hatalı QR kodu.',
+      'session_error': 'Oturum hatası. Lütfen tekrar giriş yapın.',
+      'earn_points_msg': 'QR kodu tarayarak puan kazanın',
+      'total_points': 'Toplam Puan',
+      'gift': 'Hediye',
     },
     'en': {
+      // Campaign Detail (EN)
+      'reward_label': 'Reward',
+      'date_label': 'End Date',
+      'about_campaign': 'About Campaign',
+      'how_to_use': 'How to Use?',
+      'step_1': 'Tap Join Now to enter the campaign.',
+      'step_2': 'Complete your payment via QR code.',
+      'step_3': 'See your earned rewards instantly in your wallet.',
+      
+      // Business Detail (Extra - EN)
+      'no_gift_to_spend': 'You have no gifts to spend! 🥐',
+      'payment_qr': 'Payment QR Code',
+      'scan_to_redeem': 'Scan at the cashier to redeem your gift.',
+      'close': 'Close',
+      'my_coffees': 'My Coffees',
+      'spend_qr': 'Spend QR',
+      'spend_gifts': 'Spend your gifts',
+      'campaigns': 'Campaigns',
+      'no_campaigns_soon': 'New deals will be here soon! ✨',
+      'add_to_wallet': 'Add to Wallet',
+      'added_to_wallet_msg': 'Business added to your wallet! 🎉',
+      
+      // Add Firm Screen (EN)
+      'page_title_add_cafe': 'Add Cafe',
+      'dropdown_city': 'City',
+      'dropdown_district': 'District',
+      'dropdown_neighborhood': 'Neighborhood',
+      'section_new_cafes': 'New Cafes',
+      'section_all_cafes': 'All Cafes',
+      'success_firm_added': 'Business added!',
+      
+      // My Firms Screen (EN)
+      'my_firms_title': 'Added Shops',
+      'delete_firm_title': 'Delete Shop',
+      'delete_firm_content': 'Deleting this shop will also delete your earned points.\n\nAre you sure?',
+      'yes_delete': 'Yes, Delete',
+      'security_verification': 'Security Verification',
+      'enter_password_msg': 'Please enter your password to complete this action.',
+      'your_password': 'Your Password',
+      'confirm': 'Confirm',
+      'wrong_password': 'Incorrect password.',
+      'firm_deleted_success': 'Shop deleted successfully.',
+      'error_reorder': 'Could not save order',
+
+      // Popups (EN)
+      'success_title': 'Success',
+      'info': 'Info',
+      
+      // Scanner Screen (EN)
+      'scan_qr_title': 'SCAN QR',
+      'camera_error': 'Camera Error',
+      'waiting_approval': 'Waiting for Approval...',
+      'waiting_approval_msg': 'Please wait for the cashier to approve.',
+      'approved': 'Transaction Approved! 🎉',
+      'timeout_msg': 'Timeout. Please try again or ask the cashier.',
+      'scan_error_title': 'QR Scan Error',
+      'firm_mismatch_error': 'Wrong Business!\nExpected: ',
+      'expired_qr_error': 'QR code expired or invalid.',
+      'invalid_qr_error': 'Invalid QR code.',
+      'session_error': 'Session error. Please login again.',
+      'earn_points_msg': 'Scan QR to earn points',
+      'total_points': 'Total Points',
+      'gift': 'Gift',
+
       // General
       'guest_user': 'Guest User',
       'unknown_business': 'Unknown Business',

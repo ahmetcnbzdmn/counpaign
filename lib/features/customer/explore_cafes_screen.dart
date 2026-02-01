@@ -381,7 +381,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                   ),
                   const SizedBox(height: 2),
                   AutoText(
-                    firm['category'] ?? 'Genel',
+                    firm['category'] ?? lang.translate('general'),
                     style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

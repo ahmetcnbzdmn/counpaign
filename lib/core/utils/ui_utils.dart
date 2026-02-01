@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../config/api_config.dart';
+import 'package:provider/provider.dart';
+import '../providers/language_provider.dart';
 
 String? resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return null;
@@ -49,18 +51,20 @@ Future<void> showCustomPopup(
     case PopupType.success:
       primaryColor = Colors.green;
       icon = Icons.check_circle_rounded;
-      defaultTitle = "Başarılı";
+      defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('success_review').split(' ').first; // "Success" logic
+      // Better: direct key
+      defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('success_title');
       break;
     case PopupType.error:
       primaryColor = const Color(0xFFEE2C2C);
       icon = Icons.error_rounded;
-      defaultTitle = "Hata";
+      defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('error');
       break;
     case PopupType.info:
     default:
       primaryColor = Colors.blue;
       icon = Icons.info_rounded;
-      defaultTitle = "Bilgi";
+      defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('info');
       break;
   }
 
@@ -127,7 +131,7 @@ Future<void> showCustomPopup(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 0,
                         ),
-                        child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('ok'), style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ],

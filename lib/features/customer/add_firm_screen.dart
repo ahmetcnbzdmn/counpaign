@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/location_helper.dart';
+import '../../core/providers/language_provider.dart';
 
 class AddFirmScreen extends StatefulWidget {
   const AddFirmScreen({super.key});
@@ -24,7 +25,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
   final Map<String, dynamic> _myFirmsMap = {};
   final TextEditingController _searchController = TextEditingController();
   
-  String _currentFilter = 'Tümü'; // 'Tümü', 'Cüzdandakiler', 'Diğerleri'
+  String _currentFilter = 'all'; // 'all', 'in_wallet', 'others'
 
   // [NEW] Location Filters
   String? _selectedCity = 'Ankara';
@@ -120,15 +121,15 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         return (name.contains(query) || category.contains(query)) && locationMatch;
       }).toList();
 
-      // 2. Filter by category (Tümü, Cüzdandakiler, Diğerleri)
-      if (_currentFilter == 'Cüzdandakiler') {
+      // 2. Filter by category (all, in_wallet, others)
+      if (_currentFilter == 'in_wallet') {
         filtered = filtered.where((firm) => _addedFirms.contains(firm['_id'])).toList();
-      } else if (_currentFilter == 'Diğerleri') {
+      } else if (_currentFilter == 'others') {
         filtered = filtered.where((firm) => !_addedFirms.contains(firm['_id'])).toList();
       }
 
-      // 3. Sort (Prioritize Added in 'Tümü')
-      if (_currentFilter == 'Tümü') {
+      // 3. Sort (Prioritize Added in 'all')
+      if (_currentFilter == 'all') {
         filtered.sort((a, b) {
           final aId = a['_id'].toString();
           final bId = b['_id'].toString();
@@ -210,7 +211,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
       });
       showCustomPopup(
         context,
-        message: 'İşletme eklendi!',
+        message: Provider.of<LanguageProvider>(context, listen: false).translate('success_firm_added'),
         type: PopupType.success,
       );
     } catch (e) {
@@ -247,11 +248,12 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
+    final lang = Provider.of<LanguageProvider>(context);
 
     return Scaffold(
       backgroundColor: bgColor, 
       appBar: AppBar(
-        title: Text('Kafe Ekle', style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(lang.translate('page_title_add_cafe'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
         surfaceTintColor: Colors.transparent, 
         scrolledUnderElevation: 0, 
@@ -268,7 +270,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
               controller: _searchController,
               style: GoogleFonts.outfit(color: textColor),
               decoration: InputDecoration(
-                hintText: 'Kafe ara...',
+                hintText: lang.translate('search_cafe'),
                 hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
                 prefixIcon: Icon(Icons.search, color: textColor.withOpacity(0.5)),
                 filled: true,
@@ -291,7 +293,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                 scrollDirection: Axis.horizontal,
                 children: [
                   _buildDropdown<String>(
-                    hint: 'İl',
+                    hint: lang.translate('dropdown_city'),
                     value: _selectedCity,
                     items: _cities,
                     onChanged: _onCityChanged,
@@ -299,7 +301,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                   ),
                   const SizedBox(width: 8),
                   _buildDropdown<String>(
-                    hint: 'İlçe',
+                    hint: lang.translate('dropdown_district'),
                     value: _selectedDistrict,
                     items: _districts,
                     onChanged: _onDistrictChanged,
@@ -308,7 +310,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                   ),
                   const SizedBox(width: 8),
                   _buildDropdown<String>(
-                    hint: 'Semt',
+                    hint: lang.translate('dropdown_neighborhood'),
                     value: _selectedNeighborhood,
                     items: _neighborhoods,
                     onChanged: _onNeighborhoodChanged,
@@ -324,7 +326,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Text(
-                'Yeni Eklenen Kafeler',
+                lang.translate('section_new_cafes'),
                 style: GoogleFonts.outfit(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
@@ -377,7 +379,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     Text(
-                                      firm['category'] ?? '',
+                                      firm['category'] ?? lang.translate('general'),
                                       style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 10),
                                       maxLines: 1,
                                     ),
@@ -404,7 +406,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Tüm Kafeler',
+              lang.translate('section_all_cafes'),
               style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
@@ -415,11 +417,11 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
-                _buildFilterChip('Tümü'),
+                _buildFilterChip('all', lang.translate('all')),
                 const SizedBox(width: 8),
-                _buildFilterChip('Cüzdandakiler'),
+                _buildFilterChip('in_wallet', lang.translate('in_wallet')),
                 const SizedBox(width: 8),
-                _buildFilterChip('Diğerleri'),
+                _buildFilterChip('others', lang.translate('others')),
               ],
             ),
           ),
@@ -459,14 +461,14 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                           child: Icon(_getIcon(firm['cardIcon']), color: color),
                         ),
                         title: Text(
-                          firm['companyName'] ?? 'Bilinmeyen',
+                          firm['companyName'] ?? lang.translate('unknown_business'),
                           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                         subtitle: Column( // Added Location info
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              firm['category'] ?? 'Genel',
+                              firm['category'] ?? lang.translate('general'),
                               style: GoogleFonts.outfit(color: textColor.withOpacity(0.7), fontSize: 14),
                             ),
                             if (firm['district'] != null && firm['district'].isNotEmpty)
@@ -534,15 +536,15 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label) {
-    final isSelected = _currentFilter == label;
+  Widget _buildFilterChip(String key, String label) {
+    final isSelected = _currentFilter == key;
     final theme = Theme.of(context);
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.white;
 
     return GestureDetector(
       onTap: () {
         setState(() {
-          _currentFilter = label;
+          _currentFilter = key;
           _applyFilters();
         });
       },

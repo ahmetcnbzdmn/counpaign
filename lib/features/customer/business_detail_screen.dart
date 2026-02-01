@@ -110,7 +110,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     if (_giftsCount <= 0) {
       showCustomPopup(
         context,
-        message: "Harcayacak hediye ürününüz bulunmuyor! 🥐",
+        message: Provider.of<LanguageProvider>(context, listen: false).translate('no_gift_to_spend'),
         type: PopupType.error,
       );
       return;
@@ -128,9 +128,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Ödeme QR Kodu", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
+              Text(Provider.of<LanguageProvider>(context, listen: false).translate('payment_qr'), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
               const SizedBox(height: 8),
-              Text("Kasiyere okutarak hediye ürününü alabilirsin.", 
+              Text(Provider.of<LanguageProvider>(context, listen: false).translate('scan_to_redeem'), 
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey)
               ),
@@ -148,7 +148,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               // Stamp (+1) Button Removed
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Kapat", style: GoogleFonts.outfit(color: Colors.grey)),
+                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('close'), style: GoogleFonts.outfit(color: Colors.grey)),
               ),
             ],
           ),
@@ -175,7 +175,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 20),
               Text(
-                "Sipariş Geçmişi",
+                Provider.of<LanguageProvider>(context, listen: false).translate('order_history'),
                 style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
@@ -187,7 +187,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (snapshot.hasError) {
-                      return Center(child: Text("Hata: ${snapshot.error}"));
+                      return Center(child: Text("${Provider.of<LanguageProvider>(context, listen: false).translate('error')}: ${snapshot.error}"));
                     }
                     final history = snapshot.data ?? [];
                     if (history.isEmpty) {
@@ -197,7 +197,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           children: [
                             Icon(Icons.history_toggle_off_rounded, size: 64, color: Colors.grey[300]),
                             const SizedBox(height: 16),
-                            Text("Henüz işlem bulunmuyor.", style: GoogleFonts.outfit(color: Colors.grey)),
+                            Text(Provider.of<LanguageProvider>(context, listen: false).translate('no_orders_yet'), style: GoogleFonts.outfit(color: Colors.grey)),
                           ],
                         ),
                       );
@@ -221,11 +221,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         String sign = isEarn ? "+" : "-";
                         
                         if (type == 'STAMP') {
-                          title = "Stamp Kazanıldı";
+                          title = Provider.of<LanguageProvider>(context, listen: false).translate('stamp_earned');
                         } else if (type == 'POINT') {
-                          title = "Puan Kazanıldı";
+                          title = Provider.of<LanguageProvider>(context, listen: false).translate('point_earned');
                         } else if (type == 'GIFT_REDEEM') {
-                          title = "Hediye Harcandı";
+                          title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
                         }
                         
                         return Row(
@@ -443,7 +443,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             Column(
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Text("Kahvelerim", style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
+                                Text(lang.translate('my_coffees'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
                                 const SizedBox(height: 12),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -551,7 +551,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        "Harcama QR", 
+                                        lang.translate('spend_qr'), 
                                         style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
@@ -563,7 +563,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 ),
                                 Row(
                                   children: [
-                                    Text("Hediyelerini harca", style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
+                                    Text(lang.translate('spend_gifts'), style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
                                     const SizedBox(width: 4),
                                     const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
                                   ],
@@ -634,7 +634,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 30.0, bottom: 16.0),
-                    child: Text("Kampanyalar", style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+                    child: Text(lang.translate('campaigns'), style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   
                    // Slider (Full width)
@@ -650,7 +650,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                          if (sortedCampaigns.isEmpty) {
                            return Center(
                              child: Text(
-                               "Yakında yeni fırsatlar burada olacak! ✨",
+                               lang.translate('no_campaigns_soon'),
                                style: GoogleFonts.outfit(color: Colors.grey),
                              ),
                            );
@@ -716,7 +716,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               ),
               child: _isAddingLoading 
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : Text("Cüzdana Ekle", style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                : Text(lang.translate('add_to_wallet'), style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           )
         : null,
@@ -730,7 +730,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       if (mounted) {
         showCustomPopup(
           context,
-          message: "Bu işletme artık cüzdanında! 🎉",
+          message: Provider.of<LanguageProvider>(context, listen: false).translate('added_to_wallet_msg'),
           type: PopupType.success,
         );
         // Refresh providers
@@ -745,7 +745,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       if (mounted) {
         showCustomPopup(
           context,
-          message: "Hata: $e",
+          message: "${Provider.of<LanguageProvider>(context, listen: false).translate('error')}: $e",
           type: PopupType.error,
         );
       }
