@@ -147,4 +147,28 @@ class ApiService {
     final response = await _dio.get('/participations/my');
     return response.data as List<dynamic>;
   }
+
+  // QR Methods
+  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId}) async {
+    try {
+      final response = await _dio.post(
+        '/qr/validate',
+        data: {
+          'token': token,
+          if (expectedBusinessId != null) 'expectedBusinessId': expectedBusinessId,
+        }
+      );
+      return response.data;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400 && e.response?.data['error'] == 'Firm Mismatch') {
+         throw Exception("FIRM_MISMATCH");
+      }
+      rethrow; // Replaced _handleDioError(e) as it's not defined in the provided context.
+    }
+  }
+
+  Future<Map<String, dynamic>> checkConfirmationStatus(String token) async {
+    final response = await _dio.get('/qr/status/customer/$token');
+    return response.data as Map<String, dynamic>;
+  }
 }

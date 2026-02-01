@@ -13,13 +13,32 @@ class AuthService {
 
   Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
     try {
-      // Map phone to internal email for Firebase
-      final email = "$phoneNumber@counpaign.local";
+      // 1. Lookup Email from Backend
+      final response = await _apiService.client.post('/auth/lookup-email', data: {
+        'phoneNumber': phoneNumber
+      });
       
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final email = response.data['email'];
+      
+      UserCredential? userCredential;
+      
+      try {
+        // 2. Login with Real Email (Preferred)
+        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } catch (firebaseError) {
+        // FALLBACK: If real email fails, try Legacy "Fake" Email
+        // Old users are stored as "phone@counpaign.local" in Firebase
+        print("Login with real email failed ($firebaseError). Trying legacy fallback...");
+        
+        final legacyEmail = "$phoneNumber@counpaign.local";
+        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: legacyEmail,
+          password: password,
+        );
+      }
       
       final user = userCredential.user;
       if (user != null) {
@@ -46,10 +65,9 @@ class AuthService {
     DateTime? birthDate,
   }) async {
     try {
-      // 1. Register in Firebase
-      final internalEmail = "$phoneNumber@counpaign.local";
+      // 1. Register in Firebase with REAL Email
       final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: internalEmail,
+        email: email,
         password: password,
       );
 
@@ -58,27 +76,29 @@ class AuthService {
         await user.updateDisplayName("$name $surname");
       }
 
-      // 2. Register in Custom Backend (MongoDB)
-      final response = await _apiService.client.post(
-        '/auth/register',
-        data: {
-          'name': name,
-          'surname': surname,
-          'phoneNumber': phoneNumber,
-          'email': email,
-          'password': password,
-          'gender': gender,
-          'birthDate': birthDate?.toIso8601String(),
-          'firebaseUid': user?.uid, // Added UID for linking if needed later
-        },
-      );
-      
-      final token = response.data['token'];
-      if (token != null) {
-        await _storageService.saveToken(token);
+      try {
+        // 2. Register in Custom Backend (MongoDB)
+        final response = await _apiService.client.post(
+          '/auth/register',
+          data: {
+            'name': name,
+            'surname': surname,
+            'phoneNumber': phoneNumber,
+            'email': email,
+            'password': password,
+            'gender': gender,
+            'birthDate': birthDate?.toIso8601String(),
+            'firebaseUid': user?.uid, // Added UID for linking if needed later
+          },
+        );
+        
+        return response.data;
+      } catch (backendError) {
+        // ROLLBACK: Delete Firebase User if Backend fails
+        print("Backend Register Failed: $backendError. Rollback Firebase User.");
+        await user?.delete();
+        rethrow;
       }
-      
-      return response.data;
     } catch (e) {
        print("Dual Register Error: $e");
       rethrow;
@@ -129,6 +149,38 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
          print("Backend Error: ${e.response?.data ?? e.message}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> sendSmsVerification(String phoneNumber) async {
+    try {
+      await _apiService.client.post('/auth/send-verification', data: {
+        'phoneNumber': phoneNumber,
+      });
+    } catch (e) {
+      if (e is DioException) {
+         print("SMS Send Error: ${e.response?.data}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> verifySmsCode(String phoneNumber, String code) async {
+    try {
+      final response = await _apiService.client.post('/auth/verify-code', data: {
+        'phoneNumber': phoneNumber,
+        'code': code,
+      });
+      
+      final token = response.data['token'];
+      if (token != null) {
+        await _storageService.saveToken(token);
+      }
+    } catch (e) {
+      if (e is DioException) {
+         print("SMS Verify Error: ${e.response?.data}");
       }
       rethrow;
     }

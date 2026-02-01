@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/providers/language_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -144,12 +145,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                      ),
                      const SizedBox(height: 16),
                      Text(
-                       "Profil Guncellendi!",
+                       context.read<LanguageProvider>().translate('profile_updated'),
                        style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
                      ),
                      const SizedBox(height: 8),
                      Text(
-                       "Değişikliklerin başarıyla kaydedildi.",
+                       context.read<LanguageProvider>().translate('changes_saved_msg'),
                        textAlign: TextAlign.center,
                        style: GoogleFonts.outfit(color: Colors.grey),
                      ),
@@ -167,7 +168,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                            padding: const EdgeInsets.symmetric(vertical: 16),
                          ),
-                         child: const Text("Tamam", style: TextStyle(fontWeight: FontWeight.bold)),
+                         child: Text(context.read<LanguageProvider>().translate('ok'), style: const TextStyle(fontWeight: FontWeight.bold)),
                        ),
                      ),
                    ],
@@ -193,6 +194,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = theme.cardColor;
     const primaryBrand = Color(0xFFEE2C2C);
+    final lang = context.watch<LanguageProvider>();
 
     ImageProvider? imageProvider;
     if (_profileImageBytes != null) {
@@ -204,7 +206,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: Text("Profili Düzenle", style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
+        title: Text(lang.translate('edit_profile'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -253,30 +255,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
               const SizedBox(height: 32),
 
-              _buildTextField(controller: _nameController, label: "Ad", icon: Icons.person_outline),
+              _buildTextField(controller: _nameController, label: lang.translate('name'), icon: Icons.person_outline),
               const SizedBox(height: 16),
-              _buildTextField(controller: _surnameController, label: "Soyad", icon: Icons.person_outline),
+              _buildTextField(controller: _surnameController, label: lang.translate('surname'), icon: Icons.person_outline),
               const SizedBox(height: 16),
               
               // Gender Dropdown
-              _buildDropdownField(),
+              _buildDropdownField(lang),
               
               const SizedBox(height: 16),
               
               // Birth Date Picker
-              _buildDatePickerField(),
+              _buildDatePickerField(lang),
               
               const SizedBox(height: 16),
 
-              // PHONE NUMBER FIELD (Above Email)
+              // PHONE NUMBER FIELD
               TextFormField(
                 controller: _phoneNumberController,
+                readOnly: context.read<AuthProvider>().currentUser?.isVerified ?? false,
+                style: TextStyle(
+                  color: (context.read<AuthProvider>().currentUser?.isVerified ?? false) 
+                      ? textColor.withOpacity(0.7) 
+                      : textColor, 
+                  fontWeight: FontWeight.bold
+                ),
                 keyboardType: TextInputType.phone,
                 maxLength: 10,
                 validator: (val) {
-                  if (val == null || val.isEmpty) return "Telefon numarası gerekli";
+                  if (val == null || val.isEmpty) return lang.translate('fill_all_fields');
                   if (val.length != 10) return "10 hane olmalıdır (Başında 0 olmadan)";
-                  if (!val.startsWith('5')) return "Numara 5 ile başlamalıdır";
+                  if (!val.startsWith('5')) return lang.translate('phone_start_5');
                   return null;
                 },
                 inputFormatters: [
@@ -284,22 +293,53 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   LengthLimitingTextInputFormatter(10),
                   _StartsWithFiveFormatter(), 
                 ],
-                style: TextStyle(color: textColor),
                 decoration: InputDecoration(
-                  labelText: "Telefon Numarası",
-                  counterText: "", // Hide character counter
+                  labelText: lang.translate('phone_number'),
+                  counterText: "",
                   labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
                   prefixIcon: Icon(Icons.phone_iphone_rounded, color: textColor.withOpacity(0.54)),
-                  prefixText: "+90 ", // Visual hint
-                  prefixStyle: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                  prefixText: "+90 ", 
+                  prefixStyle: TextStyle(
+                    color: (context.read<AuthProvider>().currentUser?.isVerified ?? false) 
+                      ? textColor.withOpacity(0.7) 
+                      : textColor,
+                    fontWeight: FontWeight.bold
+                  ),
+                  suffixIcon: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
+                    ? Container(
+                        margin: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                      )
+                    : Container(
+                        margin: const EdgeInsets.all(8),
+                        width: 20,
+                        alignment: Alignment.center,
+                        child: Icon(Icons.info_outline_rounded, color: Colors.orange.withOpacity(0.7), size: 20),
+                      ),
                   filled: true,
-                  fillColor: cardColor,
+                  // Dim if read-only
+                  fillColor: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
+                      ? cardColor.withOpacity(0.5) 
+                      : cardColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  helperText: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
+                      ? lang.translate('phone_verified_msg')
+                      : lang.translate('phone_not_verified_msg'),
+                  helperStyle: TextStyle(
+                    color: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700, 
+                    fontSize: 11
+                  ),
                 ),
               ),
 
               const SizedBox(height: 16),
-              _buildTextField(controller: _emailController, label: "E-posta", icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              _buildTextField(controller: _emailController, label: lang.translate('email'), icon: Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               
               const SizedBox(height: 48),
 
@@ -316,7 +356,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                   child: context.watch<AuthProvider>().isLoading 
                     ? const CircularProgressIndicator(color: Colors.black) 
-                    : const Text("Değişiklikleri Kaydet"),
+                    : Text(lang.translate('save_changes')),
                 ),
               ),
             ],
@@ -334,11 +374,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }) {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
+    final lang = context.read<LanguageProvider>();
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       style: TextStyle(color: textColor),
-      validator: (val) => val == null || val.isEmpty ? "Bu alan boş bırakılamaz" : null,
+      validator: (val) => val == null || val.isEmpty ? lang.translate('fill_all_fields') : null,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
@@ -352,7 +393,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildDropdownField() {
+  Widget _buildDropdownField(LanguageProvider lang) {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
 
@@ -365,18 +406,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         style: TextStyle(color: textColor),
         borderRadius: BorderRadius.circular(20), 
         decoration: InputDecoration(
-          labelText: "Cinsiyet",
+          labelText: lang.translate('gender'),
           labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
           prefixIcon: Icon(Icons.wc, color: textColor.withOpacity(0.54)),
           filled: true,
           fillColor: cardColor,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         ),
-        items: const [
-          DropdownMenuItem(value: "male", child: Text("Erkek")),
-          DropdownMenuItem(value: "female", child: Text("Kadın")),
-          DropdownMenuItem(value: "other", child: Text("Diğer")),
-          DropdownMenuItem(value: "", child: Text("Belirtmek İstemiyorum")),
+        items: [
+           DropdownMenuItem(value: "male", child: Text(lang.translate('male'))),
+           DropdownMenuItem(value: "female", child: Text(lang.translate('female'))),
+           DropdownMenuItem(value: "other", child: Text(lang.translate('other_gender'))),
+           DropdownMenuItem(value: "", child: Text(lang.translate('wont_share'))),
         ],
         onChanged: (val) {
           setState(() {
@@ -387,7 +428,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildDatePickerField() {
+  Widget _buildDatePickerField(LanguageProvider lang) {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = Theme.of(context).cardColor;
     
@@ -399,7 +440,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         style: TextStyle(color: textColor.withOpacity(0.5)), // Dimmed text
         decoration: InputDecoration(
-          labelText: "Doğum Tarihi",
+          labelText: lang.translate('birth_date'),
           labelStyle: TextStyle(color: textColor.withOpacity(0.4)),
           prefixIcon: Icon(Icons.calendar_today, color: textColor.withOpacity(0.3)), // Dimmed icon
           filled: true,

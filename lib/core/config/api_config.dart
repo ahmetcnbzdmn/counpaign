@@ -1,7 +1,7 @@
 class ApiConfig {
   // Updated to current system IP: 192.168.1.7
   // If using Android Emulator, use: http://10.0.2.2:5001/api
-  static const String baseUrl = 'http://172.20.10.3:5001/api';
+  static const String baseUrl = 'https://counpaign.com/api';
   
   static const String register = '/auth/register';
   static const String login = '/auth/login';

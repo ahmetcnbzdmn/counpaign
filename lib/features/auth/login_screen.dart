@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
   final int initialPageIndex;
@@ -151,14 +154,49 @@ class _LoginScreenState extends State<LoginScreen> {
            password: _passwordController.text,
            gender: _selectedGender,
            birthDate: _selectedBirthDate,
-        );
+         );
+         
+         // SUCCESS: Send SMS & Navigate
+         await auth.sendSmsVerification(_phoneController.text);
+         
+         if (mounted) {
+           context.push('/verify-phone', extra: _phoneController.text);
+         }
       }
     } catch (e) {
       if (mounted) {
         String errorMessage = e.toString();
         
-        if (e.toString().contains("DioException")) {
-           errorMessage = "Sunucu Hatası (Detay): $e";
+        if (e is DioException) {
+           errorMessage = e.response?.data['error'] ?? "Sunucu Hatası: ${e.message}";
+        } else if (e is FirebaseAuthException) {
+           switch (e.code) {
+             case 'email-already-in-use':
+               errorMessage = "Bu e-posta adresi zaten kullanımda.";
+               break;
+             case 'invalid-email':
+               errorMessage = "Geçersiz e-posta adresi.";
+               break;
+             case 'weak-password':
+               errorMessage = "Şifreniz çok zayıf.";
+               break;
+             case 'user-not-found':
+               errorMessage = "Kullanıcı bulunamadı.";
+               break;
+             case 'wrong-password':
+               errorMessage = "Şifre hatalı.";
+               break;
+             case 'invalid-credential':
+               errorMessage = "Şifre veya kullanıcı bilgisi hatalı.";
+               break;
+             case 'user-disabled':
+               errorMessage = "Bu hesap devre dışı bırakılmış.";
+               break;
+             default:
+               errorMessage = "Giriş Hatası: ${e.message}";
+           }
+        } else if (e.toString().contains("DioException")) {
+           errorMessage = "Kayıt Başarısız. Bilgilerinizi kontrol ediniz."; 
         }
 
         showCustomPopup(
@@ -357,10 +395,10 @@ class _LoginScreenState extends State<LoginScreen> {
                        if (_activePageIndex == 0)
                          Align(
                            alignment: Alignment.centerRight,
-                           child: TextButton(
-                             onPressed: () {},
-                             child: Text("Parolamı Unuttum?", style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13)),
-                           ),
+                            child: TextButton(
+                              onPressed: () => context.push('/forgot-password'),
+                              child: Text("Parolamı Unuttum?", style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13)),
+                            ),
                          ),
 
                        const SizedBox(height: 32),

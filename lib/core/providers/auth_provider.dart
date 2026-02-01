@@ -59,6 +59,20 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> sendSmsVerification(String phoneNumber) async {
+    await _authService.sendSmsVerification(phoneNumber);
+  }
+
+  Future<void> verifySmsCode(String phoneNumber, String code) async {
+    _setLoading(true);
+    try {
+      await _authService.verifySmsCode(phoneNumber, code);
+      await fetchProfile(); // Now we are fully logged in
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   Future<void> register({
     required String name, 
     required String surname, 
@@ -79,7 +93,6 @@ class AuthProvider extends ChangeNotifier {
         gender: gender,
         birthDate: birthDate,
       );
-      await fetchProfile();
     } finally {
       _setLoading(false);
     }

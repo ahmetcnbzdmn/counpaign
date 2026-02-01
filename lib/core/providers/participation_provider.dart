@@ -53,4 +53,23 @@ class ParticipationProvider with ChangeNotifier {
   bool isParticipating(String campaignId) {
     return _participations.any((p) => p.campaignId == campaignId && !p.isCompleted);
   }
+
+  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId}) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+      final result = await _apiService.scanBusinessQR(token, expectedBusinessId: expectedBusinessId);
+      _isLoading = false;
+      notifyListeners();
+      return result;
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> checkConfirmationStatus(String token) async {
+    return await _apiService.checkConfirmationStatus(token);
+  }
 }

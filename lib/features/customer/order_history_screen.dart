@@ -47,7 +47,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
 
     final now = DateTime.now();
     return _transactions.where((tx) {
-      final date = DateTime.parse(tx['createdAt']).toLocal();
+      String rawDate = tx['createdAt'].toString();
+      if (!rawDate.endsWith('Z')) rawDate += 'Z';
+      final date = DateTime.parse(rawDate).toLocal();
       final difference = now.difference(date);
 
       // Check for same day explicitly for "Bugün"
@@ -150,7 +152,16 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             final business = tx['business'] ?? {};
                             final type = tx['type'];
                             final value = tx['value'];
-                            final date = DateTime.parse(tx['createdAt']).toLocal();
+                            // Strict UTC handling & Debugging
+                            String rawDate = tx['createdAt'].toString();
+                            if (!rawDate.endsWith('Z')) {
+                              rawDate += 'Z';
+                            }
+                            final dateUtc = DateTime.parse(rawDate);
+                            final date = dateUtc.toLocal();
+                            
+                            print("DD_DEBUG: Raw: ${tx['createdAt']} -> ParsedUTC: $dateUtc -> Local: $date");
+                            
                             final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
         
                             String title = lang.translate('transaction');
@@ -159,7 +170,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             IconData icon = Icons.receipt_long_rounded;
         
                             if (type == 'STAMP') {
-                              title = lang.translate('damga_earned'); // Changing key if suitable or just relying on updating the value in lang provider
+                              title = lang.translate('stamp_earned'); 
                               amount = "+$value";
                               amountColor = Colors.orange;
                               icon = Icons.local_cafe_rounded;

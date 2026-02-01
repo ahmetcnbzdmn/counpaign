@@ -21,6 +21,7 @@ dependencies:
   # UI & Assets
   google_fonts: ^6.1.0
   cupertino_icons: ^1.0.6
+  pinput: ^4.0.0
   
   # Maps
   google_maps_flutter: ^2.5.3

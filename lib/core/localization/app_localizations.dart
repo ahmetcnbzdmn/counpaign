@@ -65,44 +65,44 @@ class AppLocalizations {
       'scan_or_enter_code': 'Kampanyalara katılmak için\nkodu okut veya gir',
       'wallet_empty': 'Cüzdan Boş',
       'scan_qr': 'QR Tara',
-      
-      // Campaigns
-      'all': 'Tümü',
-      'in_wallet': 'Cüzdandakiler',
-      'others': 'Diğerleri',
-      'search_deal_venue': 'Fırsat veya mekan ara...',
-      'no_deals_found': 'Aradığınız kriterlere uygun fırsat bulunamadı.',
-      'no_active_deals_firm': 'için aktif fırsat yok.',
-      'points_reward': 'Puan',
-      'coffee_reward': 'Kahve',
-      
-      // Notifications
-      'delete_all': 'Tümünü Sil',
-      'no_notifications': 'Hiç bildiriminiz yok.',
-      'notification_deleted': 'Bildirim silindi.',
-      'notif_welcome_title': 'Hoş Geldiniz! 🎉',
-      'notif_welcome_msg': 'Uygulamamıza kayıt olduğunuz için teşekkürler.',
-      'notif_coffee_title': 'Kahve Kampanyası ☕',
-      'notif_coffee_msg': 'Espresso Lab\'da tüm kahvelerde %20 indirim fırsatı!',
-      'notif_points_title': 'Puanlarınız Güncellendi',
-      'notif_points_msg': 'Son alışverişinizden 150 puan kazandınız.',
-
-      // Business Detail
-      'gifts': 'Hediyeler',
-      'past_transactions': 'Geçmiş İşlemler',
-      'scan_for_points': 'Puan Kazan',
-      'gift_store': 'Hediye Mağazası',
-      'your_balance': 'Bakiyeniz',
-      'stamps_progress': 'Damga Kartı Durumu',
-      'loading': 'Yükleniyor...',
-
-      // Explore Cafes
-      'search_cafe': 'Kafe ara...',
-      'no_cafes_found': 'Aradığınız kriterlere uygun kafe bulunamadı.',
-      'newly_added': 'Yeni Eklenenler',
-      'all_businesses': 'Tüm İşletmeler',
-      'no_address': 'Adres bilgisi yok',
-      'no_cafes_yet': 'Şimdilik keşfedilecek yeni yer yok.',
+ 
+      // Auth & Profile
+       'login_title': 'Hoşgeldin.\nGiriş Yap.',
+       'register_title': 'Hesap\nOluştur.',
+       'name': 'Ad',
+       'surname': 'Soyad',
+       'phone_number': 'Telefon Numarası',
+       'email': 'E-posta Adresi',
+       'password': 'Şifre',
+       'confirm_password': 'Şifreyi Doğrula',
+       'gender': 'Cinsiyet',
+       'birth_date': 'Doğum Tarihi',
+       'male': 'Erkek',
+       'female': 'Kadın',
+       'other_gender': 'Diğer',
+       'wont_share': 'Belirtmek İstemiyorum',
+       'forgot_password': 'Parolamı Unuttum?',
+       'login_btn': 'Giriş Yap',
+       'register_btn': 'Kayıt Ol',
+       'no_account': 'Hesabın yok mu? Kayıt Ol',
+       'already_member': 'Zaten üye misin? Giriş Yap',
+       'save_changes': 'Değişiklikleri Kaydet',
+       'profile_updated': 'Profil Güncellendi!',
+       'changes_saved_msg': 'Değişiklikler başarıyla kaydedildi.',
+       'ok': 'Tamam',
+       'phone_verified_msg': 'Telefon numarası doğrulandı ve değiştirilemez.',
+       'phone_not_verified_msg': 'Telefon numaranız doğrulanmamış.',
+       'verify_code_title': 'Doğrulama Kodu',
+       'enter_code_msg': 'Lütfen {phone} numarasına gönderilen 6 haneli kodu giriniz.',
+       'verify_btn': 'DOĞRULA',
+       'resend_code': 'Kodu tekrar gönder',
+       'code_resent_msg': 'Kod tekrar gönderildi.',
+       'code_error_msg': 'Kod gönderilemedi.',
+       'verification_failed': 'Doğrulama başarısız.',
+       'fill_all_fields': 'Lütfen tüm alanları doldurun.',
+       'passwords_dont_match': 'Şifreler eşleşmiyor.',
+       'invalid_email': 'Geçersiz e-posta adresi.',
+       'phone_start_5': 'Telefon numarası 5 ile başlamalıdır.',
     },
     'en': {
       // General
@@ -112,7 +112,7 @@ class AppLocalizations {
       'send': 'Submit',
       'error': 'Error',
       'success_review': 'Review saved!',
-
+ 
       // Settings
       'edit_profile': 'Edit Profile',
       'general': 'GENERAL',
@@ -129,7 +129,7 @@ class AppLocalizations {
       'logout': 'Logout',
       'language_option': 'Language / Dil Seçeneği',
       'select_language': 'Select Language / Dil Seçin',
-
+ 
       // Order History
       'no_orders_yet': 'No orders yet.',
       'no_orders_filter': 'No transactions in this period.',
@@ -140,11 +140,11 @@ class AppLocalizations {
       'rate_transaction': 'Rate',
       'rate_dialog_title': 'Rate Transaction',
       'comment_hint': 'Your Comment (Optional)',
-
+ 
       // My Reviews
       'no_reviews_yet': 'No reviews yet.',
       'no_reviews_filter': 'No reviews in this period.',
-
+ 
       // Filters
       'filter_all': 'All',
       'filter_today': 'Today',
@@ -170,6 +170,44 @@ class AppLocalizations {
       'scan_or_enter_code': 'Scan or enter code\nto join campaigns',
       'wallet_empty': 'Wallet Empty',
       'scan_qr': 'Scan QR',
+ 
+      // Auth & Profile
+      'login_title': 'Welcome.\nLogin.',
+      'register_title': 'Create\nAccount.',
+      'name': 'Name',
+      'surname': 'Surname',
+      'phone_number': 'Phone Number',
+      'email': 'Email Address',
+      'password': 'Password',
+      'confirm_password': 'Confirm Password',
+      'gender': 'Gender',
+      'birth_date': 'Birth Date',
+      'male': 'Male',
+      'female': 'Female',
+      'other_gender': 'Other',
+      'wont_share': 'Prefer not to say',
+      'forgot_password': 'Forgot Password?',
+      'login_btn': 'Login',
+      'register_btn': 'Register',
+      'no_account': 'Don\'t have an account? Register',
+      'already_member': 'Already a member? Login',
+      'save_changes': 'Save Changes',
+      'profile_updated': 'Profile Updated!',
+      'changes_saved_msg': 'Changes saved successfully.',
+      'ok': 'OK',
+      'phone_verified_msg': 'Phone number verified and cannot be changed.',
+      'phone_not_verified_msg': 'Phone number not verified.',
+      'verify_code_title': 'Verification Code',
+      'enter_code_msg': 'Please enter the 6-digit code sent to {phone}.',
+      'verify_btn': 'VERIFY',
+      'resend_code': 'Resend code',
+      'code_resent_msg': 'Code resent.',
+      'code_error_msg': 'Code could not be sent.',
+      'verification_failed': 'Verification failed.',
+      'fill_all_fields': 'Please fill all fields.',
+      'passwords_dont_match': 'Passwords do not match.',
+      'invalid_email': 'Invalid email address.',
+      'phone_start_5': 'Phone number must start with 5.',
 
       // Campaigns
       'all': 'All',
@@ -180,7 +218,7 @@ class AppLocalizations {
       'no_active_deals_firm': 'has no active deals.',
       'points_reward': 'Points',
       'coffee_reward': 'Coffee',
-
+ 
       // Notifications
       'delete_all': 'Clear All',
       'no_notifications': 'No notifications.',
@@ -191,7 +229,7 @@ class AppLocalizations {
       'notif_coffee_msg': '20% discount on all coffees at Espresso Lab!',
       'notif_points_title': 'Points Updated',
       'notif_points_msg': 'You earned 150 points from your last purchase.',
-
+ 
       // Business Detail
       'gifts': 'Gifts',
       'past_transactions': 'Past Transactions',
@@ -200,7 +238,7 @@ class AppLocalizations {
       'your_balance': 'Your Balance',
       'stamps_progress': 'Loyalty Card Progress',
       'loading': 'Loading...',
-
+ 
       // Explore Cafes
       'search_cafe': 'Search cafes...',
       'no_cafes_found': 'No cafes found matching criteria.',

@@ -8,6 +8,7 @@ class User {
   final String? gender;
   final DateTime? birthDate;
   final String role;
+  final bool isVerified;
 
   User({
     required this.id,
@@ -19,6 +20,7 @@ class User {
     this.gender,
     this.birthDate,
     required this.role,
+    this.isVerified = false,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -32,6 +34,7 @@ class User {
       gender: json['gender'],
       birthDate: json['birthDate'] != null ? DateTime.tryParse(json['birthDate']) : null,
       role: json['role'] ?? 'customer',
+      isVerified: json['isVerified'] ?? false,
     );
   }
 

@@ -24,6 +24,9 @@ import 'features/customer/my_firms_screen.dart';
 import 'features/customer/order_history_screen.dart';
 import 'features/customer/my_reviews_screen.dart';
 import 'features/customer/participations_screen.dart';
+
+import 'features/auth/forgot_password_screen.dart';
+import 'features/auth/verification_screen.dart';
 import 'features/customer/campaign_detail_screen.dart';
 import 'features/customer/notifications_screen.dart';
 import 'core/models/campaign_model.dart';
@@ -182,7 +185,20 @@ class _CounpaignAppState extends State<CounpaignApp> {
         // Business Routes (Outside the bottom nav shell)
         GoRoute(
           path: '/customer-scanner',
-          builder: (context, state) => const CustomerScannerScreen(),
+          builder: (context, state) {
+            final extras = state.extra as Map<String, dynamic>?;
+            return CustomerScannerScreen(extra: extras);
+          },
+        ),
+        GoRoute(
+          path: '/business-campaigns',
+          builder: (context, state) {
+            final extras = state.extra as Map<String, dynamic>?;
+            return CampaignsScreen(
+              firmId: extras?['firmId'],
+              firmName: extras?['firmName'],
+            );
+          },
         ),
         GoRoute(
           path: '/add-firm',
@@ -234,6 +250,17 @@ class _CounpaignAppState extends State<CounpaignApp> {
           builder: (context, state) => const NotificationsScreen(),
         ),
         GoRoute(
+          path: '/forgot-password',
+          builder: (context, state) => const ForgotPasswordScreen(),
+        ),
+        GoRoute(
+          path: '/verify-phone',
+          builder: (context, state) {
+            final phone = state.extra as String? ?? '';
+            return VerificationScreen(phoneNumber: phone);
+          },
+        ),
+        GoRoute(
           path: '/settings',
           builder: (context, state) => const SettingsScreen(),
         ),
@@ -249,7 +276,11 @@ class _CounpaignAppState extends State<CounpaignApp> {
         final isLoggingIn = state.uri.toString() == '/login';
         final isIntro = state.uri.toString() == '/intro';
 
-        if (!isLoggedIn && !isLoggingIn && !isIntro) return '/intro';
+        final isForgotPassword = state.uri.toString() == '/forgot-password';
+
+        final isVerifyPhone = state.uri.toString() == '/verify-phone';
+
+        if (!isLoggedIn && !isLoggingIn && !isIntro && !isForgotPassword && !isVerifyPhone) return '/intro';
 
         if (isLoggedIn && (isLoggingIn || isIntro)) {
           return '/home'; // All users go to Customer Home

@@ -252,14 +252,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                       }
                                       
                                       final firm = firms[activeIndex];
-                                      await context.push('/business-scanner', extra: {
-                                        'id': firm['id'],
-                                        'name': firm['name'],
-                                        'color': firm['color'],
-                                        'stamps': firm['stamps'],
-                                        'stampsTarget': firm['stampsTarget'],
-                                        'giftsCount': firm['giftsCount'],
-                                        'points': firm['points'],
+                                      await context.push('/customer-scanner', extra: {
+                                        'expectedBusinessId': firm['id'],
+                                        'expectedBusinessName': firm['name'],
+                                        'expectedBusinessColor': firm['color'],
+                                        'currentStamps': firm['stamps'] ?? 0,
+                                        'targetStamps': firm['stampsTarget'] ?? 6,
+                                        'currentGifts': firm['giftsCount'] ?? 0,
+                                        'currentPoints': (firm['points'] ?? 0).toString(),
                                       });
                                       
                                       // Refresh data after return

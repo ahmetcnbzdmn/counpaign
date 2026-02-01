@@ -2,9 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/participation_provider.dart';
+import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/icons/takeaway_cup_icon.dart';
 
 class CustomerScannerScreen extends StatefulWidget {
-  const CustomerScannerScreen({super.key});
+  final Map<String, dynamic>? extra; // To accept expectedBusinessId etc.
+  const CustomerScannerScreen({super.key, this.extra});
 
   @override
   State<CustomerScannerScreen> createState() => _CustomerScannerScreenState();
@@ -18,6 +23,187 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
     torchEnabled: false,
   );
   bool _isFlashOn = false;
+  bool _isProcessing = false;
+
+  // Expected Business Data & Stats
+  String? _expectedBusinessId;
+  String? _expectedBusinessName;
+  Color? _expectedBusinessColor;
+  int _currentStamps = 0;
+  int _targetStamps = 6;
+  int _currentGifts = 0;
+  String _currentPoints = "0";
+
+  @override
+  void initState() {
+    super.initState();
+    print("🚀 CustomerScannerScreen INIT. Extra: ${widget.extra}");
+    if (widget.extra != null) {
+      _expectedBusinessId = widget.extra!['expectedBusinessId'];
+      _expectedBusinessName = widget.extra!['expectedBusinessName'];
+      
+      _currentStamps = widget.extra!['currentStamps'] ?? 0;
+      _targetStamps = widget.extra!['targetStamps'] ?? 6;
+      _currentGifts = widget.extra!['currentGifts'] ?? 0;
+      _currentPoints = (widget.extra!['currentPoints'] ?? "0").toString();
+
+      _expectedBusinessColor = widget.extra!['expectedBusinessColor'] is Color 
+          ? widget.extra!['expectedBusinessColor'] 
+          : null;
+       
+       print("✅ Expected Business: $_expectedBusinessName (ID: $_expectedBusinessId)");
+
+       // Parse color if string
+       if (widget.extra!['expectedBusinessColor'] is String) {
+          try {
+             _expectedBusinessColor = Color(int.parse((widget.extra!['expectedBusinessColor'] as String).replaceAll('#', '0xFF')));
+          } catch (_) {}
+       }
+    } else {
+      print("❌ No Extras received in Scanner Screen!");
+    }
+  }
+
+  void _handleScan(BuildContext context, String token) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    
+    print("📸 Scanning Token: $token");
+
+    try {
+      final participationProvider = context.read<ParticipationProvider>();
+      
+      // Pass expected ID to backend for validation
+      final result = await participationProvider.scanBusinessQR(token, expectedBusinessId: _expectedBusinessId);
+      
+      print("📩 Scan Result: $result");
+      
+      if (!mounted) return;
+
+      // Logic check (Redundant if backend enforces it, but safe to keep)
+      if (_expectedBusinessId != null && result['business']['id'].toString() != _expectedBusinessId.toString()) {
+           print("⛔️ Logic Mismatch Detected (Should have been caught by backend)");
+           throw Exception("FIRM_MISMATCH");
+      }
+
+      // Start Polling for Confirmation
+      // Show waiting dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => WillPopScope(
+            onWillPop: () async => false,
+            child: AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                   const SizedBox(height: 16),
+                   const CircularProgressIndicator(color: Color(0xFFEE2C2C)),
+                   const SizedBox(height: 24),
+                   Text(
+                     "İşletme Onayı Bekleniyor...",
+                     textAlign: TextAlign.center,
+                     style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+                   ),
+                   const SizedBox(height: 8),
+                   Text(
+                     "Lütfen kasiyerin işlemi onaylamasını bekleyin.",
+                     textAlign: TextAlign.center,
+                     style: GoogleFonts.outfit(color: Colors.grey),
+                   ),
+                   const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+        );
+      }
+
+      // Check status loop
+      bool isConfirmed = false;
+      int attempts = 0;
+      print("⏳ Starting Polling for Token Confirmation...");
+      
+      while (attempts < 60) { // Increased to ~2 minutes (2s * 60)
+         if (!mounted) {
+             print("⚠️ Scanner unmounted, stopping poll.");
+             break;
+         }
+         
+         await Future.delayed(const Duration(seconds: 2));
+         try {
+            print("🔄 Polling status... Attempt ${attempts + 1}");
+            final statusResult = await participationProvider.checkConfirmationStatus(token);
+            print("📩 Poll Result: ${statusResult['status']}");
+            
+            if (statusResult['status'] == 'used') {
+               print("✅ Confirmation DETECTED!");
+               isConfirmed = true;
+               break;
+            }
+         } catch (e) {
+             print("⚠️ Polling Error: $e");
+         }
+         attempts++;
+      }
+
+      print("🏁 Polling Finished. Confirmed: $isConfirmed");
+
+      if (!mounted) return;
+      Navigator.of(context).pop(); // Close waiting dialog
+         
+      if (isConfirmed) {
+         if (mounted) {
+            await showCustomPopup(
+              context,
+              message: "İşlem Onaylandı! 🎉",
+              type: PopupType.success,
+            );
+         }
+         // Removed delay, now waits for user to close popup
+         if (mounted) context.pop(true); // Close scanner with success
+      } else {
+         if (mounted) {
+            await showCustomPopup(
+              context,
+              message: "Zaman aşımı. Lütfen tekrar deneyin veya kasiyere danışın.",
+              type: PopupType.error,
+            );
+         }
+         // Stay on scanner to try again
+      }
+
+    } catch (e) {
+      if (!mounted) return;
+      
+      String errorMessage = "QR Okuma Hatası";
+      
+      // Improved Error Handling
+      if (e.toString().contains("FIRM_MISMATCH")) {
+          errorMessage = "Hatalı İşletme!\nBeklenen: $_expectedBusinessName";
+      } else if (e.toString().contains("404") || e.toString().contains("Invalid or expired")) {
+         errorMessage = "Bu QR kodun süresi dolmuş veya geçersiz.";
+      } else if (e.toString().contains("400")) { 
+         errorMessage = "Hatalı QR kodu.";
+      } else if (e.toString().contains("401")) {
+         errorMessage = "Oturum hatası. Lütfen tekrar giriş yapın.";
+      } else {
+         errorMessage = "Hata: $e";
+      }
+
+      showCustomPopup(
+        context,
+        message: errorMessage,
+        type: PopupType.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -27,6 +213,10 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // If no specific business is passed, show generic UI (or empty)
+    final isGeneric = _expectedBusinessName == null;
+    final brandColor = _expectedBusinessColor ?? const Color(0xFF4CAF50); // Default Green if null
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -45,117 +235,217 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                       'Kamera Hatası: ${error.errorCode}',
                       style: const TextStyle(color: Colors.white),
                     ),
-                    Text(
-                      error.errorDetails?.message ?? '',
-                      style: const TextStyle(color: Colors.white54),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               );
             },
-            onDetect: (capture) {
+            onDetect: (capture) async {
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
-                debugPrint('Barcode found! ${barcode.rawValue}');
-                // Handle scan logic
+                if (barcode.rawValue != null && !_isProcessing) {
+                  _handleScan(context, barcode.rawValue!);
+                  break;
+                }
               }
             },
           ),
           
-          // Custom Overlay
+          if (_isProcessing)
+            Container(
+              color: Colors.black54,
+              child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+            ),
+          
+          // Custom Overlay Frame
           CustomPaint(
             painter: _ScannerOverlayPainter(
-              borderColor: Colors.white,
-              borderRadius: 24,
-              borderLength: 40,
-              borderWidth: 6,
+              borderColor: Colors.white, // Frame always white as per design
+              borderRadius: 30,
+              borderLength: 50,
+              borderWidth: 8,
               cutoutSize: 280,
             ),
             child: Container(),
           ),
 
-          // UI Layer
-          SafeArea(
-            child: Column(
-              children: [
-                const SizedBox(height: 40),
-                
-                // Top Text
-                Text(
-                  "QR Tara",
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    shadows: [
-                      Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)
-                    ]
-                  ),
-                ),
-                
-                const SizedBox(height: 60),
-                
-                // Helper Text
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Text(
-                    "Kasiyerin gösterdiği QR kodu okutarak kampanyalardan faydalanabilirsin.",
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 14,
-                      height: 1.5,
-                      shadows: [
-                      Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 10)
-                    ]
-                    ),
-                  ),
-                ),
-                
-                const Spacer(),
-                
-                // Bottom Button REMOVED
-                
-                const SizedBox(height: 40),
-                
-                // Camera Controls
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+          // TOP BAR
+          Positioned(
+            top: 0, left: 0, right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                     IconButton(
-                       onPressed: () {
+                    // Close Button
+                    GestureDetector(
+                      onTap: () => context.pop(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Colors.black45, 
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.close, color: Colors.white, size: 24),
+                      ),
+                    ),
+                    
+                    // Title
+                    Text(
+                      "QR TARA",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.0,
+                      ),
+                    ),
+
+                    // Flash Button
+                    GestureDetector(
+                      onTap: () {
                          setState(() {
                            _isFlashOn = !_isFlashOn;
                            _scannerController.toggleTorch();
                          });
-                       }, 
-                       icon: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white, size: 32),
-                       style: IconButton.styleFrom(backgroundColor: Colors.white24, padding: const EdgeInsets.all(16)),
-                     ),
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: const BoxDecoration(
+                          color: Colors.black45, 
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(_isFlashOn ? Icons.flash_on : Icons.flash_off, color: Colors.white, size: 24),
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          ),
-          
-          // Close Button (Top Right)
-          Positioned(
-            top: 50,
-            right: 20,
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Colors.black26, 
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.close, color: Colors.white, size: 28),
               ),
             ),
           ),
+
+          // BOTTOM SHEET (Info Overlay)
+          if (!isGeneric)
+             Positioned(
+               bottom: 0, left: 0, right: 0,
+               child: Container(
+                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+                 decoration: const BoxDecoration(
+                   color: Colors.white,
+                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                 ),
+                 child: Column(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     // HEADER: Icon, Name, Progress
+                     Row(
+                       children: [
+                         // Brand Logo/Icon
+                         Container(
+                           width: 50, height: 50,
+                           decoration: BoxDecoration(
+                             color: brandColor,
+                             shape: BoxShape.circle,
+                           ),
+                           child: const Icon(Icons.local_cafe, color: Colors.white, size: 24),
+                         ),
+                         const SizedBox(width: 16),
+                         Expanded(
+                           child: Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               Text(
+                                 _expectedBusinessName ?? "İşletme", 
+                                 style: GoogleFonts.outfit(
+                                   color: Colors.black, 
+                                   fontSize: 20, 
+                                   fontWeight: FontWeight.bold
+                                 )
+                               ),
+                               Text(
+                                 "QR kodu tarayarak puan kazanın",
+                                 style: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+                               ),
+                             ],
+                           ),
+                         ),
+                         // Progress Pill
+                         Container(
+                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                           decoration: BoxDecoration(
+                             color: Colors.green[50], // Light green bg
+                             borderRadius: BorderRadius.circular(20),
+                           ),
+                           child: Text(
+                             "$_currentStamps/$_targetStamps",
+                             style: GoogleFonts.outfit(
+                               color: Colors.green[700],
+                               fontWeight: FontWeight.bold,
+                               fontSize: 16,
+                             ),
+                           ),
+                         ),
+                       ],
+                     ),
+                     
+                     const SizedBox(height: 24),
+
+                     // STATS ROW (Gifts & Points)
+                     Row(
+                       children: [
+                         Expanded(
+                           child: Container(
+                             padding: const EdgeInsets.all(12),
+                             decoration: BoxDecoration(
+                               color: Colors.grey[100],
+                               borderRadius: BorderRadius.circular(16),
+                             ),
+                             child: Row(
+                               children: [
+                                 const Icon(Icons.card_giftcard, color: Colors.grey, size: 20),
+                                 const SizedBox(width: 8),
+                                 Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                     Text("Hediye", style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
+                                     Text("$_currentGifts", style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                                   ],
+                                 )
+                               ],
+                             ),
+                           ),
+                         ),
+                         const SizedBox(width: 12),
+                         Expanded(
+                           child: Container(
+                             padding: const EdgeInsets.all(12),
+                             decoration: BoxDecoration(
+                               color: Colors.grey[100],
+                               borderRadius: BorderRadius.circular(16),
+                             ),
+                             child: Row(
+                               children: [
+                                 const Icon(Icons.sell_outlined, color: Colors.grey, size: 20),
+                                 const SizedBox(width: 8),
+                                 Column(
+                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                   children: [
+                                     Text("Toplam Puan", style: GoogleFonts.outfit(color: Colors.grey[600], fontSize: 11)),
+                                     Text(_currentPoints, style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16)),
+                                   ],
+                                 )
+                               ],
+                             ),
+                           ),
+                         ),
+                       ],
+                     ),
+
+
+                   ],
+                 ),
+               ),
+             ),
         ],
       ),
     );
@@ -185,7 +475,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 
     // 1. Draw Semi-Transparent Overlay
     final Paint overlayPaint = Paint()
-      ..color = Colors.black.withOpacity(0.8) // Darker background
+      ..color = Colors.black.withOpacity(0.7)
       ..style = PaintingStyle.fill;
 
     final Path backgroundPath = Path()
@@ -214,6 +504,15 @@ class _ScannerOverlayPainter extends CustomPainter {
       ..strokeWidth = borderWidth
       ..strokeCap = StrokeCap.round;
 
+    final double arcSize = borderRadius; 
+
+    // Helper to draw corner
+    void drawCorner(double x, double y, double startAngle) {
+       final Path path = Path();
+       // e.g. For Top Left: Start at (left, top+len) -> line to (left, top+rad) -> arc to (left+rad, top) -> line to (left+len, top)
+       // Simplified approach: just draw arcs and lines manually
+    }
+    
     // Top Left
     final Path topLeft = Path();
     topLeft.moveTo(centerX - cutoutHalfSize, centerY - cutoutHalfSize + borderLength);

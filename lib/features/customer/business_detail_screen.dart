@@ -65,24 +65,42 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _navigateToScanner() async {
-    final result = await context.push<Map<String, dynamic>>('/business-scanner', extra: {
-      'id': _businessId,
-      'name': widget.businessData['name'],
-      'color': widget.businessData['color'],
-      'stamps': _stamps,
-      'stampsTarget': _stampsTarget,
-      'giftsCount': _giftsCount,
-      'points': _points,
+    print("🔘 BusinessDetailScreen: Navigating to scanner with ID: $_businessId, Name: ${widget.businessData['name']}");
+    
+    // Navigate to general scanner which handles validations
+    // We pass the expected business ID and Name to enforce validation
+    await context.push('/customer-scanner', extra: {
+      'expectedBusinessId': _businessId,
+      'expectedBusinessName': widget.businessData['name'],
+      'expectedBusinessColor': widget.businessData['color'],
+      'currentStamps': _stamps,
+      'targetStamps': _stampsTarget,
+      'currentGifts': _giftsCount,
+      'currentPoints': _points,
     });
-
-    if (result != null && mounted) {
-      setState(() {
-        _stamps = result['stamps'] ?? _stamps;
-        _stampsTarget = result['stampsTarget'] ?? _stampsTarget;
-        _giftsCount = result['giftsCount'] ?? _giftsCount;
-        _points = result['points'] ?? _points;
-      });
+    // Refresh data after return
+    if (mounted) {
+       _refreshData();
     }
+  }
+
+  Future<void> _refreshData() async {
+      // Re-fetch business data to update stamps/points
+      try {
+        final api = context.read<ApiService>();
+        // We might need a specific endpoint to get single business details or just refresh list
+        // For now, re-fetching global list and finding this business again
+        // Or if we have a direct endpoint:
+        final updatedData = await api.getBusinessById(_businessId);
+        setState(() {
+            _stamps = updatedData['stamps'] ?? _stamps;
+            _stampsTarget = updatedData['stampsTarget'] ?? _stampsTarget;
+            _giftsCount = updatedData['giftsCount'] ?? _giftsCount;
+            _points = (updatedData['points'] ?? _points).toString();
+        });
+      } catch (e) {
+          print("Error refreshing business data: $e");
+      }
   }
 
   Future<void> _showSpendQRDialog() async {
@@ -533,7 +551,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        "QR Okut", 
+                                        "Harcama QR", 
                                         style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,

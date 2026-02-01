@@ -15,7 +15,7 @@ String? resolveImageUrl(String? path) {
 
 enum PopupType { success, error, info }
 
-void showCustomPopup(
+Future<void> showCustomPopup(
   BuildContext context, {
   required String message,
   PopupType type = PopupType.info,
@@ -64,7 +64,7 @@ void showCustomPopup(
       break;
   }
 
-  showGeneralDialog(
+  return showGeneralDialog(
     context: context,
     barrierDismissible: true,
     barrierLabel: '',

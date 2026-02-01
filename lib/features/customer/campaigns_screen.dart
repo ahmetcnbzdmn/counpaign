@@ -9,6 +9,7 @@ import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import 'dart:convert';
 import '../../core/providers/language_provider.dart';
+import '../../core/utils/ui_utils.dart';
 
 class CampaignsScreen extends StatefulWidget {
   final String? firmId;
@@ -271,9 +272,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             children: [
               // [Background Image]
               Positioned.fill(
-                child: campaign.headerImage != null 
+                child: resolveImageUrl(campaign.headerImage) != null 
                   ? Image.network(
-                      campaign.headerImage!,
+                      resolveImageUrl(campaign.headerImage)!,
                       fit: BoxFit.cover,
                       cacheWidth: 800,
                       errorBuilder: (context, error, stackTrace) => Container(
