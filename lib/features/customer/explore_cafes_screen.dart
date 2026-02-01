@@ -239,6 +239,8 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               'city': business['city'],
               'district': business['district'],
               'neighborhood': business['neighborhood'],
+              'logo': business['logo'], // Pass logo
+              'image': business['image'], // Pass fallback image
               'isNew': true, 
             };
             

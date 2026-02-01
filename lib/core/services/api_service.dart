@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
@@ -24,12 +25,15 @@ class ApiService {
       onError: (DioException e, handler) {
         // Handle global errors (e.g. 401 Unauthorized -> Logout)
         if (e.response?.statusCode == 401) {
-          // Trigger logout if needed
+          onUnauthorized?.call();
         }
         return handler.next(e);
       },
     ));
   }
+
+  // Callback to handle 401 errors (e.g. trigger logout)
+  VoidCallback? onUnauthorized;
 
   Dio get client => _dio;
 
@@ -169,6 +173,20 @@ class ApiService {
 
   Future<Map<String, dynamic>> checkConfirmationStatus(String token) async {
     final response = await _dio.get('/qr/status/customer/$token');
+    return response.data as Map<String, dynamic>;
+  }
+
+  // Gift Methods
+  Future<List<dynamic>> getBusinessGifts(String businessId) async {
+    final response = await _dio.get('/gifts/business/$businessId');
+    return response.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> redeemGift(String businessId, String giftId) async {
+    final response = await _dio.post('/gifts/redeem', data: {
+      'businessId': businessId,
+      'giftId': giftId
+    });
     return response.data as Map<String, dynamic>;
   }
 }

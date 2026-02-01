@@ -185,6 +185,7 @@ class AppLocalizations {
       'error_reorder': 'Sıralama kaydedilemedi',
 
       'info': 'Bilgi',
+      'success_title': 'Başarılı',
       
       // Scanner Screen
       'scan_qr_title': 'QR TARA',

@@ -15,6 +15,7 @@ import '../../core/providers/business_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
+import 'gift_selection_screen.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
@@ -103,58 +104,26 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
   }
 
-  Future<void> _showSpendQRDialog() async {
+  Future<void> _navigateToGiftSelection() async {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
-    if (_giftsCount <= 0) {
-      showCustomPopup(
-        context,
-        message: Provider.of<LanguageProvider>(context, listen: false).translate('no_gift_to_spend'),
-        type: PopupType.error,
-      );
-      return;
-    }
+    final double points = double.tryParse(_points) ?? 0.0;
 
-    final qrData = '{"customer": "${user.id}", "business": "$_businessId", "type": "GIFT_REDEEM"}';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        content: SizedBox(
-          width: 300,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(Provider.of<LanguageProvider>(context, listen: false).translate('payment_qr'), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-              const SizedBox(height: 8),
-              Text(Provider.of<LanguageProvider>(context, listen: false).translate('scan_to_redeem'), 
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(fontSize: 14, color: Colors.grey)
-              ),
-              const SizedBox(height: 24),
-              QrImageView(
-                data: qrData,
-                version: QrVersions.auto,
-                size: 200.0,
-                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.circle, color: Colors.black),
-                dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.circle, color: Colors.black),
-              ),
-              const SizedBox(height: 24),
-              // Simulation Buttons Removed
-              const SizedBox(height: 8),
-              // Stamp (+1) Button Removed
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('close'), style: GoogleFonts.outfit(color: Colors.grey)),
-              ),
-            ],
-          ),
+    final bool? result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => GiftSelectionScreen(
+          businessId: _businessId,
+          businessName: widget.businessData['name'] ?? '',
+          currentPoints: points,
         ),
       ),
     );
+
+    if (result == true) {
+      _refreshData();
+    }
   }
 
   void _showHistoryBottomSheet() {
@@ -376,8 +345,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(color: Colors.white, width: 2),
-                                image: const DecorationImage(
-                                  image: NetworkImage('https://images.unsplash.com/photo-1541167760496-1628856ab772?auto=format&fit=crop&q=80&w=100'),
+                                image: DecorationImage(
+                                  image: NetworkImage(
+                                    () {
+                                      final raw = data['logo'] ?? data['image'];
+                                      final resolved = resolveImageUrl(raw);
+                                      print("🖼️ LOGO DEBUG: Raw: $raw | Resolved: $resolved");
+                                      return resolved ?? 'https://placehold.co/100.png';
+                                    }()
+                                  ),
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -534,7 +510,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: _showSpendQRDialog,
+                          onTap: _navigateToGiftSelection,
                           child: Container(
                             height: 100,
                             padding: const EdgeInsets.all(16),

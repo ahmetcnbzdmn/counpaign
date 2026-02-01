@@ -66,6 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'city': e['city'],
       'district': e['district'],
       'neighborhood': e['neighborhood'],
+      'logo': e['logo'],
+      'image': e['image'],
     }).toList();
 
     if (mapped.isEmpty) {
@@ -459,6 +461,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           'city': firm['city'],
                           'district': firm['district'],
                           'neighborhood': firm['neighborhood'],
+                          'logo': firm['logo'],
+                          'image': firm['image'],
                         });
 
                         // [SYNC FIX] Refresh data when returning from detail

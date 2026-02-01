@@ -60,6 +60,11 @@ void main() async {
   final authProvider = app.AuthProvider(authService, storageService);
   final businessProvider = BusinessProvider(apiService);
 
+  // Link ApiService 401 handling to AuthProvider logout
+  apiService.onUnauthorized = () {
+    authProvider.logout();
+  };
+
   // Don't await here! It blocks runApp if network is slow/down.
   authProvider.loadUserSession();
 

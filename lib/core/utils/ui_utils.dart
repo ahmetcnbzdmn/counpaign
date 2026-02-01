@@ -7,11 +7,15 @@ import '../providers/language_provider.dart';
 String? resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return null;
   if (path.startsWith('http')) return path;
+  
+  final base = ApiConfig.baseUrl.replaceAll('/api', '');
+  
+  // Ensure we don't have double slashes or missing slashes
   if (path.startsWith('/')) {
-    final base = ApiConfig.baseUrl.replaceAll('/api', '');
     return '$base$path';
+  } else {
+    return '$base/$path';
   }
-  return path;
 }
 
 
@@ -51,8 +55,6 @@ Future<void> showCustomPopup(
     case PopupType.success:
       primaryColor = Colors.green;
       icon = Icons.check_circle_rounded;
-      defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('success_review').split(' ').first; // "Success" logic
-      // Better: direct key
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('success_title');
       break;
     case PopupType.error:
