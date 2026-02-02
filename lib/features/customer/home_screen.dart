@@ -11,6 +11,7 @@ import '../../core/providers/business_provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/widgets/campaign_slider.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
 import '../../core/models/campaign_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -151,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                biz.fetchMyFirms(),
                biz.fetchExploreFirms(),
                camp.fetchAllCampaigns(),
+               context.read<ParticipationProvider>().fetchMyParticipations(), // [FIX] Refresh participations too
              ]);
           },
           child: SingleChildScrollView(

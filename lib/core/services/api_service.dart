@@ -182,6 +182,19 @@ class ApiService {
     return response.data as List<dynamic>;
   }
 
+  Future<Map<String, dynamic>> prepareRedemption(String businessId, String giftId, {String type = 'POINT'}) async {
+    final response = await _dio.post('/gifts/prepare-redemption', data: {
+      'businessId': businessId,
+      'giftId': giftId,
+      'redemptionType': type
+    });
+    return response.data as Map<String, dynamic>;
+  }
+
+  Future<void> cancelRedemption(String token) async {
+    await _dio.post('/gifts/cancel-redemption', data: {'token': token});
+  }
+
   Future<Map<String, dynamic>> redeemGift(String businessId, String giftId) async {
     final response = await _dio.post('/gifts/redeem', data: {
       'businessId': businessId,

@@ -124,6 +124,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
       // Check status loop
       bool isConfirmed = false;
+      bool isCancelled = false; // [NEW] Track cancellation
       int attempts = 0;
       print("⏳ Starting Polling for Token Confirmation...");
       
@@ -143,6 +144,11 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                print("✅ Confirmation DETECTED!");
                isConfirmed = true;
                break;
+            } else if (statusResult['status'] == 'cancelled') {
+               print("🚫 Cancellation DETECTED!");
+               isConfirmed = false;
+               isCancelled = true; // [NEW] Mark as cancelled
+               break; // [FIX] Break loop immediately
             }
          } catch (e) {
              print("⚠️ Polling Error: $e");
@@ -150,7 +156,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          attempts++;
       }
 
-      print("🏁 Polling Finished. Confirmed: $isConfirmed");
+      print("🏁 Polling Finished. Confirmed: $isConfirmed, Cancelled: $isCancelled");
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Close waiting dialog
@@ -163,8 +169,17 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.success,
             );
          }
-         // Removed delay, now waits for user to close popup
          if (mounted) context.pop(true); // Close scanner with success
+      } else if (isCancelled) {
+          // [NEW] Handle Cancellation
+          if (mounted) {
+            await showCustomPopup(
+              context,
+              message: Provider.of<LanguageProvider>(context, listen: false).translate('kod_iptal_edildi'),
+              type: PopupType.error,
+            );
+          }
+           // Stay on scanner (or pop depending on UX preference, usually stay to scan again)
       } else {
          if (mounted) {
             await showCustomPopup(
@@ -173,7 +188,6 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.error,
             );
          }
-         // Stay on scanner to try again
       }
 
     } catch (e) {
@@ -190,6 +204,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('invalid_qr_error');
       } else if (e.toString().contains("401")) {
          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('session_error');
+      } else if (e.toString().contains("CANCELLED_BY_HOST")) {
+         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('kod_iptal_edildi');
       } else {
          errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('error')}: $e";
       }

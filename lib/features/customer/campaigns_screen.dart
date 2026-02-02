@@ -5,6 +5,7 @@ import '../../core/widgets/swipe_back_detector.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/providers/business_provider.dart';
+import '../../core/providers/participation_provider.dart'; // [NEW] Import
 import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import 'dart:convert';
@@ -90,7 +91,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                          },
                        ),
                        Text(
-                         _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : "${lang.translate('deals')} 🔥", 
+                         _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : "${lang.translate('deals')}", 
                          style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)
                        ),
                      ],
@@ -162,8 +163,18 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
 
             // [3] Campaigns List (Dynamic)
             Expanded(
-              child: Consumer2<CampaignProvider, BusinessProvider>(
-                builder: (context, campProvider, bizProvider, child) {
+              child: RefreshIndicator(
+                color: primaryBrand,
+                onRefresh: () async {
+                   await Future.wait([
+                     context.read<CampaignProvider>().fetchAllCampaigns(),
+                     context.read<BusinessProvider>().fetchMyFirms(),
+                     context.read<BusinessProvider>().fetchExploreFirms(),
+                     context.read<ParticipationProvider>().fetchMyParticipations(),
+                   ]);
+                },
+                child: Consumer2<CampaignProvider, BusinessProvider>(
+                  builder: (context, campProvider, bizProvider, child) {
                   // 1. Get All Campaigns
                   var campaigns = campProvider.allCampaigns;
                   
@@ -237,7 +248,8 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                   );
                 },
               ),
-            ),
+            ), // Close RefreshIndicator
+          ),   // Close Expanded
           ],
         ),
       ),

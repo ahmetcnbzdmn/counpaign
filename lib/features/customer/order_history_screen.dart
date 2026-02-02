@@ -169,16 +169,49 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             Color amountColor = textColor;
                             IconData icon = Icons.receipt_long_rounded;
         
-                            if (type == 'STAMP') {
+                            final description = tx['description'] ?? '';
+                            final pointsEarned = tx['pointsEarned']; // Can be negative number, null, or string
+
+                            if (type == 'gift_redemption') {
+                               final isEntitlementText = description.toString().toLowerCase().contains('hediye hakkı');
+                               final isZeroPoints = pointsEarned != null && (pointsEarned == 0 || pointsEarned == '0');
+                               
+                               if (isEntitlementText || isZeroPoints) {
+                                  title = lang.translate('hediye_hakki_kullanimi');
+                                  amount = "-1";
+                                  amountColor = Colors.amber; // Yellow
+                                  icon = Icons.coffee_rounded; 
+                               } else {
+                                  // Point Purchase (Hediye Alımı: [GiftName])
+                                  // Extract gift name
+                                  final giftName = description.replaceAll('Hediye Alımı: ', '');
+                                  title = "${lang.translate('hediye_alimi')}: $giftName";
+                                  
+                                  // Safe cast to avoid 'null' string
+                                  final cost = pointsEarned?.toString() ?? '0';
+                                  amount = cost; 
+                                  amountColor = const Color(0xFFEE2C2C); // Red
+                                  icon = Icons.card_giftcard_rounded;
+                               }
+                            } else if (type == 'STAMP') {
                               title = lang.translate('stamp_earned'); 
                               amount = "+$value";
                               amountColor = Colors.orange;
                               icon = Icons.local_cafe_rounded;
                             } else if (type == 'POINT') {
-                              title = lang.translate('point_earned');
-                              amount = "+$value";
-                              amountColor = Colors.green;
-                              icon = Icons.stars_rounded;
+                              // Check for negative points (spend)
+                              if (pointsEarned != null && (pointsEarned is num) && pointsEarned < 0) {
+                                 title = "Puan Harcama";
+                                 amount = "$pointsEarned";
+                                 amountColor = const Color(0xFFEE2C2C);
+                                 icon = Icons.shopping_bag_outlined;
+                              } else {
+                                 title = lang.translate('point_earned');
+                                 final val = tx['pointsEarned'] ?? value;
+                                 amount = "+$val";
+                                 amountColor = Colors.green;
+                                 icon = Icons.stars_rounded;
+                              }
                             } else if (type == 'GIFT_REDEEM') {
                               title = lang.translate('gift_redeemed');
                               amount = "-1";

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/widgets/swipe_back_detector.dart';
+import '../../core/providers/participation_provider.dart';
+import '../../core/providers/campaign_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
 
@@ -243,8 +245,19 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                         firm['id'], 
                                         passwordController.text
                                       );
-                                      // If successful, close dialog with true
-                                      if (context.mounted) Navigator.of(context).pop(true);
+                                      
+                                      // [FIX] Instant Refresh State
+                                      if (context.mounted) {
+                                         // 1. Refresh global participations to clear 'Joined' status
+                                         // Need to import providers first
+                                         context.read<ParticipationProvider>().fetchMyParticipations();
+                                         
+                                         // 2. Refresh global campaigns (optional but good practice)
+                                         context.read<CampaignProvider>().fetchAllCampaigns();
+                                         
+                                         // 3. Close dialog
+                                         Navigator.of(context).pop(true);
+                                      }
                                     } catch (e) {
                                       // Handle error inside the dialog
                                       setState(() {

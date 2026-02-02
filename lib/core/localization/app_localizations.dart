@@ -139,7 +139,17 @@ class AppLocalizations {
       'all_businesses': 'Tüm İşletmeler',
       'no_address': 'Adres bilgisi yok',
       'no_cafes_yet': 'Henüz keşfedilecek yeni mekan yok.',
-      
+
+      // Gift Selection
+      'gift_selection_title': 'Hediye Seçimi',
+      'spendable_amount': 'Harcanabilir Miktar',
+      'gift_entitlement_title': 'Hediye Hakkınız Var!',
+      'gift_entitlement_subtitle': 'adet hediyeniz birikti.',
+      'no_gifts_yet': 'Henüz hediye bulunmuyor.',
+      'available_gifts_header': 'Kullanılabilir Hediyeler',
+      'points': 'Puan',
+      'insufficient_points': 'Yetersiz Puan',
+
       // Campaign Detail
       'reward_label': 'Ödül',
       'date_label': 'Son Tarih',
@@ -148,20 +158,20 @@ class AppLocalizations {
       'step_1': 'Hemen Katıl butonuna basıp kampanyaya dahil ol.',
       'step_2': 'QR kodunla ödemeni tamamla.',
       'step_3': 'Kazandığın ödülleri anında cüzdanında gör.',
-      
+
       // Business Detail (Extra)
       'no_gift_to_spend': 'Harcayacak hediye ürününüz bulunmuyor! 🥐',
       'payment_qr': 'Ödeme QR Kodu',
       'scan_to_redeem': 'Kasiyere okutarak hediye ürününü alabilirsin.',
       'close': 'Kapat',
       'my_coffees': 'Kahvelerim',
-      'spend_qr': 'Harcama QR',
+      'spend_qr': 'Puan Harca',
       'spend_gifts': 'Hediyelerini harca',
       'campaigns': 'Kampanyalar',
       'no_campaigns_soon': 'Yakında yeni fırsatlar burada olacak! ✨',
       'add_to_wallet': 'Cüzdana Ekle',
       'added_to_wallet_msg': 'Bu işletme artık cüzdanında! 🎉',
-      
+
       // Add Firm Screen
       'page_title_add_cafe': 'Kafe Ekle',
       'dropdown_city': 'İl',
@@ -202,7 +212,27 @@ class AppLocalizations {
       'earn_points_msg': 'QR kodu tarayarak puan kazanın',
       'total_points': 'Toplam Puan',
       'gift': 'Hediye',
+      'confirm_redeem_title': 'Hediye Al',
+      'confirm_redeem_msg': 'ürününü almak istediğinize emin misiniz?',
+      'gift_code_title': 'Hediye Kodu',
+      'gift_code_desc': 'Bu kodu kasa personeline göstererek\nhediyenizi teslim alabilirsiniz.',
+      'gift_delivered_msg': 'Hediye teslim edildi! 🎉',
+      'redeem_entitlement_title': 'Hediye Hakkı Kullan',
+      'gift_entitlement_confirm': '1 adet hediye hakkınızı kullanmak istiyor musunuz?',
+      'gift_error_msg': 'Hediye hakkı kullanılırken hata oluştu.',
+
+      // Campaign Detail Dynamic
+      'joined_status': 'Katıldın ✅',
+      'join_now_btn': 'Hemen Katıl',
+      'add_firm_first_btn': 'Önce İşletmeyi Ekle',
+      'need_add_firm_msg': 'Bu kampanyaya katılmak için önce işletmeyi cüzdanına eklemelisin! 🛍️',
+      
+      // Auto-Translation Keys
+      'kod_iptal_edildi': 'İşlem İptal Edildi', 
+      'hediye_alimi': 'Hediye Alımı',
+      'hediye_hakki_kullanimi': 'Hediye Hakkı Kullanımı',
     },
+
     'en': {
       // Campaign Detail (EN)
       'reward_label': 'Reward',
@@ -409,6 +439,35 @@ class AppLocalizations {
       'all_businesses': 'All Businesses',
       'no_address': 'No address info',
       'no_cafes_yet': 'No new places to explore yet.',
+
+      // Gift Selection
+      'gift_selection_title': 'Gift Selection',
+      'spendable_amount': 'Spendable Amount',
+      'gift_entitlement_title': 'You have a Gift!',
+      'gift_entitlement_subtitle': 'gifts available.',
+      'no_gifts_yet': 'No gifts available yet.',
+      'available_gifts_header': 'Available Gifts',
+      'points': 'Points',
+      'insufficient_points': 'Insufficient Points',
+      'confirm_redeem_title': 'Redeem Gift',
+      'confirm_redeem_msg': 'Are you sure you want to redeem ',
+      'gift_code_title': 'Gift Code',
+      'gift_code_desc': 'Show this code to cashier to receive your gift.',
+      'gift_delivered_msg': 'Gift delivered! 🎉',
+      'redeem_entitlement_title': 'Use Free Gift',
+      'gift_entitlement_confirm': 'Do you want to use 1 free gift entitlement?',
+      'gift_error_msg': 'Error processing gift.',
+      
+      // Campaign Detail Dynamic
+      'joined_status': 'Joined ✅',
+      'join_now_btn': 'Join Now',
+      'add_firm_first_btn': 'Add Shop First',
+      'need_add_firm_msg': 'You must add this shop to your wallet first! 🛍️',
+      
+      // Auto-Translation Keys (Backend Mappings)
+      'kod_iptal_edildi': 'Transaction Cancelled', 
+      'hediye_alimi': 'Gift Redemption', 
+      'hediye_hakki_kullanimi': 'Free Gift Entitlement Used', 
     },
   };
 

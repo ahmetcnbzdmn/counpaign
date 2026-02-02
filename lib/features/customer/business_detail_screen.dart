@@ -117,6 +117,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           businessId: _businessId,
           businessName: widget.businessData['name'] ?? '',
           currentPoints: points,
+          currentGifts: _giftsCount,
         ),
       ),
     );
@@ -178,36 +179,69 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       separatorBuilder: (context, index) => const Divider(height: 32),
                       itemBuilder: (context, index) {
                         final tx = history[index];
-                        final type = tx['type']; // 'STAMP', 'POINT', or 'GIFT_REDEEM'
-                        final category = tx['category']; // 'KAZANIM' or 'HARCAMA'
-                        final isEarn = category == 'KAZANIM';
-                        final value = tx['value'] ?? 1;
+                        final type = tx['type']; // 'STAMP', 'POINT', 'gift_redemption'
+                        // Check if pointsEarned is negative to determine if it's a spend
+                        final pointsEarned = tx['pointsEarned']; // May be null or number
+                        final description = tx['description'] ?? '';
                         
                         final date = DateTime.parse(tx['createdAt']);
                         final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
-
+                        
+                        // Default values
                         String title = "İşlem";
-                        String sign = isEarn ? "+" : "-";
-                        
-                        if (type == 'STAMP') {
-                          title = Provider.of<LanguageProvider>(context, listen: false).translate('stamp_earned');
+                        String sign = "+";
+                        Color color = Colors.green;
+                        String valueText = "${tx['value'] ?? ''}";
+
+                        if (type == 'gift_redemption') {
+                          // This is the new gift system
+                          final isEntitlement = description.contains('Hediye Hakkı');
+                          
+                          if (isEntitlement) {
+                             // Yellow -1 for Entitlement
+                             title = "Hediye Kullanıldı";
+                             sign = "-";
+                             valueText = "1";
+                             color = Colors.amber; // Yellow/Orange
+                          } else {
+                             // Red -Points for Point Purchase
+                             title = description.replaceAll('Hediye Alımı: ', '');
+                             sign = ""; // pointsEarned is already negative in DB usually, but let's handle display safely
+                             valueText = "$pointsEarned"; 
+                             color = const Color(0xFFEE2C2C); // Red
+                          }
+                        } else if (type == 'STAMP') {
+                           title = Provider.of<LanguageProvider>(context, listen: false).translate('stamp_earned');
+                           valueText = "${tx['stampsEarned'] ?? 1}";
+                           color = Colors.green;
                         } else if (type == 'POINT') {
-                          title = Provider.of<LanguageProvider>(context, listen: false).translate('point_earned');
+                           // Old logic or direct point earn
+                           if (pointsEarned != null && (pointsEarned as num) < 0) {
+                              title = "Puan Harcama";
+                              color = const Color(0xFFEE2C2C);
+                              valueText = "$pointsEarned";
+                              sign = "";
+                           } else {
+                              title = Provider.of<LanguageProvider>(context, listen: false).translate('point_earned');
+                              valueText = "${tx['pointsEarned'] ?? tx['value']}";
+                           }
                         } else if (type == 'GIFT_REDEEM') {
-                          title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
+                           // Legacy
+                           title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
+                           color = Colors.orange;
                         }
-                        
+
                         return Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: (isEarn ? Colors.green : Colors.orange).withOpacity(0.1),
+                                color: color.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                isEarn ? Icons.add_circle_outline_rounded : Icons.remove_circle_outline_rounded,
-                                color: isEarn ? Colors.green : Colors.orange,
+                                (sign == "-" || (pointsEarned != null && (pointsEarned as num) < 0)) ? Icons.remove_circle_outline_rounded : Icons.add_circle_outline_rounded,
+                                color: color,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -227,11 +261,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                               ),
                             ),
                             Text(
-                              "$sign$value",
+                              "$sign$valueText",
                               style: GoogleFonts.outfit(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                color: isEarn ? Colors.green : Colors.orange,
+                                color: color,
                               ),
                             ),
                           ],

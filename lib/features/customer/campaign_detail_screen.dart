@@ -71,7 +71,7 @@ class CampaignDetailScreen extends StatelessWidget {
                                 if (!isInWallet) {
                                   showCustomPopup(
                                     context,
-                                    message: "Bu kampanyaya katılmak için önce işletmeyi cüzdanına eklemelisin! 🛍️",
+                                    message: Provider.of<LanguageProvider>(context, listen: false).translate('need_add_firm_msg'),
                                     type: PopupType.info,
                                   );
                                   return;
@@ -90,8 +90,8 @@ class CampaignDetailScreen extends StatelessWidget {
                           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                           : Text(
                               isAlreadyParticipating 
-                                ? "Katıldın ✅" 
-                                : (isInWallet ? "Hemen Katıl" : "Önce İşletmeyi Ekle"), 
+                                ? Provider.of<LanguageProvider>(context).translate('joined_status')
+                                : (isInWallet ? Provider.of<LanguageProvider>(context).translate('join_now_btn') : Provider.of<LanguageProvider>(context).translate('add_firm_first_btn')), 
                               style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
                             ),
                       ),
@@ -335,7 +335,7 @@ class CampaignDetailScreen extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              AutoText(
+              Text(
                 label,
                 style: GoogleFonts.outfit(fontSize: 12, color: textColor.withOpacity(0.5), fontWeight: FontWeight.bold),
               ),
