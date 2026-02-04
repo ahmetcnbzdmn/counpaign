@@ -12,6 +12,7 @@ import '../../core/providers/campaign_provider.dart';
 import '../../core/widgets/campaign_slider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
+import '../../core/services/notification_service.dart'; // DEBUG Import
 import '../../core/models/campaign_model.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -38,6 +39,34 @@ class _HomeScreenState extends State<HomeScreen> {
         final firms = context.read<BusinessProvider>().myFirms;
         for (var firm in firms) {
           context.read<CampaignProvider>().fetchCampaigns(firm['id']);
+        }
+      }
+
+      // DEBUG: Check FCM Token on Screen
+      try {
+        final token = await NotificationService.getToken();
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text("FCM Token: ${token != null ? '✅ ALINDI' : '❌ NULL'}"),
+               duration: const Duration(seconds: 10),
+               backgroundColor: token != null ? Colors.green : Colors.red,
+             )
+           );
+           if (token == null) {
+              // Retry once more for debug visibility
+              print("Token null, retrying manually in debug...");
+           }
+        }
+      } catch (e) {
+        if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text("FCM Error: $e"), 
+               backgroundColor: Colors.red,
+               duration: const Duration(seconds: 10),
+             ),
+           );
         }
       }
     });
