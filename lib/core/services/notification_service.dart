@@ -105,21 +105,28 @@ class NotificationService {
 
   // Get FCM Token
   static Future<String?> getToken() async {
-    // iOS: Wait for APNs token first
+    // iOS: Wait for APNs token first (Robust Retry)
     if (defaultTargetPlatform == TargetPlatform.iOS) {
-      String? apnsToken = await _firebaseMessaging.getAPNSToken();
-      if (apnsToken == null) {
-         print("APNs Token is null, waiting for 3 seconds...");
-         await Future<void>.delayed(const Duration(seconds: 3));
-         apnsToken = await _firebaseMessaging.getAPNSToken();
+      for (int i = 0; i < 5; i++) {
+        String? apnsToken = await _firebaseMessaging.getAPNSToken();
+        if (apnsToken != null) {
+          print("✅ APNs Token found: $apnsToken");
+          break;
+        }
+        print("⏳ APNs Token is null, waiting... attempt ${i + 1}/5");
+        await Future<void>.delayed(const Duration(seconds: 2));
       }
-      print("APNs Token: $apnsToken");
     }
     
     // Now get FCM token
-    String? token = await _firebaseMessaging.getToken();
-    print("FCM Token: $token");
-    return token;
+    try {
+      String? token = await _firebaseMessaging.getToken();
+      print("🔥 FCM Token: $token");
+      return token;
+    } catch (e) {
+      print("❌ Error getting FCM token: $e");
+      return null;
+    }
   }
 
   // Background Message Handler
