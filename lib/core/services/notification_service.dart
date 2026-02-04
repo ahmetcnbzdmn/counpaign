@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
@@ -104,7 +105,21 @@ class NotificationService {
 
   // Get FCM Token
   static Future<String?> getToken() async {
-    return await _firebaseMessaging.getToken();
+    // iOS: Wait for APNs token first
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
+      String? apnsToken = await _firebaseMessaging.getAPNSToken();
+      if (apnsToken == null) {
+         print("APNs Token is null, waiting for 3 seconds...");
+         await Future<void>.delayed(const Duration(seconds: 3));
+         apnsToken = await _firebaseMessaging.getAPNSToken();
+      }
+      print("APNs Token: $apnsToken");
+    }
+    
+    // Now get FCM token
+    String? token = await _firebaseMessaging.getToken();
+    print("FCM Token: $token");
+    return token;
   }
 
   // Background Message Handler
