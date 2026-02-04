@@ -11,6 +11,8 @@ class AuthService {
 
   AuthService(this._apiService, this._storageService);
 
+  ApiService get apiService => _apiService;
+
   Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
     try {
       // 1. Lookup Email from Backend

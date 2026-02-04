@@ -202,4 +202,28 @@ class ApiService {
     });
     return response.data as Map<String, dynamic>;
   }
+
+
+  // Notification Methods
+  Future<void> updateFcmToken(String token) async {
+    try {
+      await _dio.post('/users/update-fcm-token', data: {'fcmToken': token});
+      print("[DEBUG] FCM Token updated on backend");
+    } catch (e) {
+      print('Update FCM Token Error: $e');
+    }
+  }
+  Future<List<dynamic>> getUserNotifications() async {
+    final response = await _dio.get('/notifications/user');
+    return response.data as List<dynamic>;
+  }
+
+  Future<void> markNotificationAsRead(String notificationId) async {
+    await _dio.put('/notifications/$notificationId/read');
+  }
+
+  Future<void> deleteNotification(String notificationId) async {
+    // Soft delete - marks as deleted but keeps in DB for admin panel
+    await _dio.put('/notifications/$notificationId/soft-delete');
+  }
 }

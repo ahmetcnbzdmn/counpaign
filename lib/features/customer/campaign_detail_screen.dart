@@ -255,7 +255,7 @@ class CampaignDetailScreen extends StatelessWidget {
                           Provider.of<LanguageProvider>(context).translate('reward_label'), // Add key
                           campaign.rewardType == 'points' 
                               ? "+${campaign.rewardValue} ${Provider.of<LanguageProvider>(context).translate('points_reward')}" 
-                              : Provider.of<LanguageProvider>(context).translate('coffee_reward'),
+                              : "+${campaign.rewardValue} ${Provider.of<LanguageProvider>(context).translate('stamp_reward')}",
                           accentColor,
                         ),
                         Padding(

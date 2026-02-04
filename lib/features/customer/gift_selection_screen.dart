@@ -117,14 +117,15 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
               if (statusRes['status'] == 'used') {
                 if (mounted && isDialogOpen) {
                   Navigator.of(context).pop();
-                  context.go('/home');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(lang.translate('gift_delivered_msg'), style: GoogleFonts.outfit()),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                  
+                  // [Counpaign UI Polish] Show Success Popup instead of Snackbar
+                  await showCustomPopup(
+                    context,
+                    message: lang.translate('gift_delivered_msg'),
+                    type: PopupType.success,
                   );
+                  
+                  if (mounted) context.go('/home');
                 }
                 break;
               }
@@ -263,15 +264,15 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
               if (statusRes['status'] == 'used') {
                 if (mounted && isDialogOpen) {
                   Navigator.of(context).pop(); // Close Dialog
-                  context.go('/home'); // Navigate to Home
                   
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(lang.translate('gift_delivered_msg'), style: GoogleFonts.outfit()),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                    ),
+                  // [Counpaign UI Polish] Show Success Popup instead of Snackbar
+                  await showCustomPopup(
+                    context,
+                    message: lang.translate('gift_delivered_msg'),
+                    type: PopupType.success,
                   );
+                  
+                  if (mounted) context.go('/home'); // Navigate to Home
                 }
                 break;
               }

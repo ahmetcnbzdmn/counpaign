@@ -67,6 +67,7 @@ class AppLocalizations {
       'scan_qr': 'QR Tara',
       'points_reward': 'Puan',
       'coffee_reward': 'Kahve',
+      'stamp_reward': 'Damga',
       'all': 'Tümü',
       'in_wallet': 'Cüzdandakiler',
       'others': 'Diğerleri',
@@ -411,6 +412,7 @@ class AppLocalizations {
       'no_active_deals_firm': 'has no active deals.',
       'points_reward': 'Points',
       'coffee_reward': 'Coffee',
+      'stamp_reward': 'Stamp',
  
       // Notifications
       'delete_all': 'Clear All',

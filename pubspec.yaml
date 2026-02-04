@@ -46,6 +46,8 @@ dependencies:
   # Firebase (Updated for Xcode 26.2 compatibility)
   firebase_core: ^3.6.0
   firebase_auth: ^5.3.1
+  firebase_messaging: ^15.2.0
+  flutter_local_notifications: ^17.0.0
 
 dev_dependencies:
   flutter_test:

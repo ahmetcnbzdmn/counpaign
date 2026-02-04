@@ -357,7 +357,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                         ]
                       ),
                       child: Text(
-                        campaign.rewardType == 'points' ? "+${campaign.rewardValue} ${lang.translate('points_reward')}" : lang.translate('coffee_reward'),
+                        campaign.rewardType == 'points' ? "+${campaign.rewardValue} ${lang.translate('points_reward')}" : "+${campaign.rewardValue} ${lang.translate('stamp_reward')}",
                         style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
