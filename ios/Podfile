@@ -84,6 +84,9 @@ post_install do |installer|
       
       # Ensure we're not using any legacy or incompatible compiler settings
       config.build_settings.delete('GCC_OPTIMIZATION_LEVEL') if config.build_settings['GCC_OPTIMIZATION_LEVEL'] == '-G'
+
+      # Fix for arm64 simulator exclusion (FORCE EXCLUDE for Rosetta)
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386 arm64'
     end
   end
   

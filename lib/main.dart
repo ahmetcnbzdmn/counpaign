@@ -24,6 +24,7 @@ import 'features/customer/my_firms_screen.dart';
 import 'features/customer/order_history_screen.dart';
 import 'features/customer/my_reviews_screen.dart';
 import 'features/customer/participations_screen.dart';
+import 'features/customer/menu_screen.dart';
 
 import 'features/auth/forgot_password_screen.dart';
 import 'features/auth/verification_screen.dart';
@@ -236,6 +237,18 @@ class _CounpaignAppState extends State<CounpaignApp> {
           builder: (context, state) {
             final data = state.extra as Map<String, dynamic>;
             return BusinessScannerScreen(businessData: data);
+          },
+        ),
+        GoRoute(
+          path: '/menu',
+          builder: (context, state) {
+            final data = state.extra as Map<String, dynamic>;
+            return MenuScreen(
+              businessId: data['businessId'],
+              businessName: data['businessName'],
+              businessColor: data['businessColor'],
+              businessImage: data['businessImage'],
+            );
           },
         ),
         GoRoute(

@@ -91,6 +91,11 @@ class ApiService {
     return response.data as List<dynamic>;
   }
 
+  Future<List<dynamic>> getPendingReviews() async {
+    final response = await _dio.get(ApiConfig.getPendingReviews);
+    return response.data as List<dynamic>;
+  }
+
   // Simulation Methods (for development/demo)
   Future<Map<String, dynamic>> simulateProcessTransaction(String customerId, String businessId) async {
     final response = await _dio.post('/transactions/process', data: {
@@ -203,6 +208,12 @@ class ApiService {
     return response.data as Map<String, dynamic>;
   }
 
+
+  // Product / Menu Methods
+  Future<List<dynamic>> getBusinessProducts(String businessId) async {
+    final response = await _dio.get('/products/$businessId');
+    return response.data as List<dynamic>;
+  }
 
   // Notification Methods
   Future<void> updateFcmToken(String token) async {

@@ -65,25 +65,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     });
   }
 
-  Future<void> _navigateToScanner() async {
-    print("🔘 BusinessDetailScreen: Navigating to scanner with ID: $_businessId, Name: ${widget.businessData['name']}");
-    
-    // Navigate to general scanner which handles validations
-    // We pass the expected business ID and Name to enforce validation
-    await context.push('/customer-scanner', extra: {
-      'expectedBusinessId': _businessId,
-      'expectedBusinessName': widget.businessData['name'],
-      'expectedBusinessColor': widget.businessData['color'],
-      'currentStamps': _stamps,
-      'targetStamps': _stampsTarget,
-      'currentGifts': _giftsCount,
-      'currentPoints': _points,
-    });
-    // Refresh data after return
-    if (mounted) {
-       _refreshData();
-    }
-  }
 
   Future<void> _refreshData() async {
       // Re-fetch business data to update stamps/points
@@ -358,11 +339,38 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [StretchMode.zoomBackground],
-              background: Container(
-                decoration: BoxDecoration(
-                  color: brandColor,
-                ),
-                child: SafeArea(
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                   Container(color: brandColor),
+                   Positioned(
+                      right: -30,
+                      bottom: -30,
+                      child: Opacity(
+                        opacity: 0.10, 
+                        child: Image.network(
+                          () {
+                             final raw = data['logo'] ?? data['image'];
+                             return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
+                          }(),
+                          width: 250,
+                          height: 250,
+                          fit: BoxFit.contain,
+                          color: brandColor, // Tint white background to match header color
+                          colorBlendMode: BlendMode.modulate, // effectively hides white background
+                          errorBuilder: (c,o,s) => const SizedBox(),
+                        ),
+                      ),
+                   ),
+                   Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Colors.black12], // Subtle shadow overlay
+                      ),
+                    ),
+                    child: SafeArea(
                   bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -401,18 +409,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   Text(userName, style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                                 ],
                               ),
-                            ),
-                            // QR Scanner Button
-                            GestureDetector(
-                               onTap: _navigateToScanner,
-                               child: Container(
-                                 width: 50, height: 50,
-                                 decoration: const BoxDecoration(
-                                   color: Colors.white,
-                                   shape: BoxShape.circle,
-                                 ),
-                                 child: Icon(Icons.qr_code_scanner_rounded, color: brandColor, size: 28),
-                               ),
                             ),
                           ],
                         ),
@@ -461,7 +457,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   children: [
                                     Text("$_giftsCount", style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
                                     const SizedBox(width: 6),
-                                    const TakeawayCupIcon(color: Colors.white, size: 24),
+                                    const TakeawayCupIcon(cupColor: Colors.white, size: 24),
                                   ],
                                 ),
                                 const SizedBox(height: 8), // Alignment correction
@@ -507,9 +503,11 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     ),
                   ),
                 ),
-              ),
+               ),
+              ],
             ),
           ),
+        ),
 
           SliverToBoxAdapter(
             child: Container(
@@ -540,6 +538,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     ),
                     const SizedBox(height: 20),
                   ],
+
                   Row(
                     children: [
                       Expanded(

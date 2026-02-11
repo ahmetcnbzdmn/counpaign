@@ -7,6 +7,7 @@ import '../../core/providers/participation_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/services/api_service.dart';
 
 class CustomerScannerScreen extends StatefulWidget {
   final Map<String, dynamic>? extra; // To accept expectedBusinessId etc.
@@ -124,52 +125,46 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
       // Check status loop
       bool isConfirmed = false;
-      bool isCancelled = false; // [NEW] Track cancellation
+      bool isCancelled = false;
       int attempts = 0;
-      print("⏳ Starting Polling for Token Confirmation...");
+      Map<String, dynamic>? finalResult;
       
-      while (attempts < 60) { // Increased to ~2 minutes (2s * 60)
-         if (!mounted) {
-             print("⚠️ Scanner unmounted, stopping poll.");
-             break;
-         }
+      // Use pollToken from static QR response if available...
+      final pollingToken = result['pollToken'] ?? token;
+      
+      while (attempts < 30) {
+         if (!mounted) break;
          
          await Future.delayed(const Duration(seconds: 2));
          try {
-            print("🔄 Polling status... Attempt ${attempts + 1}");
-            final statusResult = await participationProvider.checkConfirmationStatus(token);
-            print("📩 Poll Result: ${statusResult['status']}");
+            final statusResult = await participationProvider.checkConfirmationStatus(pollingToken);
             
             if (statusResult['status'] == 'used') {
-               print("✅ Confirmation DETECTED!");
                isConfirmed = true;
+               finalResult = statusResult;
                break;
             } else if (statusResult['status'] == 'cancelled') {
-               print("🚫 Cancellation DETECTED!");
                isConfirmed = false;
-               isCancelled = true; // [NEW] Mark as cancelled
-               break; // [FIX] Break loop immediately
+               isCancelled = true;
+               break;
             }
          } catch (e) {
-             print("⚠️ Polling Error: $e");
+            print("⚠️ Polling Error: $e");
          }
          attempts++;
       }
-
-      print("🏁 Polling Finished. Confirmed: $isConfirmed, Cancelled: $isCancelled");
 
       if (!mounted) return;
       Navigator.of(context).pop(); // Close waiting dialog
          
       if (isConfirmed) {
          if (mounted) {
-            await showCustomPopup(
-              context,
-              message: Provider.of<LanguageProvider>(context, listen: false).translate('approved'),
-              type: PopupType.success,
-            );
+            final bId = _expectedBusinessId ?? result['business']?['id'] ?? '';
+            final tId = finalResult?['transactionId'] ?? '';
+            print("⭐ Triggering Rating for Transaction: $tId at Business: $bId");
+            await _showRatingDialog(context, tId, bId);
          }
-         if (mounted) context.pop(true); // Close scanner with success
+         if (mounted) context.pop(true);
       } else if (isCancelled) {
           // [NEW] Handle Cancellation
           if (mounted) {
@@ -220,6 +215,149 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
         setState(() => _isProcessing = false);
       }
     }
+  }
+  Future<void> _showRatingDialog(BuildContext context, String transactionId, String businessId) async {
+    int rating = 5;
+    final TextEditingController commentController = TextEditingController();
+    bool isSubmitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 24),
+              // Success Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+                child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                Provider.of<LanguageProvider>(context).translate('approved'),
+                style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Text(
+                  Provider.of<LanguageProvider>(context).translate('rate_subtitle'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Stars
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return GestureDetector(
+                    onTap: () => setModalState(() => rating = index + 1),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Icon(
+                        Icons.coffee_rounded,
+                        size: 40,
+                        color: index < rating ? Colors.amber : Colors.grey[300],
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 30),
+              // Comment Field
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: TextField(
+                  controller: commentController,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: Provider.of<LanguageProvider>(context).translate('rating_comment_hint'),
+                    hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+              // Buttons
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: Text(
+                          Provider.of<LanguageProvider>(context).translate('skip'),
+                          style: GoogleFonts.outfit(color: Colors.grey[600], fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFEE2C2C),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        onPressed: isSubmitting ? null : () async {
+                          setModalState(() => isSubmitting = true);
+                          try {
+                            if (transactionId.isEmpty || businessId.isEmpty) {
+                               throw Exception("Geçersiz işlem veya işletme ID.");
+                            }
+
+                            final api = context.read<ApiService>();
+                            await api.submitReview(
+                              transactionId,
+                              businessId,
+                              rating,
+                              commentController.text,
+                            );
+                            if (mounted) Navigator.pop(context);
+                          } catch (e) {
+                            print("❌ Review Error: $e");
+                            setModalState(() => isSubmitting = false);
+                            if (mounted) {
+                               showCustomPopup(
+                                 context, 
+                                 message: e.toString(), 
+                                 type: PopupType.error
+                               );
+                            }
+                          }
+                        },
+                        child: isSubmitting 
+                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : Text(Provider.of<LanguageProvider>(context).translate('submit_review'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override

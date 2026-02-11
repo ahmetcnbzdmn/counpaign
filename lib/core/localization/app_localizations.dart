@@ -8,6 +8,16 @@ class AppLocalizations {
       'send': 'Gönder',
       'error': 'Hata',
       'success_review': 'Değerlendirme kaydedildi!',
+      'rate_experience': 'Deneyiminizi Oylayın',
+      'rate_subtitle': 'Bize geri bildirim vererek gelişmemize yardımcı olun.',
+      'submit_review': 'Gönder',
+      'rated_tab': 'Değerlendirilenler',
+      'pending_tab': 'Bekleyenler',
+      'no_pending_reviews': 'Değerlendirilmeyi bekleyen işlem bulunmuyor.',
+      'skip': 'Atla',
+      'rating_comment_hint': 'Deneyiminden bahsetmek ister misin?',
+      'pending_review_title': 'Ziyaretin Nasıldı?',
+      'pending_review_subtitle': 'Deneyimini puanla!',
       
       // Settings
       'edit_profile': 'Profili Düzenle',
@@ -65,6 +75,8 @@ class AppLocalizations {
       'scan_or_enter_code': 'Kampanyalara katılmak için\nkodu okut veya gir',
       'wallet_empty': 'Cüzdan Boş',
       'scan_qr': 'QR Tara',
+      'menu': 'Menü',
+      'tap_to_view': 'Görüntülemek için dokun',
       'points_reward': 'Puan',
       'coffee_reward': 'Kahve',
       'stamp_reward': 'Damga',
@@ -204,6 +216,9 @@ class AppLocalizations {
       'waiting_approval': 'İşletme Onayı Bekleniyor...',
       'waiting_approval_msg': 'Lütfen kasiyerin işlemi onaylamasını bekleyin.',
       'approved': 'İşlem Onaylandı! 🎉',
+      'tab_history': 'Geçmiş',
+      'tab_pending': 'Bekleyenler',
+      'rate_now': 'Değerlendir',
       'timeout_msg': 'Zaman aşımı. Lütfen tekrar deneyin veya kasiyere danışın.',
       'scan_error_title': 'QR Okuma Hatası',
       'firm_mismatch_error': 'Hatalı İşletme!\nBeklenen: ',
@@ -229,7 +244,7 @@ class AppLocalizations {
       'need_add_firm_msg': 'Bu kampanyaya katılmak için önce işletmeyi cüzdanına eklemelisin! 🛍️',
       
       // Auto-Translation Keys
-      'kod_iptal_edildi': 'İşlem İptal Edildi', 
+      'kod_iptal_edildi': 'İşletme tarafından iptal edildi', 
       'hediye_alimi': 'Hediye Alımı',
       'hediye_hakki_kullanimi': 'Hediye Hakkı Kullanımı',
     },
@@ -289,6 +304,9 @@ class AppLocalizations {
       'waiting_approval': 'Waiting for Approval...',
       'waiting_approval_msg': 'Please wait for the cashier to approve.',
       'approved': 'Transaction Approved! 🎉',
+      'tab_history': 'History',
+      'tab_pending': 'Pending',
+      'rate_now': 'Rate Now',
       'timeout_msg': 'Timeout. Please try again or ask the cashier.',
       'scan_error_title': 'QR Scan Error',
       'firm_mismatch_error': 'Wrong Business!\nExpected: ',
@@ -306,6 +324,16 @@ class AppLocalizations {
       'send': 'Submit',
       'error': 'Error',
       'success_review': 'Review saved!',
+      'rate_experience': 'Rate Your Experience',
+      'rate_subtitle': 'Help us improve by providing feedback.',
+      'submit_review': 'Submit Review',
+      'rated_tab': 'Rated',
+      'pending_tab': 'Pending',
+      'no_pending_reviews': 'No pending reviews found.',
+      'skip': 'Skip',
+      'rating_comment_hint': 'Want to tell us about your experience?',
+      'pending_review_title': 'How was your visit?',
+      'pending_review_subtitle': 'Rate your experience!',
  
       // Settings
       'edit_profile': 'Edit Profile',
@@ -364,6 +392,8 @@ class AppLocalizations {
       'scan_or_enter_code': 'Scan or enter code\nto join campaigns',
       'wallet_empty': 'Wallet Empty',
       'scan_qr': 'Scan QR',
+      'menu': 'Menu',
+      'tap_to_view': 'Tap to view',
  
       // Auth & Profile
       'login_title': 'Welcome.\nLogin.',
@@ -467,7 +497,7 @@ class AppLocalizations {
       'need_add_firm_msg': 'You must add this shop to your wallet first! 🛍️',
       
       // Auto-Translation Keys (Backend Mappings)
-      'kod_iptal_edildi': 'Transaction Cancelled', 
+      'kod_iptal_edildi': 'Cancelled by business', 
       'hediye_alimi': 'Gift Redemption', 
       'hediye_hakki_kullanimi': 'Free Gift Entitlement Used', 
     },

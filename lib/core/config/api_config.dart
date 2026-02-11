@@ -19,6 +19,7 @@ class ApiConfig {
   static const String getTransactions = '/customer/transactions';
   static const String createReview = '/customer/reviews';
   static const String getReviews = '/customer/reviews';
+  static const String getPendingReviews = '/customer/reviews/pending';
   
   static const String getCampaigns = '/campaigns';
   static const String businessCampaigns = '/campaigns/business';

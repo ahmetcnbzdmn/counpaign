@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -7,6 +8,7 @@ import '../../core/providers/language_provider.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/auto_text.dart';
+import 'scanner_screen.dart';
 
 class GiftSelectionScreen extends StatefulWidget {
   final String businessId;
@@ -26,7 +28,9 @@ class GiftSelectionScreen extends StatefulWidget {
   State<GiftSelectionScreen> createState() => _GiftSelectionScreenState();
 }
 
-class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
+class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
   bool _isLoading = true;
   List<dynamic> _gifts = [];
 
@@ -36,7 +40,22 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
   @override
   void initState() {
     super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+    
+    _animation = Tween<double>(begin: 0, end: 10).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+    
     _fetchGifts();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchGifts() async {
@@ -96,104 +115,30 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
 
     if (confirm != true) return;
 
-    // 2. Prepare Redemption (Get Code)
+    // 2. Prepare Redemption (creates token on backend)
     setState(() => _redeemingGiftId = gift['_id']);
 
     try {
       final api = context.read<ApiService>();
-      final result = await api.prepareRedemption(widget.businessId, gift['_id']);
-      final code = result['token'];
+      await api.prepareRedemption(widget.businessId, gift['_id']);
       
-      // 3. Show Code Dialog & Start Polling
+      // 3. Open QR Scanner to scan business's static QR
       if (mounted) {
-        bool isDialogOpen = true;
-
-        Future<void> pollStatus() async {
-          while (isDialogOpen && mounted) {
-            await Future.delayed(const Duration(seconds: 2));
-            if (!isDialogOpen || !mounted) break;
-            try {
-              final statusRes = await api.checkConfirmationStatus(code);
-              if (statusRes['status'] == 'used') {
-                if (mounted && isDialogOpen) {
-                  Navigator.of(context).pop();
-                  
-                  // [Counpaign UI Polish] Show Success Popup instead of Snackbar
-                  await showCustomPopup(
-                    context,
-                    message: lang.translate('gift_delivered_msg'),
-                    type: PopupType.success,
-                  );
-                  
-                  if (mounted) context.go('/home');
-                }
-                break;
-              }
-            } catch (e) {
-              print("Polling error: $e");
-            }
-          }
-        }
-        pollStatus();
-
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 16),
-                Icon(Icons.qr_code_2_rounded, size: 60, color: const Color(0xFFEE2C2C)),
-                const SizedBox(height: 16),
-                Text(
-                  lang.translate('gift_code_title'),
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  lang.translate('gift_code_desc'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(color: Colors.grey, height: 1.5),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEE2C2C).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEE2C2C).withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    code,
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                      color: const Color(0xFFEE2C2C),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () {
-                    isDialogOpen = false;
-                    _cancelCode(code); // Explicitly cancel
-                    Navigator.pop(context);
-                    context.go('/home'); // Close screen and refresh
-                  },
-                  child: Text(lang.translate('close'), style: GoogleFonts.outfit(color: Colors.grey)),
-                ),
-              ],
+        final result = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (context) => CustomerScannerScreen(
+              extra: {
+                'expectedBusinessId': widget.businessId,
+                'expectedBusinessName': widget.businessName,
+              },
             ),
           ),
-        ).then((_) {
-            isDialogOpen = false;
-             // If user dismissed via barrier or back button without using "used" logic
-             if (mounted) _cancelCode(code);
-        });
+        );
+
+        // If scanner returned true (success), go home
+        if (result == true && mounted) {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -242,104 +187,28 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
 
     if (confirm != true) return;
 
-    // 2. Prepare Redemption (Get Code) & Start Polling
+    // 2. Prepare Redemption & Open Scanner
     try {
       final api = context.read<ApiService>();
-      // Pass empty giftId for entitlement, type='GIFT_ENTITLEMENT'
-      final result = await api.prepareRedemption(widget.businessId, "", type: 'GIFT_ENTITLEMENT');
-      final code = result['token'];
+      await api.prepareRedemption(widget.businessId, "", type: 'GIFT_ENTITLEMENT');
 
+      // 3. Open QR Scanner to scan business's static QR
       if (mounted) {
-        // Start polling in background
-        bool isDialogOpen = true;
-        
-        // Polling Function
-        Future<void> pollStatus() async {
-          while (isDialogOpen && mounted) {
-            await Future.delayed(const Duration(seconds: 2));
-            if (!isDialogOpen || !mounted) break;
-            
-            try {
-              final statusRes = await api.checkConfirmationStatus(code);
-              if (statusRes['status'] == 'used') {
-                if (mounted && isDialogOpen) {
-                  Navigator.of(context).pop(); // Close Dialog
-                  
-                  // [Counpaign UI Polish] Show Success Popup instead of Snackbar
-                  await showCustomPopup(
-                    context,
-                    message: lang.translate('gift_delivered_msg'),
-                    type: PopupType.success,
-                  );
-                  
-                  if (mounted) context.go('/home'); // Navigate to Home
-                }
-                break;
-              }
-            } catch (e) {
-              print("Polling error: $e");
-            }
-          }
-        }
-        pollStatus();
-
-        await showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => AlertDialog(
-            backgroundColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 16),
-                Icon(Icons.card_giftcard, size: 60, color: const Color(0xFFEE2C2C)),
-                const SizedBox(height: 16),
-                Text(
-                  lang.translate('gift_code_title'),
-                  style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  lang.translate('gift_code_desc'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(color: Colors.grey, height: 1.5),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEE2C2C).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEE2C2C).withOpacity(0.3)),
-                  ),
-                  child: Text(
-                    code,
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 4,
-                      color: const Color(0xFFEE2C2C),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () {
-                    isDialogOpen = false;
-                    _cancelCode(code); // Explicitly cancel
-                    Navigator.pop(context);
-                    context.go('/home');
-                  },
-                  child: Text(lang.translate('close'), style: GoogleFonts.outfit(color: Colors.grey)),
-                ),
-              ],
+        final result = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (context) => CustomerScannerScreen(
+              extra: {
+                'expectedBusinessId': widget.businessId,
+                'expectedBusinessName': widget.businessName,
+              },
             ),
           ),
-        ).then((_) {
-            isDialogOpen = false;
-            if (mounted) _cancelCode(code);
-        }); // Ensure flag is false when dialog closes
+        );
+
+        // If scanner returned true (success), go home
+        if (result == true && mounted) {
+          context.go('/home');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -356,360 +225,531 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lang = Provider.of<LanguageProvider>(context);
-    
-    // Use passed gift count directly for consistent UI with previous screen
     final int giftsCount = widget.currentGifts;
+    bool isTr = lang.locale.languageCode == 'tr';
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFF8F9FA), // Clean off-white background
       appBar: AppBar(
         centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: Text(
           lang.translate('gift_selection_title'), 
           style: GoogleFonts.outfit(
-            color: theme.textTheme.bodyLarge?.color, 
+            color: const Color(0xFF1A1A1A), 
             fontWeight: FontWeight.bold,
-            // Removed fixed fontSize to match other screens
+            fontSize: 18,
           )
         ),
-        // ... (rest of AppBar)
-        backgroundColor: theme.scaffoldBackgroundColor,
-        elevation: 0,
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)
-              ]
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0,2))
+                ]
+              ),
+              child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1A1A1A), size: 20),
             ),
-            child: Icon(Icons.arrow_back_rounded, color: theme.textTheme.bodyLarge?.color, size: 20),
+            onPressed: () => context.pop(),
           ),
-          onPressed: () => context.pop(),
         ),
       ),
-      body: Column(
-        children: [
-          // Points Header (Premium Card Style)
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(20, 10, 20, 30),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFEE2C2C), Color(0xFFB71C1C)], // Premium Red
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                 BoxShadow(color: const Color(0xFFEE2C2C).withOpacity(0.4), blurRadius: 20, offset: const Offset(0, 10)),
-              ],
-            ),
-            child: Column(
-              children: [
-                Text(
-                  widget.businessName,
-                  style: GoogleFonts.outfit(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.6),
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.baseline,
-                  textBaseline: TextBaseline.alphabetic,
+      extendBodyBehindAppBar: true, 
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            // 1. Creative Ticket Header
+            AnimatedBuilder(
+              animation: _animation,
+              builder: (context, child) {
+                return Transform.translate(
+                  offset: Offset(0, _animation.value),
+                  child: child,
+                );
+              },
+              child: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+                child: Stack(
                   children: [
-                    Text(
-                      "${widget.currentPoints.toInt()}",
-                      style: GoogleFonts.outfit(
-                        fontSize: 48,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.0,
+                    // Shadow
+                    Positioned.fill(
+                      top: 10,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      lang.translate('points'),
-                      style: GoogleFonts.outfit(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white, // Changed to White
+                    
+                    // Ticket Shape
+                    ClipPath(
+                      clipper: _TicketClipper(),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            height: 280, // Explicit height for ticket
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)], // Brand Red
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                            ),
+                          ),
+                          
+                          // Shimmer/Glow Overlay
+                          Positioned.fill(
+                            child: AnimatedBuilder(
+                              animation: _animation,
+                              builder: (context, child) {
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.white.withOpacity(0.0),
+                                        Colors.white.withOpacity(0.1),
+                                        Colors.white.withOpacity(0.0),
+                                      ],
+                                      stops: const [0.3, 0.5, 0.7],
+                                      begin: Alignment(-2.0 + (_animation.value / 10 * 4), -1.0),
+                                      end: Alignment(2.0 + (_animation.value / 10 * 4), 1.0),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                          
+                          Column(
+                            children: [
+                              // Top Section
+                              Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      widget.businessName.toUpperCase(),
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white.withOpacity(0.7),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      isTr ? "KULLANIMA UYGUNDUR" : "VALID FOR REDEMPTION",
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white.withOpacity(0.4),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // Divider Line
+                              SizedBox(
+                                height: 1,
+                                width: double.infinity,
+                                child: CustomPaint(painter: _DashedLinePainter()),
+                              ),
+                              
+                              // Bottom Section (Points)
+                              Container(
+                                padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
+                                      children: [
+                                        Text(
+                                          "${widget.currentPoints.toInt()}",
+                                          style: GoogleFonts.shareTechMono( // Tech/Ticket Font
+                                            fontSize: 64,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            height: 0.9,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Text(
+                                      lang.translate('points').toUpperCase(),
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white.withOpacity(0.8),
+                                        letterSpacing: 4.0,
+                                      ),
+                                    ),
+                                    
+                                    const SizedBox(height: 20),
+                                    
+                                    // Barcode Visual
+                                    SizedBox(
+                                      height: 40,
+                                      width: 200,
+                                      child: CustomPaint(painter: _BarcodePainter()),
+                                    ),
+                                    
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      lang.translate('spendable_amount'),
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.white.withOpacity(0.5),
+                                        fontSize: 10,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    lang.translate('spendable_amount'),
-                    style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
-
-          Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFEE2C2C)))
-              : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  physics: const BouncingScrollPhysics(),
-                  children: [
-                    // FREE GIFT CARD (If Eligible)
-                    if (giftsCount > 0)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFFFA000)], // Gold Gradient
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFFFA000).withOpacity(0.4),
-                              blurRadius: 15,
-                              offset: const Offset(0, 8),
+  
+            Expanded(
+              child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F)))
+                : ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    physics: const BouncingScrollPhysics(),
+                    children: [
+                      // 2. Gift Entitlement Banner (Gold)
+                      if (giftsCount > 0)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 24),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFFFC107), Color(0xFFFF8F00)], 
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
                             borderRadius: BorderRadius.circular(24),
-                            onTap: () => _redeemGiftEntitlement(),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                                      ],
-                                    ),
-                                    child: const Icon(Icons.card_giftcard, color: Color(0xFFFFA000), size: 28),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          lang.translate('gift_entitlement_title'),
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            shadows: [Shadow(color: Colors.black.withOpacity(0.1), blurRadius: 2)],
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          "$giftsCount ${lang.translate('gift_entitlement_subtitle')}",
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 14,
-                                            color: Colors.white.withOpacity(0.95),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 18),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      
-                    // Empty State
-                    if (_gifts.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 40),
-                        child: Center(
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.withOpacity(0.05),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.card_giftcard_rounded, size: 48, color: Colors.grey.withOpacity(0.4)),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                lang.translate('no_gifts_yet'),
-                                style: GoogleFonts.outfit(color: Colors.grey),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFFF8F00).withOpacity(0.3),
+                                blurRadius: 16,
+                                offset: const Offset(0, 8),
                               ),
                             ],
                           ),
-                        ),
-                      ),
-                    
-                    if (_gifts.isNotEmpty)
-                      Padding(
-                         padding: const EdgeInsets.only(bottom: 16, left: 8),
-                         child: Text(
-                           lang.translate('available_gifts_header'),
-                           style: GoogleFonts.outfit(
-                             fontSize: 16,
-                             fontWeight: FontWeight.bold,
-                             color: theme.textTheme.bodyLarge?.color,
-                           ),
-                         ),
-                      ),
-                    
-                    // ... List Mapping ...
-
-
-                    // Gift List
-                    ..._gifts.map((gift) {
-                      final cost = gift['pointCost'];
-                      final canAfford = widget.currentPoints >= cost;
-                      final isRedeeming = _redeemingGiftId == gift['_id'];
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: theme.cardColor,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: (canAfford && !isRedeeming) ? () => _redeemGift(gift) : null,
-                            borderRadius: BorderRadius.circular(20),
-                            overlayColor: MaterialStateProperty.all(const Color(0xFFEE2C2C).withOpacity(0.1)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () => _redeemGiftEntitlement(),
+                              child: Stack(
                                 children: [
-                                  // Icon Wrapper
-                                  Container(
-                                    width: 64, height: 64,
-                                    decoration: BoxDecoration(
-                                      color: canAfford 
-                                          ? const Color(0xFFEE2C2C).withOpacity(0.1) 
-                                          : Colors.grey.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Icon(
-                                      Icons.local_cafe_rounded,
-                                      color: canAfford ? const Color(0xFFEE2C2C) : Colors.grey.withOpacity(0.4),
-                                      size: 30,
-                                    ),
+                                  Positioned(
+                                    right: -10, bottom: -10,
+                                    child: Icon(Icons.card_giftcard, size: 100, color: Colors.white.withOpacity(0.15)),
                                   ),
-                                  const SizedBox(width: 20),
-                                  
-                                  // Content
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                  Padding(
+                                    padding: const EdgeInsets.all(24),
+                                    child: Row(
                                       children: [
-                                        AutoText(
-                                          gift['title'],
-                                          style: GoogleFonts.outfit(
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w700,
-                                            color: canAfford ? theme.textTheme.bodyLarge?.color : Colors.grey,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 6),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          padding: const EdgeInsets.all(12),
                                           decoration: BoxDecoration(
-                                            color: canAfford 
-                                                ? const Color(0xFFEE2C2C).withOpacity(0.08) 
-                                                : Colors.grey.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: Colors.white,
+                                            shape: BoxShape.circle,
+                                            boxShadow: [
+                                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0,2)),
+                                            ],
                                           ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
+                                          child: const Icon(Icons.celebration_rounded, color: Color(0xFFFF8F00), size: 28),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Icon(
-                                                Icons.stars_rounded, // Changed Icon
-                                                size: 14, 
-                                                color: canAfford ? const Color(0xFFEE2C2C) : Colors.grey
-                                              ),
-                                              const SizedBox(width: 4),
                                               Text(
-                                                "$cost ${lang.translate('points')}",
+                                                lang.translate('gift_entitlement_title'),
                                                 style: GoogleFonts.outfit(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: canAfford ? const Color(0xFFEE2C2C) : Colors.grey,
+                                                  fontSize: 18,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  shadows: [Shadow(color: Colors.black.withOpacity(0.1), blurRadius: 2)],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                "$giftsCount ${lang.translate('gift_entitlement_subtitle')}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 14,
+                                                  color: Colors.white.withOpacity(0.9),
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ],
                                           ),
                                         ),
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+                                        ),
                                       ],
                                     ),
                                   ),
-
-                                  // Action Button / State
-                                  if (isRedeeming)
-                                    Container(
-                                      width: 44, height: 44,
-                                      padding: const EdgeInsets.all(12),
-                                      child: const CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFEE2C2C)),
-                                    )
-                                  else 
-                                    Container(
-                                      width: 44, height: 44,
-                                      decoration: BoxDecoration(
-                                        color: canAfford ? const Color(0xFFEE2C2C) : Colors.transparent,
-                                        borderRadius: BorderRadius.circular(14),
-                                        border: canAfford ? null : Border.all(color: Colors.grey.withOpacity(0.2)),
-                                      ),
-                                      child: Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: canAfford ? Colors.white : Colors.grey.withOpacity(0.3),
-                                        size: 20,
-                                      ),
-                                    ),
                                 ],
                               ),
                             ),
                           ),
                         ),
-                      );
-                    }),
-                    
-                    // Bottom Padding
-                    const SizedBox(height: 40),
-                  ],
-                ),
-          ),
-        ],
+                        
+                      // Empty State
+                      if (_gifts.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Center(
+                            child: Column(
+                              children: [
+                                Icon(Icons.redeem_rounded, size: 64, color: Colors.grey.withOpacity(0.2)),
+                                const SizedBox(height: 16),
+                                Text(
+                                  lang.translate('no_gifts_yet'),
+                                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      
+                      if (_gifts.isNotEmpty)
+                        Padding(
+                           padding: const EdgeInsets.only(bottom: 16, left: 8),
+                           child: Text(
+                             lang.translate('available_gifts_header'),
+                             style: GoogleFonts.outfit(
+                               fontSize: 18,
+                               fontWeight: FontWeight.bold,
+                               color: const Color(0xFF1A1A1A),
+                             ),
+                           ),
+                        ),
+  
+                      // 3. Modern Gift List
+                      ..._gifts.map((gift) {
+                        final cost = gift['pointCost'];
+                        final canAfford = widget.currentPoints >= cost;
+                        final isRedeeming = _redeemingGiftId == gift['_id'];
+  
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04), // Softer shadow
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: (canAfford && !isRedeeming) ? () => _redeemGift(gift) : null,
+                              borderRadius: BorderRadius.circular(24),
+                              splashColor: const Color(0xFFD32F2F).withOpacity(0.05),
+                              highlightColor: const Color(0xFFD32F2F).withOpacity(0.02),
+                              child: Padding(
+                                padding: const EdgeInsets.all(20),
+                                child: Row(
+                                  children: [
+                                    // Icon Wrapper (Box Style)
+                                    Container(
+                                      width: 60, height: 60,
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: canAfford 
+                                            ? const Color(0xFFFFEBEE) // Light Red
+                                            : const Color(0xFFF5F5F5), // Light Grey
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Center(
+                                        child: Icon(
+                                          Icons.coffee_rounded, // Assuming coffee
+                                          color: canAfford ? const Color(0xFFD32F2F) : Colors.grey,
+                                          size: 28,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 20),
+                                    
+                                    // Content
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          AutoText(
+                                            gift['title'],
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: canAfford ? const Color(0xFF1A1A1A) : Colors.grey,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            children: [
+                                              Icon(Icons.stars_rounded, size: 16, color: canAfford ? const Color(0xFFFBC02D) : Colors.grey),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "$cost ${lang.translate('points')}",
+                                                style: GoogleFonts.outfit(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: canAfford ? const Color(0xFF1A1A1A) : Colors.grey,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+  
+                                    // Action Button
+                                    if (isRedeeming)
+                                      const SizedBox(
+                                        width: 24, height: 24,
+                                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD32F2F)),
+                                      )
+                                    else if (canAfford)
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFD32F2F),
+                                          shape: BoxShape.circle,
+                                          boxShadow: [
+                                            BoxShadow(color: const Color(0xFFD32F2F).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+                                          ]
+                                        ),
+                                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                                      )
+                                    else
+                                      // Locked/Disabled State
+                                      Icon(Icons.lock_rounded, color: Colors.grey.withOpacity(0.3), size: 20),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                      
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _TicketClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    
+    // Perforation radius and count
+    const double perfRadius = 4.0;
+    const double sideCutoutRadius = 20.0;
+    
+    path.lineTo(0.0, size.height);
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0.0);
+    
+    // Main Side Cutouts (where the separator is)
+    final double cutoutY = size.height / 2.5;
+    path.addOval(Rect.fromCircle(center: Offset(0.0, cutoutY), radius: sideCutoutRadius));
+    path.addOval(Rect.fromCircle(center: Offset(size.width, cutoutY), radius: sideCutoutRadius));
+    
+    // Perforations on Left Edge
+    for (double i = 0; i < size.height; i += sideCutoutRadius) {
+      if ((i - cutoutY).abs() > sideCutoutRadius) {
+         path.addOval(Rect.fromCircle(center: Offset(0.0, i), radius: perfRadius));
+      }
+    }
+    
+    // Perforations on Right Edge
+    for (double i = 0; i < size.height; i += sideCutoutRadius) {
+      if ((i - cutoutY).abs() > sideCutoutRadius) {
+         path.addOval(Rect.fromCircle(center: Offset(size.width, i), radius: perfRadius));
+      }
+    }
+    
+    path.fillType = PathFillType.evenOdd;
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => true;
+}
+
+class _DashedLinePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    double dashWidth = 9, dashSpace = 5, startX = 0;
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.3)
+      ..strokeWidth = 1;
+      
+    while (startX < size.width) {
+      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
+      startX += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+class _BarcodePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white.withOpacity(0.5);
+    final random = Random(42); // Fixed seed for consistent look
+    
+    double x = 0;
+    while (x < size.width) {
+      final width = random.nextDouble() * 4 + 1;
+      if (x + width > size.width) break;
+      
+      canvas.drawRect(Rect.fromLTWH(x, 0, width, size.height), paint);
+      x += width + (random.nextDouble() * 3 + 2);
+    }
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 }

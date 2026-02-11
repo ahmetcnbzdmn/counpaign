@@ -1,7 +1,7 @@
-#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include? "../Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
 SUPPORTED_PLATFORMS = iphoneos iphonesimulator
 SUPPORTS_MACCATALYST = NO
 SUPPORTS_MAC_DESIGNED_FOR_IPAD = NO
 // Override Flutter's EXCLUDED_ARCHS to support arm64 simulator on Apple Silicon
-EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = i386 arm64

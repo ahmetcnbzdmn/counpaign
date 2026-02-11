@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,9 +12,12 @@ import '../../core/providers/business_provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/widgets/campaign_slider.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/utils/ui_utils.dart';
 import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
 import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
 import '../../core/models/campaign_model.dart';
+import 'menu_screen.dart';
+import '../../features/customer/widgets/wallet_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,9 +29,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.93);
   int _currentIndex = 0;
+  
   @override
   void initState() {
     super.initState();
+    
     // Fetch data using the provider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<BusinessProvider>().fetchMyFirms();
@@ -40,11 +46,20 @@ class _HomeScreenState extends State<HomeScreen> {
         for (var firm in firms) {
           context.read<CampaignProvider>().fetchCampaigns(firm['id']);
         }
+        // Fetch reviews to check for pending ones
+        context.read<ApiService>().getReviews();
       }
 
 
     });
   }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+  
   
   // Helper to get firms from provider and map them
   List<Map<String, dynamic>> _getFirmBalances(BuildContext context, {bool listen = true}) {
@@ -89,6 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
     return mapped;
   }
 
+
+
   Color _parseColor(String? hex) {
     if (hex == null || hex.isEmpty) return const Color(0xFFEE2C2C);
     try {
@@ -122,6 +139,95 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Widget _buildAddKafeCard(BuildContext context, {Key? key}) {
+    final lang = Provider.of<LanguageProvider>(context);
+    return Container(
+      key: key,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFFEE2C2C), // Updated to Red
+      ),
+      child: Stack(
+        children: [
+          // Background Icon
+          Positioned(
+            right: -40,
+            bottom: -40,
+            child: Opacity(
+              opacity: 0.1,
+              child: const Icon(
+                Icons.add_circle_outline_rounded,
+                size: 200,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white, // White circle
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Color(0xFFEE2C2C), size: 40), // Red Icon
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  lang.translate('new_cafe_add'),
+                  style: GoogleFonts.outfit(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  lang.translate('scan_or_enter_code'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingReviewRow(BuildContext context) {
+    return FutureBuilder<List<dynamic>>(
+      future: context.read<ApiService>().getPendingReviews(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+
+        // [LOGIC] Check if there's a recent transaction (last 24h) WITHOUT a review
+        // For simplicity in this UI demo, we show the card if the user has transactions but few reviews
+        // A more robust logic would involve matching transactionIds.
+        
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          child: _buildBentoCard(
+            context,
+            color: const Color(0xFFFF9800), // Warning Orange
+            title: Provider.of<LanguageProvider>(context).translate('pending_review_title'),
+            subtitle: Provider.of<LanguageProvider>(context).translate('pending_review_subtitle'),
+            icon: Icons.rate_review_rounded,
+            isHorizontal: true,
+            onTap: () => context.push('/my-reviews'),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -144,6 +250,77 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
+      floatingActionButton: Container(
+        width: 72,
+        height: 72,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF4444), Color(0xFFEE2C2C)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFEE2C2C).withOpacity(0.45),
+              blurRadius: 20,
+              spreadRadius: 2,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          onPressed: () {
+            final firms = _getFirmBalances(context, listen: false);
+            // If current index is within firm range, pass firm context
+            if (_currentIndex < firms.length && firms[_currentIndex]['id'] != null) {
+              final firm = firms[_currentIndex];
+              context.push('/customer-scanner', extra: {
+                'expectedBusinessId': firm['id'],
+                'expectedBusinessName': firm['name'],
+                'expectedBusinessColor': firm['color'],
+                'currentStamps': firm['stamps'] ?? 0,
+                'targetStamps': firm['stampsTarget'] ?? 6,
+                'currentGifts': firm['giftsCount'] ?? 0,
+                'currentPoints': firm['points'] ?? '0',
+              });
+            } else {
+              // No firm selected (on "Add" card or empty wallet) — generic scan
+              context.push('/customer-scanner');
+            }
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          shape: const CircleBorder(),
+          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 34),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: BottomAppBar(
+        shape: const CircularNotchedRectangle(),
+        notchMargin: 10.0,
+        color: theme.cardColor,
+        elevation: 16,
+        child: SizedBox(
+          height: 56,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  Provider.of<LanguageProvider>(context).translate('scan_qr'),
+                  style: GoogleFonts.outfit(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: textColor.withOpacity(0.4),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         bottom: false, // Let content flow behind navbar
         child: RefreshIndicator(
@@ -250,42 +427,33 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Row(
                               children: [
-                                // QR Tara (Dynamic based on visible card)
+                                // Menu Button (Placeholder)
                                 Expanded(
                                   child: GestureDetector(
-                                    onTap: () async {
-                                      final firms = _getFirmBalances(context, listen: false);
-                                      if (firms.isEmpty || firms[activeIndex]['name'] == 'Cüzdan Boş') {
-                                        // Fallback to general scanner if wallet is empty
-                                        context.push('/customer-scanner');
-                                        return;
-                                      }
-                                      
+                                    onTap: () {
+                                      // Navigate to MenuScreen
                                       final firm = firms[activeIndex];
-                                      await context.push('/customer-scanner', extra: {
-                                        'expectedBusinessId': firm['id'],
-                                        'expectedBusinessName': firm['name'],
-                                        'expectedBusinessColor': firm['color'],
-                                        'currentStamps': firm['stamps'] ?? 0,
-                                        'targetStamps': firm['stampsTarget'] ?? 6,
-                                        'currentGifts': firm['giftsCount'] ?? 0,
-                                        'currentPoints': (firm['points'] ?? 0).toString(),
+                                      context.push(
+                                        '/menu', 
+                                        extra: {
+                                          'businessId': firm['id'], 
+                                          'businessName': firm['name'],
+                                          'businessColor': firm['color'],
+                                          'businessImage': firm['image'] ?? firm['logo']
+                                        }
+                                      ).then((_) {
+                                          // Refresh data if needed (Menu doesn't change wallet state usually)
                                       });
-                                      
-                                      // Refresh data after return
-                                      if (context.mounted) {
-                                        context.read<BusinessProvider>().fetchMyFirms();
-                                      }
                                     },
                                     behavior: HitTestBehavior.opaque,
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 28),
-                                        const SizedBox(height: 8),
+                                        const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
+                                        const SizedBox(height: 6),
                                         Text(
-                                          Provider.of<LanguageProvider>(context).translate('scan_qr'), 
-                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)
+                                          Provider.of<LanguageProvider>(context).translate('menu') ?? 'Menü', 
+                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)
                                         ),
                                       ],
                                     ),
@@ -340,6 +508,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
 
                 const SizedBox(height: 32),
+                
+                // [NEW] PENDING REVIEW CARD
+                _buildPendingReviewRow(context),
 
                 // [4] "BENTO" GRID Area (Revised Layout)
                 Padding(
@@ -384,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                  
-                const SizedBox(height: 100), // Bottom padding
+                const SizedBox(height: 180), // Bottom padding (clears FAB + BottomAppBar)
               ],
             ),
           ),
@@ -411,154 +582,142 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBalanceCarousel(BuildContext context) {
     final firms = _getFirmBalances(context);
+    final allCampaigns = context.watch<CampaignProvider>().allCampaigns;
+    final totalItems = firms.length + 1;
 
     return Column(
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final cardWidth = constraints.maxWidth;
-            final cardHeight = cardWidth * (8 / 10); // 10:8 Ratio
-            
-            return SizedBox(
-              height: cardHeight,
-      child: PageView.builder(
-                controller: _pageController,
-                itemCount: firms.length + 1, // +1 for "Add Cafe" card
-                onPageChanged: (index) {
-                  setState(() => _currentIndex = index);
-                },
-                itemBuilder: (context, index) {
-                  // Last Item: Add Cafe Card
-                  if (index == firms.length) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                      child: GestureDetector(
-                        onTap: () async {
-                          await context.push('/add-firm');
-                          if (context.mounted) {
-                            context.read<BusinessProvider>().fetchMyFirms();
-                          }
-                        },
-                        child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),
-                      ),
-                    );
+        SizedBox(
+          height: 240,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: totalItems,
+            padEnds: true,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+            },
+            itemBuilder: (context, index) {
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double value = 0;
+                  if (_pageController.position.haveDimensions) {
+                    value = index - (_pageController.page ?? 0);
+                    value = (value * 0.04).clamp(-1, 1);
                   }
+                  
+                  // 3D rotation + scale based on scroll position
+                  double pageOffset = 0;
+                  if (_pageController.position.haveDimensions) {
+                    pageOffset = (index - (_pageController.page ?? 0)).clamp(-1.0, 1.0).toDouble();
+                  }
+                  final scale = 1.0 - (pageOffset.abs() * 0.1);
+                  final rotateY = pageOffset * 0.03;
+                  final translateY = pageOffset.abs() * 12;
 
-                  final firm = firms[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5.0), // Gap between cards
-                    child: GestureDetector(
-                      onTap: () async {
-                        // Don't navigate if it's the "Empty Wallet" placeholder
-                        final lang = context.read<LanguageProvider>();
-                        if (firm['name'] == lang.translate('wallet_empty')) return;
-                        
-                        await context.push('/business-detail', extra: {
-                          'id': firm['id'],
-                          'name': firm['name'],
-                          'points': firm['points'],
-                          'stamps': firm['stamps'],
-                          'stampsTarget': firm['stampsTarget'],
-                          'giftsCount': firm['giftsCount'],
-                          'value': firm['value'],
-                          'color': firm['color'],
-                          'icon': firm['icon'], 
-                          'city': firm['city'],
-                          'district': firm['district'],
-                          'neighborhood': firm['neighborhood'],
-                          'logo': firm['logo'],
-                          'image': firm['image'],
-                        });
-
-                        // [SYNC FIX] Refresh data when returning from detail
-                        if (context.mounted) {
-                          context.read<BusinessProvider>().fetchMyFirms();
-                        }
-                      },
-                      child: _buildSingleBusinessCard(
-                        context,
-                        key: ValueKey('firm_card_${firm['id']}'),
-                        name: firm['name'],
-                        points: firm['points'],
-                        value: firm['value'],
-                        color: firm['color'],
-                        icon: firm['icon'],
-                        stamps: firm['stamps'] ?? 0,
-                        stampsTarget: firm['stampsTarget'] ?? 6,
-                        giftsCount: firm['giftsCount'] ?? 0,
-                        firmId: firm['id'],
-                      ),
-                    ),
+                  return Transform(
+                    alignment: Alignment.center,
+                    transform: Matrix4.identity()
+                      ..setEntry(3, 2, 0.001) // perspective
+                      ..rotateY(rotateY)
+                      ..scale(scale)
+                      ..translate(0.0, translateY),
+                    child: child,
                   );
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  child: _buildCardItem(context, index, firms, allCampaigns),
+                ),
+              );
+            },
+          ),
+        ),
+        // Page indicator
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            totalItems,
+            (i) => AnimatedContainer(
+              duration: const Duration(milliseconds: 350),
+              curve: Curves.easeOut,
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: _currentIndex == i ? 24 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                color: _currentIndex == i
+                    ? (i < firms.length 
+                        ? (firms[i]['color'] as Color)
+                        : Colors.grey)
+                    : Colors.grey.withOpacity(0.25),
+                boxShadow: _currentIndex == i ? [
+                  BoxShadow(
+                    color: (i < firms.length 
+                        ? (firms[i]['color'] as Color)
+                        : Colors.grey).withOpacity(0.4),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ] : [],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildAddKafeCard(BuildContext context, {Key? key}) {
-    final lang = Provider.of<LanguageProvider>(context);
-    return Container(
-      key: key,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        color: const Color(0xFFEE2C2C), // Updated to Red
-      ),
-      child: Stack(
-        children: [
-          // Background Icon
-          Positioned(
-            right: -40,
-            bottom: -40,
-            child: Opacity(
-              opacity: 0.1,
-              child: const Icon(
-                Icons.add_circle_outline_rounded,
-                size: 200,
-                color: Colors.white,
-              ),
-            ),
-          ),
-          Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white, // White circle
-                  ),
-                  child: const Icon(Icons.add_rounded, color: Color(0xFFEE2C2C), size: 40), // Red Icon
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  lang.translate('new_cafe_add'),
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  lang.translate('scan_or_enter_code'),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildCardItem(BuildContext context, int index, List<Map<String, dynamic>> firms, List<CampaignModel> allCampaigns) {
+    // Add Cafe Card (Last Item)
+    if (index == firms.length) {
+      return GestureDetector(
+        onTap: () async {
+          await context.push('/add-firm');
+          if (context.mounted) {
+            context.read<BusinessProvider>().fetchMyFirms();
+          }
+        },
+        child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),
+      );
+    }
+
+    final firm = firms[index];
+    final firmCampaigns = allCampaigns.where((c) => c.businessId == firm['id']).toList();
+    final activeCampaign = firmCampaigns.isNotEmpty ? firmCampaigns.first : null;
+
+    final user = context.read<AuthProvider>().currentUser;
+    final cardHolder = user?.name ?? 'MÜŞTERİ';
+
+    return WalletCard(
+      firm: firm,
+      cardHolderName: cardHolder,
+      onTap: () async {
+        final lang = context.read<LanguageProvider>();
+        if (firm['name'] == lang.translate('wallet_empty')) return;
+        
+        await context.push('/business-detail', extra: {
+          'id': firm['id'],
+          'name': firm['name'],
+          'points': firm['points'],
+          'stamps': firm['stamps'],
+          'stampsTarget': firm['stampsTarget'],
+          'giftsCount': firm['giftsCount'],
+          'value': firm['value'],
+          'color': firm['color'],
+          'icon': firm['icon'], 
+          'city': firm['city'],
+          'district': firm['district'],
+          'neighborhood': firm['neighborhood'],
+          'logo': firm['logo'],
+          'image': firm['image'],
+        });
+        
+        if (context.mounted) {
+          context.read<BusinessProvider>().fetchMyFirms();
+        }
+      },
     );
   }
 
@@ -573,14 +732,16 @@ class _HomeScreenState extends State<HomeScreen> {
     required int stampsTarget,
     required int giftsCount,
     required String? firmId,
+    required String? logo,
+    CampaignModel? activeCampaign,
     Key? key,
   }) {
-    // Credit Card Design
+    // Screenshot Replica v4: Balanced Cup & Blue Icon Banner
     return Container(
       key: key,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24), 
         gradient: LinearGradient(
           colors: [color.withOpacity(0.9), color], 
           begin: Alignment.topLeft,
@@ -590,31 +751,76 @@ class _HomeScreenState extends State<HomeScreen> {
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.4),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Stack(
         children: [
-          // Texture: Category Background Icon
+          // 1. Background Texture
            Positioned(
-            right: -60,
-            bottom: -60,
+            right: -50,
+            bottom: -50,
             child: Opacity(
               opacity: 0.1,
               child: Icon(
                 icon,
-                size: 200,
+                size: 180, 
                 color: Colors.white,
               ),
             ),
           ),
+
+          // 2. The Balanced Cup (Right & Up)
+          Positioned(
+            right: 10,
+            bottom: 12, // Moved UP as requested
+            width: 140, 
+            height: 160, 
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 3D Cup
+                Transform.translate(
+                  offset: const Offset(0, 10),
+                  child: _Rotating3DCup(
+                    color: Colors.white,
+                    size: 150, // Reduced from 180 (Balanced)
+                    stamps: stamps,
+                    target: stampsTarget,
+                  ),
+                ),
+                // Gift Count
+                // Gift Count (always visible)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10), 
+                    child: Text(
+                      "$giftsCount",
+                      style: GoogleFonts.outfit(
+                        color: Colors.white,
+                        fontSize: 46, // Reduced from 56
+                        fontWeight: FontWeight.w900,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4)
+                          )
+                        ]
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          
+          // 3. Left Content
           Padding(
-            padding: const EdgeInsets.all(16.0), // Symmetrical padding (Top/Bottom/Left/Right equal)
+            padding: const EdgeInsets.fromLTRB(16.0, 12.0, 140.0, 12.0), 
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, // Pushes Name to Top, Box to Bottom
+              mainAxisAlignment: MainAxisAlignment.spaceBetween, 
               children: [
                 // [TOP] Firm Name
                 Text(
@@ -622,170 +828,142 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: GoogleFonts.outfit(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                    letterSpacing: 1.2,
+                    fontSize: 18, 
+                    letterSpacing: 1.0,
                   ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 
-                // [MIDDLE] Stamps & Points Section
-                SizedBox(
-                  height: 130, // Fixed height to lock Top and Bottom alignment
-                  width: double.infinity,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start, // Top-locked
-                    children: [
-                      // Left Side: Text + Progress Bar + Puanlarım
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // [TOP ANCHOR] Puanlarım Section
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  // Localize "Puanlarım"
-                                  Provider.of<LanguageProvider>(context).translate('my_points'),
-                                  style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 14, fontWeight: FontWeight.w700),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.stars_rounded, color: Colors.white, size: 28),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      points,
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white,
-                                        fontSize: 38,
-                                        fontWeight: FontWeight.w600,
-                                        height: 1.0,
-                                      ),
-                                      textHeightBehavior: const TextHeightBehavior(
-                                        applyHeightToFirstAscent: false,
-                                        applyHeightToLastDescent: false,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            
-                            const Spacer(), // Pushes everything below to the very bottom of the 130px height
-
-                            // [BOTTOM ANCHOR] Pul row + Progress Bar
-                            Column(
-                              children: [
-                                // Header Row: Pul
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0, left: 4.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        // Localize "Pul"
-                                        Provider.of<LanguageProvider>(context).translate('stamps'),
-                                        style: GoogleFonts.outfit(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        "$stamps",
-                                        style: GoogleFonts.outfit(
-                                          color: Colors.white,
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w900,
-                                          height: 1.0,
-                                        ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.only(bottom: 3, left: 2),
-                                        child: Text(
-                                          "/$stampsTarget",
-                                          style: GoogleFonts.outfit(
-                                            color: Colors.white.withOpacity(0.7),
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            height: 1.0,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                
-                                // Progress Bar
-                                Container(
-                                  height: 24,
-                                  width: double.infinity,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-                                  ),
-                                  child: FractionallySizedBox(
-                                    alignment: Alignment.centerLeft,
-                                    widthFactor: (stamps / stampsTarget).clamp(0.0, 1.0),
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                // [BOTTOM LEFT] Info Block
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Points Header
+                    Text(
+                      Provider.of<LanguageProvider>(context).translate('my_points'), 
+                      style: GoogleFonts.outfit(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 10, 
+                        fontWeight: FontWeight.w600
                       ),
-                      
-                      // Right Side: Cup Icon (Top aligned with Puanlarım, Bottom aligned with Bar)
-                      Transform.translate(
-                        offset: const Offset(8, 4), // Shifted down for actual text alignment
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            TakeawayCupIcon(
-                              color: Colors.white.withOpacity(0.35),
-                              size: 130, // Matches container height exactly
+                    ),
+                    // Points Value
+                    Row(
+                      children: [
+                        const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
+                        const SizedBox(width: 4),
+                        Text(
+                          points,
+                          style: GoogleFonts.outfit(
+                            color: Colors.white,
+                            fontSize: 28, 
+                            fontWeight: FontWeight.bold
+                          ),
+                        ),
+                      ],
+                    ),
+                    
+                    const SizedBox(height: 4), 
+                    
+                    // Stamps
+                    RichText(
+                      text: TextSpan(
+                        children: [
+                          TextSpan(
+                            text: "Stamps  ", 
+                            style: GoogleFonts.outfit(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 10, 
+                              fontWeight: FontWeight.w600
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(top: 18), 
-                              child: Text(
-                                "$giftsCount",
-                                style: GoogleFonts.outfit(
-                                  color: Colors.white, 
-                                  fontSize: 48, // Restored to previous large size
-                                  fontWeight: FontWeight.w900,
-                                ),
+                          ),
+                          TextSpan(
+                            text: "$stamps", 
+                            style: GoogleFonts.outfit(
+                              color: Colors.white,
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold
+                            ),
+                          ),
+                          TextSpan(
+                            text: "/$stampsTarget", 
+                            style: GoogleFonts.outfit(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12, 
+                              fontWeight: FontWeight.w600
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 4),
+                    
+                    // Progress Bar
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: (stamps / stampsTarget).clamp(0.0, 1.0),
+                        backgroundColor: Colors.black.withOpacity(0.2), 
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), 
+                        minHeight: 8,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 8),
+
+                    // [CAMPAIGN BANNER]
+                    if (activeCampaign != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.25), 
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.star_rounded, color: Colors.blueAccent, size: 12), // BLUE ICON
+                            ),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    activeCampaign.title,
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    Provider.of<LanguageProvider>(context).translate('tap_to_view'),
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 8,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // [BOTTOM] Campaign Box (Dynamic Slider)
-                Consumer<CampaignProvider>(
-                  builder: (context, campProvider, child) {
-                    final allCampaigns = (firmId != null) ? campProvider.getCampaignsForBusiness(firmId) : <CampaignModel>[];
-                    final promotedCampaigns = allCampaigns.where((c) => c.isPromoted).toList();
-                    
-                    if (promotedCampaigns.isEmpty) {
-                      return const SizedBox.shrink(); // Hide if no promoted campaigns
-                    }
-
-                    return CampaignSlider(campaigns: promotedCampaigns);
-                  },
+                      )
+                    else
+                      const SizedBox(height: 0),
+                  ],
                 ),
               ],
             ),
@@ -1179,4 +1357,112 @@ class HomeHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+class _Rotating3DCup extends StatefulWidget {
+  final double size;
+  final Color color;
+  final int stamps;
+  final int target;
+
+  const _Rotating3DCup({
+    super.key, 
+    required this.size, 
+    required this.color,
+    required this.stamps,
+    required this.target,
+  });
+
+  @override
+  State<_Rotating3DCup> createState() => _Rotating3DCupState();
+}
+
+class _Rotating3DCupState extends State<_Rotating3DCup> {
+  // AnimationController removed for static cup
+  
+  @override
+  Widget build(BuildContext context) {
+    // Calculate Fill Level
+    double fillLevel = 0.0;
+    if (widget.target > 0) {
+      fillLevel = (widget.stamps / widget.target).clamp(0.0, 1.0);
+    }
+
+    // Static 3D Cup (No Rotation)
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.0, end: fillLevel),
+      duration: const Duration(seconds: 2), // Fill up slowly
+      curve: Curves.easeOut,
+      builder: (context, value, child) {
+        return Transform(
+          // Keep Perspective Static
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.001) 
+            ..rotateY(-0.5), // Fixed Angle (approx 30 deg) for best 3D view
+          child: TakeawayCupIcon(
+            size: widget.size, 
+            cupColor: widget.color,
+            fillLevel: value,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Stitching line painter for the leather card holder effect
+class _StitchPainter extends CustomPainter {
+  final Color color;
+  _StitchPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    const dashWidth = 6.0;
+    const dashSpace = 4.0;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(
+        Offset(x, size.height / 2),
+        Offset((x + dashWidth).clamp(0, size.width), size.height / 2),
+        paint,
+      );
+      x += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Card slot lines painter for the leather card holder effect
+class _SlotPainter extends CustomPainter {
+  final Color slotColor;
+  _SlotPainter({required this.slotColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = slotColor
+      ..strokeWidth = 1.0;
+
+    // Draw 3 horizontal slot lines across the holder
+    const slots = [0.28, 0.52, 0.76];
+    for (final ratio in slots) {
+      final y = size.height * ratio;
+      canvas.drawLine(
+        Offset(20, y),
+        Offset(size.width - 20, y),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
