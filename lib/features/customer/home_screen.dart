@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -49,8 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
         // Fetch reviews to check for pending ones
         context.read<ApiService>().getReviews();
       }
-
-
     });
   }
 
@@ -228,6 +227,217 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showEmptyCampaignDialog(BuildContext context, String firmName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).cardColor,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEE2C2C).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.domain_disabled_rounded, color: Color(0xFFEE2C2C), size: 40),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Aktif Kampanya Bulunamadı',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$firmName işletmesinin henüz aktif bir kampanyası bulunmamaktadır. Tarama yapamazsınız.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEE2C2C),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'Tamam',
+                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showNoCampaignDialog(BuildContext context, String firmId, String firmName) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Theme.of(context).cardColor,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Colors.orange, size: 40),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Henüz Kampanyaya Katılmadınız',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).textTheme.bodyLarge?.color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Bu işletmede QR kod okutabilmek için önce aktif bir kampanyaya katılmalısınız.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        side: BorderSide(color: Theme.of(context).dividerColor),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: Text(
+                        'İptal',
+                        style: GoogleFonts.outfit(color: Theme.of(context).textTheme.bodyLarge?.color),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                         Navigator.pop(ctx);
+                         // Navigate to Business Campaigns (Opportunities)
+                         context.push('/business-campaigns', extra: {
+                           'firmId': firmId,
+                           'firmName': firmName,
+                         });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFEE2C2C),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'Kampanyaları Gör',
+                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
+                          maxLines: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedScanButton(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Main Button (Gradient Circle)
+        Container(
+          width: 72,
+          height: 72,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFF4444), Color(0xFFEE2C2C)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFEE2C2C).withOpacity(0.5),
+                blurRadius: 16,
+                spreadRadius: 2,
+                offset: const Offset(0, 6),
+              ),
+              // Inner highlight for 3D feel
+              BoxShadow(
+                color: Colors.white.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(-4, -4),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 36),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Floating Label Text (Clean)
+        Text(
+          Provider.of<LanguageProvider>(context).translate('scan_qr'),
+          style: GoogleFonts.outfit(
+            color: Colors.black87,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 0.5,
+            shadows: [
+              Shadow(
+                color: Colors.white.withOpacity(0.8),
+                blurRadius: 4,
+              )
+            ]
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -250,77 +460,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: bgColor,
-      floatingActionButton: Container(
-        width: 72,
-        height: 72,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: const LinearGradient(
-            colors: [Color(0xFFFF4444), Color(0xFFEE2C2C)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFEE2C2C).withOpacity(0.45),
-              blurRadius: 20,
-              spreadRadius: 2,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: () {
-            final firms = _getFirmBalances(context, listen: false);
-            // If current index is within firm range, pass firm context
-            if (_currentIndex < firms.length && firms[_currentIndex]['id'] != null) {
-              final firm = firms[_currentIndex];
-              context.push('/customer-scanner', extra: {
-                'expectedBusinessId': firm['id'],
-                'expectedBusinessName': firm['name'],
-                'expectedBusinessColor': firm['color'],
-                'currentStamps': firm['stamps'] ?? 0,
-                'targetStamps': firm['stampsTarget'] ?? 6,
-                'currentGifts': firm['giftsCount'] ?? 0,
-                'currentPoints': firm['points'] ?? '0',
-              });
-            } else {
-              // No firm selected (on "Add" card or empty wallet) — generic scan
-              context.push('/customer-scanner');
+      floatingActionButtonLocation: const CustomBottomFabLocation(offsetY: 10),
+      floatingActionButton: GestureDetector(
+        onTap: () {
+          final firms = _getFirmBalances(context, listen: false);
+          // If current index is within firm range, pass firm context
+          if (_currentIndex < firms.length && firms[_currentIndex]['id'] != null) {
+            final firm = firms[_currentIndex];
+            final firmId = firm['id'];
+            
+            // [NEW] Check if user has joined any campaign for this firm
+            final allCampaigns = context.read<CampaignProvider>().allCampaigns;
+            final myParticipations = context.read<ParticipationProvider>(); // Using method directly easier
+            
+            // 1. Get campaigns for this business
+            final firmCampaigns = allCampaigns.where((c) => c.businessId == firmId).toList();
+
+            // [NEW] Check: If firm has 0 campaigns -> Show Empty Dialog
+            if (firmCampaigns.isEmpty) {
+              _showEmptyCampaignDialog(context, firm['name'] ?? 'İşletme');
+              return;
             }
-          },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          shape: const CircleBorder(),
-          child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 34),
-        ),
+            
+            // 2. Check if user is participating in ANY of them
+            bool hasActiveParticipation = false;
+            for (var campaign in firmCampaigns) {
+              if (myParticipations.isParticipating(campaign.id)) {
+                hasActiveParticipation = true;
+                break;
+              }
+            }
+            
+            // If firm HAS campaigns but user HASN'T joined any -> Show Not Joined Dialog
+            if (!hasActiveParticipation) {
+               _showNoCampaignDialog(context, firmId, firm['name'] ?? 'İşletme');
+               return; 
+            }
+            
+            context.push('/customer-scanner', extra: {
+              'expectedBusinessId': firmId,
+              'expectedBusinessName': firm['name'],
+              'expectedBusinessColor': firm['color'],
+              'currentStamps': firm['stamps'] ?? 0,
+              'targetStamps': firm['stampsTarget'] ?? 6,
+              'currentGifts': firm['giftsCount'] ?? 0,
+              'currentPoints': firm['points'] ?? '0',
+            });
+          } else {
+            // No firm selected (on "Add" card or empty wallet) — generic scan
+            context.push('/customer-scanner');
+          }
+        },
+        child: _buildAnimatedScanButton(context),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 10.0,
-        color: theme.cardColor,
-        elevation: 16,
-        child: SizedBox(
-          height: 56,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  Provider.of<LanguageProvider>(context).translate('scan_qr'),
-                  style: GoogleFonts.outfit(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: textColor.withOpacity(0.4),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      bottomNavigationBar: null, // Removed as requested for a cleaner UI
       body: SafeArea(
         bottom: false, // Let content flow behind navbar
         child: RefreshIndicator(
@@ -337,7 +530,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(), // Ensure it's always scrollable for refresh
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.only(top: 10, bottom: 100), // Increased bottom padding for floating button
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1465,4 +1658,25 @@ class _SlotPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Custom Docked Location for FAB (Low Profile)
+class CustomBottomFabLocation extends FloatingActionButtonLocation {
+  final double offsetY;
+  const CustomBottomFabLocation({this.offsetY = 30}); // 30px from bottom edge (clear of safe area)
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    // Center Horizontally
+    final double fabX = (scaffoldGeometry.scaffoldSize.width - scaffoldGeometry.floatingActionButtonSize.width) / 2.0;
+    
+    // Bottom with fixed offset. 
+    // We target the max height minus FAB height minus offset.
+    // Note: scaffoldGeometry.scaffoldSize includes Safe Area. 
+    final double fabY = scaffoldGeometry.scaffoldSize.height 
+        - scaffoldGeometry.floatingActionButtonSize.height 
+        - offsetY;
+
+    return Offset(fabX, fabY);
+  }
 }
