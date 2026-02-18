@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/models/campaign_model.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/swipe_back_detector.dart';
-import '../../core/providers/participation_provider.dart';
+
 import '../../core/providers/business_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
@@ -28,78 +28,11 @@ class CampaignDetailScreen extends StatelessWidget {
     return SwipeBackDetector(
       child: Scaffold(
         backgroundColor: bgColor,
-        body: Stack(
-          children: [
-            CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                _buildSliverAppBar(context, bgColor, accentColor),
-                _buildContent(context, bgColor, textColor, cardColor, accentColor),
-              ],
-            ),
-            
-            // Fixed Bottom Join Button
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [bgColor.withOpacity(0.0), bgColor],
-                  ),
-                ),
-                child: Consumer<ParticipationProvider>(
-                  builder: (context, partProvider, child) {
-                    final isJoining = partProvider.isLoading;
-                    final isAlreadyParticipating = partProvider.isParticipating(campaign.id);
-                    
-                    // Check if business is in wallet
-                    final businessProvider = context.watch<BusinessProvider>();
-                    final isInWallet = businessProvider.isFirmInWallet(campaign.businessId);
-
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isJoining || isAlreadyParticipating 
-                          ? null 
-                          : () async {
-                                if (!isInWallet) {
-                                  showCustomPopup(
-                                    context,
-                                    message: Provider.of<LanguageProvider>(context, listen: false).translate('need_add_firm_msg'),
-                                    type: PopupType.info,
-                                  );
-                                  return;
-                                }
-                              await partProvider.joinCampaign(campaign.id);
-                            },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isAlreadyParticipating 
-                              ? Colors.green 
-                              : (isInWallet ? accentColor : Colors.grey),
-                          disabledBackgroundColor: isAlreadyParticipating ? Colors.green : Colors.grey[800],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 0,
-                        ),
-                        child: isJoining 
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              isAlreadyParticipating 
-                                ? Provider.of<LanguageProvider>(context).translate('joined_status')
-                                : (isInWallet ? Provider.of<LanguageProvider>(context).translate('join_now_btn') : Provider.of<LanguageProvider>(context).translate('add_firm_first_btn')), 
-                              style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)
-                            ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
+        body: CustomScrollView(
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            _buildSliverAppBar(context, bgColor, accentColor),
+            _buildContent(context, bgColor, textColor, cardColor, accentColor),
           ],
         ),
       ),
@@ -249,23 +182,56 @@ class CampaignDetailScreen extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        _buildInfoItem(
-                          context,
-                          Icons.stars_rounded,
-                          Provider.of<LanguageProvider>(context).translate('reward_label'), // Add key
-                          campaign.rewardType == 'points' 
-                              ? "+${campaign.rewardValue} ${Provider.of<LanguageProvider>(context).translate('points_reward')}" 
-                              : "+${campaign.rewardValue} ${Provider.of<LanguageProvider>(context).translate('stamp_reward')}",
-                          accentColor,
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Container(width: 1, height: 40, color: textColor.withOpacity(0.1)),
-                        ),
+                        if (campaign.menuItems.isNotEmpty) ...[
+                          _buildInfoItem(
+                            context,
+                            Icons.local_offer_rounded,
+                            campaign.bundleName.isNotEmpty ? campaign.bundleName : campaign.menuItems.map((e) => e.productName).join(' + '),
+                            // Price Display Logic
+                            null, // Passing null as value to use custom child
+                            customValueWidget: Row(
+                              children: [
+                                if (campaign.discountAmount > 0) ...[
+                                  Text(
+                                    '₺${campaign.totalPrice.toStringAsFixed(0)}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 14,
+                                      color: textColor.withOpacity(0.5),
+                                      decoration: TextDecoration.lineThrough,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '₺${campaign.discountedPrice.toStringAsFixed(0)}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 18,
+                                      color: accentColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ] else
+                                  Text(
+                                    '₺${campaign.totalPrice.toStringAsFixed(0)}',
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 18,
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            accentColor,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(width: 1, height: 40, color: textColor.withOpacity(0.1)),
+                          ),
+                        ],
                         _buildInfoItem(
                           context,
                           Icons.calendar_today_rounded,
-                          Provider.of<LanguageProvider>(context).translate('date_label'), // Add key
+                          Provider.of<LanguageProvider>(context).translate('date_label'),
                           DateFormat('dd.MM.yyyy').format(campaign.endDate),
                           Colors.blueAccent,
                         ),
@@ -285,7 +251,6 @@ class CampaignDetailScreen extends StatelessWidget {
               const SizedBox(height: 12),
               _buildStepItem(1, Provider.of<LanguageProvider>(context).translate('step_1')),
               _buildStepItem(2, Provider.of<LanguageProvider>(context).translate('step_2')),
-              _buildStepItem(3, Provider.of<LanguageProvider>(context).translate('step_3')),
             ],
           ),
         ),
@@ -325,7 +290,7 @@ class CampaignDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoItem(BuildContext context, IconData icon, String label, String value, Color color) {
+  Widget _buildInfoItem(BuildContext context, IconData icon, String label, String? value, Color color, {Widget? customValueWidget}) {
     final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
     return Expanded(
       child: Column(
@@ -335,15 +300,19 @@ class CampaignDetailScreen extends StatelessWidget {
             children: [
               Icon(icon, size: 16, color: color),
               const SizedBox(width: 6),
-              Text(
-                label,
-                style: GoogleFonts.outfit(fontSize: 12, color: textColor.withOpacity(0.5), fontWeight: FontWeight.bold),
+              Expanded(
+                child: Text(
+                  label,
+                  style: GoogleFonts.outfit(fontSize: 12, color: textColor.withOpacity(0.5), fontWeight: FontWeight.bold),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
-          AutoText(
-            value,
+          customValueWidget ?? AutoText(
+            value ?? '',
             style: GoogleFonts.outfit(fontSize: 15, color: textColor, fontWeight: FontWeight.bold),
           ),
         ],

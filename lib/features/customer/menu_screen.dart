@@ -37,6 +37,7 @@ class _MenuScreenState extends State<MenuScreen> {
   // Categories
   final List<String> _categories = [
     'Tümü',
+    'Fırsatlar',
     'Sıcak Kahveler',
     'Soğuk Kahveler',
     'Sıcak İçecekler',
@@ -605,23 +606,27 @@ class _MenuScreenState extends State<MenuScreen> {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]
                         ),
-                        child: Text(
-                          '₺${(product['price'] as num) - (product['discount'] ?? 0)}',
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.w800, color: _brandColor, fontSize: 14),
+                        child: Row(
+                          children: [
+                            Text(
+                              '₺${((product['price'] as num) - (product['discount'] ?? 0)).toStringAsFixed(0)}',
+                              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, color: _brandColor, fontSize: 14),
+                            ),
+                            if ((product['discount'] ?? 0) > 0) ...[
+                              const SizedBox(width: 6),
+                              Text(
+                                '₺${(product['price'] as num).toStringAsFixed(0)}',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 11,
+                                  color: Colors.red.shade400,
+                                  decoration: TextDecoration.lineThrough,
+                                  decorationColor: Colors.red.shade400,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      if ((product['discount'] ?? 0) > 0) ...[
-                        const SizedBox(width: 4),
-                        Text(
-                          '₺${product['price']}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 11,
-                            color: Colors.white.withOpacity(0.9),
-                            decoration: TextDecoration.lineThrough,
-                            shadows: [Shadow(color: Colors.black45, blurRadius: 2)],
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),

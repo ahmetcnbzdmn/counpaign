@@ -23,7 +23,7 @@ import 'features/customer/business_scanner_screen.dart';
 import 'features/customer/my_firms_screen.dart';
 import 'features/customer/order_history_screen.dart';
 import 'features/customer/my_reviews_screen.dart';
-import 'features/customer/participations_screen.dart';
+
 import 'features/customer/menu_screen.dart';
 
 import 'features/auth/forgot_password_screen.dart';
@@ -44,7 +44,7 @@ import 'core/providers/business_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/language_provider.dart';
 import 'core/providers/campaign_provider.dart';
-import 'core/providers/participation_provider.dart';
+
 import 'core/services/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -90,7 +90,7 @@ void main() async {
         ChangeNotifierProvider<app.AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider.value(value: businessProvider),
         ChangeNotifierProvider(create: (_) => CampaignProvider(apiService)),
-        ChangeNotifierProvider(create: (_) => ParticipationProvider(apiService)),
+
         Provider<ApiService>.value(value: apiService),
         ChangeNotifierProvider(create: (_) => ThemeProvider(storageService)),
         ChangeNotifierProvider(create: (_) => LanguageProvider(storageService)),
@@ -258,10 +258,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
             return CampaignDetailScreen(campaign: campaign);
           },
         ),
-        GoRoute(
-          path: '/participations',
-          builder: (context, state) => const ParticipationsScreen(),
-        ),
+
         GoRoute(
           path: '/edit-profile',
           builder: (context, state) => const EditProfileScreen(),

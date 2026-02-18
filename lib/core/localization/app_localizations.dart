@@ -166,11 +166,12 @@ class AppLocalizations {
       // Campaign Detail
       'reward_label': 'Ödül',
       'date_label': 'Son Tarih',
+      'discount_label': 'İNDİRİM',
+      'campaign_label': 'Kampanya',
       'about_campaign': 'Kampanya Hakkında',
       'how_to_use': 'Nasıl Faydalanırım?',
-      'step_1': 'Hemen Katıl butonuna basıp kampanyaya dahil ol.',
-      'step_2': 'QR kodunla ödemeni tamamla.',
-      'step_3': 'Kazandığın ödülleri anında cüzdanında gör.',
+      'step_1': 'İşletmede QR kodunu okut.',
+      'step_2': 'Kazandığın ödülleri cüzdanında gör.',
 
       // Business Detail (Extra)
       'no_gift_to_spend': 'Harcayacak hediye ürününüz bulunmuyor! 🥐',
@@ -253,11 +254,12 @@ class AppLocalizations {
       // Campaign Detail (EN)
       'reward_label': 'Reward',
       'date_label': 'End Date',
+      'discount_label': 'OFF',
+      'campaign_label': 'Campaign',
       'about_campaign': 'About Campaign',
       'how_to_use': 'How to Use?',
-      'step_1': 'Tap Join Now to enter the campaign.',
-      'step_2': 'Complete your payment via QR code.',
-      'step_3': 'See your earned rewards instantly in your wallet.',
+      'step_1': 'Scan the QR code at the business.',
+      'step_2': 'See your rewards instantly in your wallet.',
       
       // Business Detail (Extra - EN)
       'no_gift_to_spend': 'You have no gifts to spend! 🥐',

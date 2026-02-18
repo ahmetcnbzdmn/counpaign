@@ -146,17 +146,6 @@ class ApiService {
     return response.data as List<dynamic>;
   }
 
-  // Participation Methods
-  Future<Map<String, dynamic>> joinCampaign(String campaignId) async {
-    final response = await _dio.post('/participations/join/$campaignId');
-    return response.data as Map<String, dynamic>;
-  }
-
-  Future<List<dynamic>> getMyParticipations() async {
-    final response = await _dio.get('/participations/my');
-    return response.data as List<dynamic>;
-  }
-
   // QR Methods
   Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId}) async {
     try {

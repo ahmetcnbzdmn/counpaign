@@ -14,8 +14,8 @@ import '../../core/providers/campaign_provider.dart';
 import '../../core/widgets/campaign_slider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
-import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
-import '../../core/providers/participation_provider.dart'; // [FIXED] Import added
+
+
 import '../../core/models/campaign_model.dart';
 import 'menu_screen.dart';
 import '../../features/customer/widgets/wallet_card.dart';
@@ -292,96 +292,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showNoCampaignDialog(BuildContext context, String firmId, String firmName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Theme.of(context).cardColor,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.campaign_rounded, color: Colors.orange, size: 40),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Henüz Kampanyaya Katılmadınız',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Bu işletmede QR kod okutabilmek için önce aktif bir kampanyaya katılmalısınız.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        side: BorderSide(color: Theme.of(context).dividerColor),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: Text(
-                        'İptal',
-                        style: GoogleFonts.outfit(color: Theme.of(context).textTheme.bodyLarge?.color),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                         Navigator.pop(ctx);
-                         // Navigate to Business Campaigns (Opportunities)
-                         context.push('/business-campaigns', extra: {
-                           'firmId': firmId,
-                           'firmName': firmName,
-                         });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEE2C2C),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          'Kampanyaları Gör',
-                          style: GoogleFonts.outfit(color: Colors.white, fontSize: 13),
-                          maxLines: 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildAnimatedScanButton(BuildContext context) {
     return Column(
@@ -469,32 +379,15 @@ class _HomeScreenState extends State<HomeScreen> {
             final firm = firms[_currentIndex];
             final firmId = firm['id'];
             
-            // [NEW] Check if user has joined any campaign for this firm
             final allCampaigns = context.read<CampaignProvider>().allCampaigns;
-            final myParticipations = context.read<ParticipationProvider>(); // Using method directly easier
             
             // 1. Get campaigns for this business
             final firmCampaigns = allCampaigns.where((c) => c.businessId == firmId).toList();
 
-            // [NEW] Check: If firm has 0 campaigns -> Show Empty Dialog
+            // Check: If firm has 0 campaigns -> Show Empty Dialog
             if (firmCampaigns.isEmpty) {
               _showEmptyCampaignDialog(context, firm['name'] ?? 'İşletme');
               return;
-            }
-            
-            // 2. Check if user is participating in ANY of them
-            bool hasActiveParticipation = false;
-            for (var campaign in firmCampaigns) {
-              if (myParticipations.isParticipating(campaign.id)) {
-                hasActiveParticipation = true;
-                break;
-              }
-            }
-            
-            // If firm HAS campaigns but user HASN'T joined any -> Show Not Joined Dialog
-            if (!hasActiveParticipation) {
-               _showNoCampaignDialog(context, firmId, firm['name'] ?? 'İşletme');
-               return; 
             }
             
             context.push('/customer-scanner', extra: {
@@ -525,7 +418,6 @@ class _HomeScreenState extends State<HomeScreen> {
                biz.fetchMyFirms(),
                biz.fetchExploreFirms(),
                camp.fetchAllCampaigns(),
-               context.read<ParticipationProvider>().fetchMyParticipations(), // [FIX] Refresh participations too
              ]);
           },
           child: SingleChildScrollView(
@@ -1436,7 +1328,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
-                                      campaign['rewardType'] == 'stamp' ? Icons.coffee_rounded : Icons.star_rounded,
+                                      Icons.local_offer_rounded,
                                       color: Theme.of(context).primaryColor,
                                     ),
                                   ),

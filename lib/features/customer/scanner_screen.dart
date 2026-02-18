@@ -3,7 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../core/providers/participation_provider.dart';
+import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
 import '../../core/providers/language_provider.dart';
@@ -73,10 +73,10 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
     print("📸 Scanning Token: $token");
 
     try {
-      final participationProvider = context.read<ParticipationProvider>();
+      final apiService = context.read<ApiService>();
       
       // Pass expected ID to backend for validation
-      final result = await participationProvider.scanBusinessQR(token, expectedBusinessId: _expectedBusinessId);
+      final result = await apiService.scanBusinessQR(token, expectedBusinessId: _expectedBusinessId);
       
       print("📩 Scan Result: $result");
       
@@ -137,7 +137,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          
          await Future.delayed(const Duration(seconds: 2));
          try {
-            final statusResult = await participationProvider.checkConfirmationStatus(pollingToken);
+            final statusResult = await apiService.checkConfirmationStatus(pollingToken);
             
             if (statusResult['status'] == 'used') {
                isConfirmed = true;

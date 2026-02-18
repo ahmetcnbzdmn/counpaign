@@ -5,7 +5,7 @@ import '../../core/widgets/swipe_back_detector.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/providers/business_provider.dart';
-import '../../core/providers/participation_provider.dart'; // [NEW] Import
+
 import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import 'dart:convert';
@@ -170,7 +170,6 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                      context.read<CampaignProvider>().fetchAllCampaigns(),
                      context.read<BusinessProvider>().fetchMyFirms(),
                      context.read<BusinessProvider>().fetchExploreFirms(),
-                     context.read<ParticipationProvider>().fetchMyParticipations(),
                    ]);
                 },
                 child: Consumer2<CampaignProvider, BusinessProvider>(
@@ -346,7 +345,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       ),
                     ),
                     
-                    // Discount/Reward Badge
+                    // Discount/Bundle Badge
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
@@ -357,7 +356,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                         ]
                       ),
                       child: Text(
-                        campaign.rewardType == 'points' ? "+${campaign.rewardValue} ${lang.translate('points_reward')}" : "+${campaign.rewardValue} ${lang.translate('stamp_reward')}",
+                        campaign.discountAmount > 0
+                            ? '₺${campaign.discountAmount.toStringAsFixed(0)} ${lang.translate('discount_label')}'
+                            : campaign.bundleName.isNotEmpty ? campaign.bundleName : lang.translate('campaign_label'),
                         style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
                       ),
                     ),
