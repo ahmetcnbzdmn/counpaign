@@ -5,9 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
-import '../../core/widgets/icons/takeaway_cup_icon.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/services/api_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class CustomerScannerScreen extends StatefulWidget {
   final Map<String, dynamic>? extra; // To accept expectedBusinessId etc.
@@ -39,7 +38,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
   @override
   void initState() {
     super.initState();
-    print("🚀 CustomerScannerScreen INIT. Extra: ${widget.extra}");
+    debugPrint("🚀 CustomerScannerScreen INIT. Extra: ${widget.extra}");
     if (widget.extra != null) {
       _expectedBusinessId = widget.extra!['expectedBusinessId'];
       _expectedBusinessName = widget.extra!['expectedBusinessName'];
@@ -53,7 +52,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
           ? widget.extra!['expectedBusinessColor'] 
           : null;
        
-       print("✅ Expected Business: $_expectedBusinessName (ID: $_expectedBusinessId)");
+       debugPrint("✅ Expected Business: $_expectedBusinessName (ID: $_expectedBusinessId)");
 
        // Parse color if string
        if (widget.extra!['expectedBusinessColor'] is String) {
@@ -62,29 +61,66 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
           } catch (_) {}
        }
     } else {
-      print("❌ No Extras received in Scanner Screen!");
+      debugPrint("❌ No Extras received in Scanner Screen!");
     }
   }
 
-  void _handleScan(BuildContext context, String token) async {
+  Future<Position?> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return null;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return null;
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return null;
+    } 
+
+    return await Geolocator.getCurrentPosition();
+  }
+
+  void _handleScan(String token) async {
     if (_isProcessing) return;
     setState(() => _isProcessing = true);
     
-    print("📸 Scanning Token: $token");
+    debugPrint("📸 Scanning Token: $token");
 
     try {
       final apiService = context.read<ApiService>();
       
       // Pass expected ID to backend for validation
-      final result = await apiService.scanBusinessQR(token, expectedBusinessId: _expectedBusinessId);
+      // Geofencing: Get current location
+      Position? position;
+      try {
+        position = await _determinePosition();
+      } catch (locErr) {
+        debugPrint("⚠️ Location Error: $locErr");
+      }
+
+      final result = await apiService.scanBusinessQR(
+        token, 
+        expectedBusinessId: _expectedBusinessId,
+        latitude: position?.latitude,
+        longitude: position?.longitude,
+      );
       
-      print("📩 Scan Result: $result");
+      debugPrint("📩 Scan Result: $result");
       
       if (!mounted) return;
 
       // Logic check (Redundant if backend enforces it, but safe to keep)
       if (_expectedBusinessId != null && result['business']['id'].toString() != _expectedBusinessId.toString()) {
-           print("⛔️ Logic Mismatch Detected (Should have been caught by backend)");
+           debugPrint("⛔️ Logic Mismatch Detected (Should have been caught by backend)");
            throw Exception("FIRM_MISMATCH");
       }
 
@@ -94,8 +130,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
         showDialog(
           context: context,
           barrierDismissible: false,
-          builder: (ctx) => WillPopScope(
-            onWillPop: () async => false,
+          builder: (ctx) => PopScope(
+            canPop: false,
             child: AlertDialog(
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
               content: Column(
@@ -149,7 +185,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                break;
             }
          } catch (e) {
-            print("⚠️ Polling Error: $e");
+            debugPrint("⚠️ Polling Error: $e");
          }
          attempts++;
       }
@@ -161,7 +197,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          if (mounted) {
             final bId = _expectedBusinessId ?? result['business']?['id'] ?? '';
             final tId = finalResult?['transactionId'] ?? '';
-            print("⭐ Triggering Rating for Transaction: $tId at Business: $bId");
+            debugPrint("⭐ Triggering Rating for Transaction: $tId at Business: $bId");
             await _showRatingDialog(context, tId, bId);
          }
          if (mounted) context.pop(true);
@@ -332,17 +368,17 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                               rating,
                               commentController.text,
                             );
-                            if (mounted) Navigator.pop(context);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
                           } catch (e) {
-                            print("❌ Review Error: $e");
+                            debugPrint("❌ Review Error: $e");
                             setModalState(() => isSubmitting = false);
-                            if (mounted) {
-                               showCustomPopup(
-                                 context, 
-                                 message: e.toString(), 
-                                 type: PopupType.error
-                               );
-                            }
+                            if (!context.mounted) return;
+                             showCustomPopup(
+                               context, 
+                               message: e.toString(), 
+                               type: PopupType.error
+                             );
                           }
                         },
                         child: isSubmitting 
@@ -398,7 +434,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               final List<Barcode> barcodes = capture.barcodes;
               for (final barcode in barcodes) {
                 if (barcode.rawValue != null && !_isProcessing) {
-                  _handleScan(context, barcode.rawValue!);
+                  _handleScan(barcode.rawValue!);
                   break;
                 }
               }
@@ -630,7 +666,7 @@ class _ScannerOverlayPainter extends CustomPainter {
 
     // 1. Draw Semi-Transparent Overlay
     final Paint overlayPaint = Paint()
-      ..color = Colors.black.withOpacity(0.7)
+      ..color = Colors.black.withValues(alpha: 0.7)
       ..style = PaintingStyle.fill;
 
     final Path backgroundPath = Path()
@@ -659,14 +695,7 @@ class _ScannerOverlayPainter extends CustomPainter {
       ..strokeWidth = borderWidth
       ..strokeCap = StrokeCap.round;
 
-    final double arcSize = borderRadius; 
 
-    // Helper to draw corner
-    void drawCorner(double x, double y, double startAngle) {
-       final Path path = Path();
-       // e.g. For Top Left: Start at (left, top+len) -> line to (left, top+rad) -> arc to (left+rad, top) -> line to (left+len, top)
-       // Simplified approach: just draw arcs and lines manually
-    }
     
     // Top Left
     final Path topLeft = Path();

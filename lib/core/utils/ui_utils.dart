@@ -45,7 +45,6 @@ Future<void> showCustomPopup(
   }
 
   final theme = Theme.of(context);
-  final isDark = theme.brightness == Brightness.dark;
   
   Color primaryColor;
   IconData icon;
@@ -63,7 +62,6 @@ Future<void> showCustomPopup(
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('error');
       break;
     case PopupType.info:
-    default:
       primaryColor = Colors.blue;
       icon = Icons.info_rounded;
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('info');
@@ -74,7 +72,7 @@ Future<void> showCustomPopup(
     context: context,
     barrierDismissible: true,
     barrierLabel: '',
-    barrierColor: Colors.black.withOpacity(0.5),
+    barrierColor: Colors.black.withValues(alpha: 0.5),
     transitionDuration: const Duration(milliseconds: 300),
     pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
     transitionBuilder: (context, anim1, anim2, child) {
@@ -98,7 +96,7 @@ Future<void> showCustomPopup(
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: primaryColor.withOpacity(0.1),
+                        color: primaryColor.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(icon, color: primaryColor, size: 48),
@@ -117,7 +115,7 @@ Future<void> showCustomPopup(
                       cleanedMessage,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.outfit(
-                        color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                        color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                         fontSize: 14,
                       ),
                     ),

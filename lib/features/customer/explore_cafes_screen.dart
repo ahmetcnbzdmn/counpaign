@@ -51,7 +51,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     final district = business['district'] ?? '';
     final neighborhood = business['neighborhood'] ?? '';
     
-    List<String> parts = [];
+    final List<String> parts = [];
     if (neighborhood.isNotEmpty) parts.add(neighborhood);
     if (district.isNotEmpty) parts.add(district);
     if (city.isNotEmpty) parts.add(city);
@@ -99,11 +99,11 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.search_off_rounded, size: 80, color: textColor.withOpacity(0.2)),
+                  Icon(Icons.search_off_rounded, size: 80, color: textColor.withValues(alpha: 0.2)),
                   const SizedBox(height: 16),
                   Text(
                     lang.translate('no_cafes_yet'),
-                    style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 16),
+                    style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16),
                   ),
                 ],
               ),
@@ -213,10 +213,10 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: textColor.withOpacity(0.05)),
+        border: Border.all(color: textColor.withValues(alpha: 0.05)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -256,7 +256,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Icon(icon, color: color, size: 30),
@@ -280,7 +280,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                       Text(
                         _formatAddress(business),
                         style: GoogleFonts.outfit(
-                          color: textColor.withOpacity(0.5),
+                          color: textColor.withValues(alpha: 0.5),
                           fontSize: 13,
                         ),
                         maxLines: 1,
@@ -294,7 +294,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(Icons.add_rounded, color: color, size: 24),
@@ -349,10 +349,10 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
         decoration: BoxDecoration(
           color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: textColor.withOpacity(0.05)),
+          border: Border.all(color: textColor.withValues(alpha: 0.05)),
           boxShadow: [
              BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 3)
             )
@@ -367,7 +367,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 20),
@@ -384,7 +384,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                   const SizedBox(height: 2),
                   AutoText(
                     firm['category'] ?? lang.translate('general'),
-                    style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 11),
+                    style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 11),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

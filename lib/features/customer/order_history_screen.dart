@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/utils/ui_utils.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
@@ -122,7 +120,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           selectedColor: activeColor,
                           backgroundColor: cardColor,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          side: BorderSide(color: isSelected ? Colors.transparent : textColor.withOpacity(0.1)),
+                          side: BorderSide(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
                         ),
                       );
                     }).toList(),
@@ -135,11 +133,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.history_rounded, size: 64, color: textColor.withOpacity(0.2)),
+                              Icon(Icons.history_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
                               const SizedBox(height: 16),
                               Text(
                                 _transactions.isEmpty ? lang.translate('no_orders_yet') : lang.translate('no_orders_filter'),
-                                style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 16),
+                                style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16),
                               ),
                             ],
                           ),
@@ -160,7 +158,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             final dateUtc = DateTime.parse(rawDate);
                             final date = dateUtc.toLocal();
                             
-                            print("DD_DEBUG: Raw: ${tx['createdAt']} -> ParsedUTC: $dateUtc -> Local: $date");
+                            debugPrint("DD_DEBUG: Raw: ${tx['createdAt']} -> ParsedUTC: $dateUtc -> Local: $date");
                             
                             final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
         
@@ -227,14 +225,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                               decoration: BoxDecoration(
                                 color: cardColor,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: textColor.withOpacity(0.05)),
+                                border: Border.all(color: textColor.withValues(alpha: 0.05)),
                               ),
                               child: ListTile(
                                 contentPadding: const EdgeInsets.all(16),
                                 leading: Container(
                                   width: 50, height: 50,
                                   decoration: BoxDecoration(
-                                    color: color.withOpacity(0.1),
+                                    color: color.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(icon, color: color),
@@ -247,8 +245,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     const SizedBox(height: 4),
-                                    Text(title, style: GoogleFonts.outfit(color: textColor.withOpacity(0.7))),
-                                    Text(formattedDate, style: GoogleFonts.outfit(color: textColor.withOpacity(0.4), fontSize: 12)),
+                                    Text(title, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7))),
+                                    Text(formattedDate, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12)),
                                   ],
                                 ),
                                 trailing: Column(
@@ -263,7 +261,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.coffee_rounded, size: 12, color: Colors.amber),
+                                          const Icon(Icons.coffee_rounded, size: 12, color: Colors.amber),
                                           const SizedBox(width: 4),
                                           Text(
                                             "${tx['review']['rating']}/5",
@@ -278,9 +276,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                           margin: const EdgeInsets.only(top: 4),
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withOpacity(0.1),
+                                            color: Colors.amber.withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.amber.withOpacity(0.5)),
+                                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
                                           ),
                                           child: Text(
                                             lang.translate('rate_transaction'),
@@ -301,9 +299,9 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   void _showRatingDialog(BuildContext context, dynamic tx) {
-    int _rating = 0; // Start with 0 (unselected)
-    final _commentController = TextEditingController();
-    bool _isSubmitting = false;
+    int rating = 0; // Start with 0 (unselected)
+    final commentController = TextEditingController();
+    bool isSubmitting = false;
 
     // StatefulBuilder needed for icon state update
     showDialog(
@@ -326,14 +324,14 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                      mainAxisAlignment: MainAxisAlignment.center,
                      children: List.generate(5, (index) {
                        return GestureDetector(
-                         onTap: () => setState(() => _rating = index + 1),
+                         onTap: () => setState(() => rating = index + 1),
                          child: Padding(
                            padding: const EdgeInsets.all(4.0),
                            child: Icon(
                              Icons.coffee_rounded,
                              size: 32,
                              // If rating is 0, all gray. Otherwise, color up to rating.
-                             color: (_rating > 0 && index < _rating) ? Colors.amber : Colors.grey.withOpacity(0.3),
+                             color: (rating > 0 && index < rating) ? Colors.amber : Colors.grey.withValues(alpha: 0.3),
                            ),
                          ),
                        );
@@ -341,13 +339,13 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                    ),
                    const SizedBox(height: 20),
                    TextField(
-                     controller: _commentController,
+                     controller: commentController,
                      maxLength: 250,
                      maxLines: 3,
                      style: GoogleFonts.outfit(color: textColor),
                      decoration: InputDecoration(
                        hintText: lang.translate('comment_hint'),
-                       hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
+                       hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),
                        filled: true,
                        fillColor: theme.scaffoldBackgroundColor,
                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
@@ -358,19 +356,19 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(lang.translate('cancel'), style: GoogleFonts.outfit(color: textColor.withOpacity(0.5))),
+                  child: Text(lang.translate('cancel'), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5))),
                 ),
                 ElevatedButton(
                   // Disable if rating is 0 or submitting
-                  onPressed: (_isSubmitting || _rating == 0) ? null : () async {
-                    setState(() => _isSubmitting = true);
+                  onPressed: (isSubmitting || rating == 0) ? null : () async {
+                    setState(() => isSubmitting = true);
                     try {
                       final business = tx['business'] ?? {};
                       await context.read<ApiService>().submitReview(
                         tx['_id'], 
                         business['_id'] ?? business['id'], // Handle both populate and raw formats
-                        _rating, 
-                        _commentController.text
+                        rating, 
+                        commentController.text
                       );
                       if (context.mounted) {
                          Navigator.pop(context);
@@ -382,7 +380,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                           );
                        }
                      } catch (e) {
-                       setState(() => _isSubmitting = false);
+                       setState(() => isSubmitting = false);
+                       if (!context.mounted) return;
                         showCustomPopup(
                           context,
                           message: '$e',
@@ -392,10 +391,10 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                    },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.amber,
-                    disabledBackgroundColor: Colors.amber.withOpacity(0.3),
+                    disabledBackgroundColor: Colors.amber.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: _isSubmitting 
+                  child: isSubmitting 
                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                      : Text(lang.translate('send'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),

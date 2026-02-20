@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../../core/widgets/icons/takeaway_cup_icon.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -93,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEE2C2C).withOpacity(0.2), 
+                          color: const Color(0xFFEE2C2C).withValues(alpha: 0.2), 
                           blurRadius: 30,
                           offset: const Offset(0, 10),
                         )

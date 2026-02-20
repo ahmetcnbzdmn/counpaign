@@ -1,8 +1,5 @@
 import 'dart:convert';
-import 'dart:ui' as ui;
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -11,13 +8,9 @@ import '../../core/services/api_service.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/providers/campaign_provider.dart';
-import '../../core/widgets/campaign_slider.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/utils/ui_utils.dart';
 
 
-import '../../core/models/campaign_model.dart';
-import 'menu_screen.dart';
 import '../../features/customer/widgets/wallet_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -37,18 +30,23 @@ class _HomeScreenState extends State<HomeScreen> {
     
     // Fetch data using the provider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<BusinessProvider>().fetchMyFirms();
+      if (!mounted) return;
+      final bp = context.read<BusinessProvider>();
+      final cp = context.read<CampaignProvider>();
+      final api = context.read<ApiService>();
+
+      await bp.fetchMyFirms();
       // Fetch global data for counts
-      context.read<BusinessProvider>().fetchExploreFirms();
-      context.read<CampaignProvider>().fetchAllCampaigns();
+      bp.fetchExploreFirms();
+      cp.fetchAllCampaigns();
 
       if (mounted) {
-        final firms = context.read<BusinessProvider>().myFirms;
+        final firms = bp.myFirms;
         for (var firm in firms) {
-          context.read<CampaignProvider>().fetchCampaigns(firm['id']);
+          cp.fetchCampaigns(firm['id']);
         }
         // Fetch reviews to check for pending ones
-        context.read<ApiService>().getReviews();
+        api.getReviews();
       }
     });
   }
@@ -128,15 +126,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  IconData _parseCampaignIcon(String name) {
-    switch (name) {
-      case 'stars_rounded': return Icons.stars_rounded;
-      case 'local_cafe_rounded': return Icons.local_cafe_rounded;
-      case 'icecream': return Icons.icecream_rounded;
-      case 'local_offer_rounded': return Icons.local_offer_rounded;
-      default: return Icons.star_rounded;
-    }
-  }
 
   Widget _buildAddKafeCard(BuildContext context, {Key? key}) {
     final lang = Provider.of<LanguageProvider>(context);
@@ -150,12 +139,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Stack(
         children: [
           // Background Icon
-          Positioned(
+          const Positioned(
             right: -40,
             bottom: -40,
             child: Opacity(
               opacity: 0.1,
-              child: const Icon(
+              child: Icon(
                 Icons.add_circle_outline_rounded,
                 size: 200,
                 color: Colors.white,
@@ -169,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   width: 70,
                   height: 70,
-                  decoration: BoxDecoration(
+                  decoration: const BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.white, // White circle
                   ),
@@ -189,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   lang.translate('scan_or_enter_code'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontSize: 13,
                   ),
                 ),
@@ -241,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEE2C2C).withOpacity(0.1),
+                  color: const Color(0xFFEE2C2C).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.domain_disabled_rounded, color: Color(0xFFEE2C2C), size: 40),
@@ -262,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   fontSize: 14,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                 ),
               ),
               const SizedBox(height: 24),
@@ -310,14 +299,14 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFEE2C2C).withOpacity(0.5),
+                color: const Color(0xFFEE2C2C).withValues(alpha: 0.5),
                 blurRadius: 16,
                 spreadRadius: 2,
                 offset: const Offset(0, 6),
               ),
               // Inner highlight for 3D feel
               BoxShadow(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 blurRadius: 10,
                 offset: const Offset(-4, -4),
               ),
@@ -338,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen> {
             letterSpacing: 0.5,
             shadows: [
               Shadow(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
                 blurRadius: 4,
               )
             ]
@@ -353,7 +342,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final theme = Theme.of(context);
     // Dynamic Colors
     final Color bgColor = theme.scaffoldBackgroundColor;
-    final Color cardColor = theme.cardColor;
     final Color textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     const Color primaryBrand = Color(0xFFEE2C2C);
     
@@ -476,7 +464,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             page = _currentIndex.toDouble();
                           }
                           
-                          int activeIndex = page.round();
+                          final int activeIndex = page.round();
 
                           // [FIX] Hide actions if we are on the "Add Cafe" card (extra card at the end)
                           if (activeIndex >= firms.length) {
@@ -497,14 +485,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [currentColor, currentColor.withOpacity(0.9)],
+                                colors: [currentColor, currentColor.withValues(alpha: 0.9)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(24),
                               boxShadow: [
                                 BoxShadow(
-                                  color: currentColor.withOpacity(0.3),
+                                  color: currentColor.withValues(alpha: 0.3),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 )
@@ -537,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
                                         const SizedBox(height: 6),
                                         Text(
-                                          Provider.of<LanguageProvider>(context).translate('menu') ?? 'Menü', 
+                                          Provider.of<LanguageProvider>(context).translate('menu'), 
                                           style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)
                                         ),
                                       ],
@@ -549,7 +537,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Container(
                                   width: 1,
                                   height: 40,
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                 ),
                                 
                                     // Fırsatlar (Deals) Button
@@ -667,7 +655,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildBalanceCarousel(BuildContext context) {
     final firms = _getFirmBalances(context);
-    final allCampaigns = context.watch<CampaignProvider>().allCampaigns;
     final totalItems = firms.length + 1;
 
     return Column(
@@ -700,19 +687,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   final rotateY = pageOffset * 0.03;
                   final translateY = pageOffset.abs() * 12;
 
-                  return Transform(
-                    alignment: Alignment.center,
-                    transform: Matrix4.identity()
-                      ..setEntry(3, 2, 0.001) // perspective
-                      ..rotateY(rotateY)
-                      ..scale(scale)
-                      ..translate(0.0, translateY),
-                    child: child,
+                  return Transform.translate(
+                    offset: Offset(0, translateY),
+                    child: Transform.scale(
+                      scale: scale,
+                      child: Transform(
+                        alignment: Alignment.center,
+                        transform: Matrix4.identity()
+                          ..setEntry(3, 2, 0.001) // perspective
+                          ..rotateY(rotateY),
+                        child: child,
+                      ),
+                    ),
                   );
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                  child: _buildCardItem(context, index, firms, allCampaigns),
+                  child: _buildCardItem(context, index, firms),
                 ),
               );
             },
@@ -736,12 +727,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? (i < firms.length 
                         ? (firms[i]['color'] as Color)
                         : Colors.grey)
-                    : Colors.grey.withOpacity(0.25),
+                    : Colors.grey.withValues(alpha: 0.25),
                 boxShadow: _currentIndex == i ? [
                   BoxShadow(
                     color: (i < firms.length 
                         ? (firms[i]['color'] as Color)
-                        : Colors.grey).withOpacity(0.4),
+                        : Colors.grey).withValues(alpha: 0.4),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -754,8 +745,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCardItem(BuildContext context, int index, List<Map<String, dynamic>> firms, List<CampaignModel> allCampaigns) {
-    // Add Cafe Card (Last Item)
+  Widget _buildCardItem(BuildContext context, int index, List<Map<String, dynamic>> firms) {
     if (index == firms.length) {
       return GestureDetector(
         onTap: () async {
@@ -769,8 +759,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final firm = firms[index];
-    final firmCampaigns = allCampaigns.where((c) => c.businessId == firm['id']).toList();
-    final activeCampaign = firmCampaigns.isNotEmpty ? firmCampaigns.first : null;
 
     final user = context.read<AuthProvider>().currentUser;
     final cardHolder = user?.name ?? 'MÜŞTERİ';
@@ -806,288 +794,14 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSingleBusinessCard(
-    BuildContext context, {
-    required String name,
-    required String points,
-    required String value,
-    required Color color,
-    required IconData icon,
-    required int stamps,
-    required int stampsTarget,
-    required int giftsCount,
-    required String? firmId,
-    required String? logo,
-    CampaignModel? activeCampaign,
-    Key? key,
-  }) {
-    // Screenshot Replica v4: Balanced Cup & Blue Icon Banner
-    return Container(
-      key: key,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24), 
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.9), color], 
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          stops: const [0.2, 0.9],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // 1. Background Texture
-           Positioned(
-            right: -50,
-            bottom: -50,
-            child: Opacity(
-              opacity: 0.1,
-              child: Icon(
-                icon,
-                size: 180, 
-                color: Colors.white,
-              ),
-            ),
-          ),
 
-          // 2. The Balanced Cup (Right & Up)
-          Positioned(
-            right: 10,
-            bottom: 12, // Moved UP as requested
-            width: 140, 
-            height: 160, 
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // 3D Cup
-                Transform.translate(
-                  offset: const Offset(0, 10),
-                  child: _Rotating3DCup(
-                    color: Colors.white,
-                    size: 150, // Reduced from 180 (Balanced)
-                    stamps: stamps,
-                    target: stampsTarget,
-                  ),
-                ),
-                // Gift Count
-                // Gift Count (always visible)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10), 
-                    child: Text(
-                      "$giftsCount",
-                      style: GoogleFonts.outfit(
-                        color: Colors.white,
-                        fontSize: 46, // Reduced from 56
-                        fontWeight: FontWeight.w900,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4)
-                          )
-                        ]
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          
-          // 3. Left Content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 12.0, 140.0, 12.0), 
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween, 
-              children: [
-                // [TOP] Firm Name
-                Text(
-                  name.toUpperCase(),
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18, 
-                    letterSpacing: 1.0,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                // [BOTTOM LEFT] Info Block
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Points Header
-                    Text(
-                      Provider.of<LanguageProvider>(context).translate('my_points'), 
-                      style: GoogleFonts.outfit(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 10, 
-                        fontWeight: FontWeight.w600
-                      ),
-                    ),
-                    // Points Value
-                    Row(
-                      children: [
-                        const Icon(Icons.stars_rounded, color: Colors.white, size: 20),
-                        const SizedBox(width: 4),
-                        Text(
-                          points,
-                          style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 28, 
-                            fontWeight: FontWeight.bold
-                          ),
-                        ),
-                      ],
-                    ),
-                    
-                    const SizedBox(height: 4), 
-                    
-                    // Stamps
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(
-                            text: "Stamps  ", 
-                            style: GoogleFonts.outfit(
-                              color: Colors.white.withOpacity(0.9),
-                              fontSize: 10, 
-                              fontWeight: FontWeight.w600
-                            ),
-                          ),
-                          TextSpan(
-                            text: "$stamps", 
-                            style: GoogleFonts.outfit(
-                              color: Colors.white,
-                              fontSize: 18, 
-                              fontWeight: FontWeight.bold
-                            ),
-                          ),
-                          TextSpan(
-                            text: "/$stampsTarget", 
-                            style: GoogleFonts.outfit(
-                              color: Colors.white.withOpacity(0.8),
-                              fontSize: 12, 
-                              fontWeight: FontWeight.w600
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 4),
-                    
-                    // Progress Bar
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: LinearProgressIndicator(
-                        value: (stamps / stampsTarget).clamp(0.0, 1.0),
-                        backgroundColor: Colors.black.withOpacity(0.2), 
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.white), 
-                        minHeight: 8,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-
-                    // [CAMPAIGN BANNER]
-                    if (activeCampaign != null)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.25), 
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.star_rounded, color: Colors.blueAccent, size: 12), // BLUE ICON
-                            ),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    activeCampaign.title,
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 10,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    Provider.of<LanguageProvider>(context).translate('tap_to_view'),
-                                    style: GoogleFonts.outfit(
-                                      color: Colors.white.withOpacity(0.8),
-                                      fontSize: 8,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      const SizedBox(height: 0),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
 
   
 
 
 
-  Widget _buildActionItem(BuildContext context, IconData icon, String label, {VoidCallback? onTap}) {
-    final theme = Theme.of(context);
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: cardColor, // Lighter dark
-              shape: BoxShape.circle,
-              border: Border.all(color: textColor.withOpacity(0.05)),
-            ),
-            child: Icon(icon, color: textColor, size: 26),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 12)),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildBentoCard(BuildContext context, { 
     required Color color, 
@@ -1095,7 +809,6 @@ class _HomeScreenState extends State<HomeScreen> {
     required String subtitle, 
     required IconData icon, 
     bool isHorizontal = false,
-    bool isSmall = false,
     VoidCallback? onTap,
   }) {
     // Premium Design: Gradient + Background Icon + Shadow
@@ -1105,13 +818,13 @@ class _HomeScreenState extends State<HomeScreen> {
         decoration: BoxDecoration(
            borderRadius: BorderRadius.circular(24),
            gradient: LinearGradient(
-             colors: [color, color.withOpacity(0.8)],
+             colors: [color, color.withValues(alpha: 0.8)],
              begin: Alignment.topLeft,
              end: Alignment.bottomRight,
            ),
            boxShadow: [
              BoxShadow(
-               color: color.withOpacity(0.35),
+               color: color.withValues(alpha: 0.35),
                blurRadius: 15,
                offset: const Offset(0, 8),
              )
@@ -1130,7 +843,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: Icon(
                     icon,
                     size: 100,
-                    color: Colors.white.withOpacity(0.15),
+                    color: Colors.white.withValues(alpha: 0.15),
                   ),
                 ),
               ),
@@ -1148,7 +861,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           children: [
                             Text(
                               subtitle, 
-                              style: GoogleFonts.outfit(color: Colors.white.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.w500)
+                              style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.w500)
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -1161,9 +874,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
                           ),
                           child: Icon(icon, color: Colors.white, size: 28),
                         ),
@@ -1177,9 +890,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2), // Frosted glass effect
+                            color: Colors.white.withValues(alpha: 0.2), // Frosted glass effect
                             shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
                           ),
                           child: Icon(icon, color: Colors.white, size: 24),
                         ),
@@ -1200,7 +913,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Text(
                               subtitle,
                               style: GoogleFonts.outfit(
-                                color: Colors.white.withOpacity(0.85),
+                                color: Colors.white.withValues(alpha: 0.85),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -1218,152 +931,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
 
-  void _showDealsModal(BuildContext context, String firmId, String firmName) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).cardColor,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (context, scrollController) {
-            return FutureBuilder<List<dynamic>>(
-              future: context.read<ApiService>().getCampaignsByBusiness(firmId),
-              builder: (context, snapshot) {
-                final campaigns = snapshot.data ?? [];
-                
-                return Column(
-                  children: [
-                    // Header
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40, height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                      child: Row(
-                        children: [
-                          Icon(Icons.local_offer_rounded, color: Theme.of(context).primaryColor),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              '$firmName Fırsatları',
-                              style: GoogleFonts.outfit(
-                                fontSize: 20, 
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).textTheme.bodyLarge?.color
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ],
-                      ),
-                    ),
-                    
-                    if (snapshot.connectionState == ConnectionState.waiting)
-                      const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (snapshot.hasError)
-                      Padding(
-                         padding: const EdgeInsets.all(32),
-                         child: Center(child: Text('Hata oluştu: ${snapshot.error}')),
-                       )
-                    else if (campaigns.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          children: [
-                            Icon(Icons.campaign_outlined, size: 48, color: Colors.grey.withOpacity(0.5)),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Henüz aktif kampanya yok.',
-                              style: GoogleFonts.outfit(fontSize: 16, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      )
-                    else
-                      Expanded(
-                        child: ListView.separated(
-                          controller: scrollController,
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                          itemCount: campaigns.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final campaign = campaigns[index];
-                            return Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).scaffoldBackgroundColor,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48, height: 48,
-                                    decoration: BoxDecoration(
-                                      color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      Icons.local_offer_rounded,
-                                      color: Theme.of(context).primaryColor,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          campaign['title'] ?? '',
-                                          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          campaign['shortDescription'] ?? '',
-                                          style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
+
 }
 
 class HomeHeader extends StatelessWidget {
@@ -1415,7 +983,7 @@ class HomeHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(greeting, style: TextStyle(color: textColor.withOpacity(0.6), fontSize: 14)),
+              Text(greeting, style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 14)),
               Text(name, 
                 style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
                 overflow: TextOverflow.ellipsis,
@@ -1451,7 +1019,6 @@ class _Rotating3DCup extends StatefulWidget {
   final int target;
 
   const _Rotating3DCup({
-    super.key, 
     required this.size, 
     required this.color,
     required this.stamps,
@@ -1496,61 +1063,6 @@ class _Rotating3DCupState extends State<_Rotating3DCup> {
   }
 }
 
-// Stitching line painter for the leather card holder effect
-class _StitchPainter extends CustomPainter {
-  final Color color;
-  _StitchPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round;
-
-    const dashWidth = 6.0;
-    const dashSpace = 4.0;
-    double x = 0;
-    while (x < size.width) {
-      canvas.drawLine(
-        Offset(x, size.height / 2),
-        Offset((x + dashWidth).clamp(0, size.width), size.height / 2),
-        paint,
-      );
-      x += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// Card slot lines painter for the leather card holder effect
-class _SlotPainter extends CustomPainter {
-  final Color slotColor;
-  _SlotPainter({required this.slotColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = slotColor
-      ..strokeWidth = 1.0;
-
-    // Draw 3 horizontal slot lines across the holder
-    const slots = [0.28, 0.52, 0.76];
-    for (final ratio in slots) {
-      final y = size.height * ratio;
-      canvas.drawLine(
-        Offset(20, y),
-        Offset(size.width - 20, y),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 // Custom Docked Location for FAB (Low Profile)
 class CustomBottomFabLocation extends FloatingActionButtonLocation {

@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
 
@@ -50,7 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       try {
         _profileImageBytes = base64Decode(user!.profileImage!);
       } catch (e) {
-        print("Error decoding initial profile image: $e");
+        debugPrint("Error decoding initial profile image: $e");
       }
     }
   }
@@ -85,7 +82,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
           activeControlsWidgetColor: const Color(0xFFEE2C2C),
-          dimmedLayerColor: Colors.black.withOpacity(0.8),
+          dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
         ),
         IOSUiSettings(
           title: 'Fotoğrafı Kırp',
@@ -138,7 +135,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                      Container(
                        padding: const EdgeInsets.all(16),
                        decoration: BoxDecoration(
-                         color: Colors.green.withOpacity(0.1),
+                         color: Colors.green.withValues(alpha: 0.1),
                          shape: BoxShape.circle,
                        ),
                        child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
@@ -178,11 +175,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
            );
         }
        } catch (e) {
-         showCustomPopup(
-           context,
-           message: e.toString(),
-           type: PopupType.error,
-         );
+         if (mounted) {
+           showCustomPopup(
+             context,
+             message: e.toString(),
+             type: PopupType.error,
+           );
+         }
        }
      }
    }
@@ -190,7 +189,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     final cardColor = theme.cardColor;
     const primaryBrand = Color(0xFFEE2C2C);
@@ -276,7 +274,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 readOnly: context.read<AuthProvider>().currentUser?.isVerified ?? false,
                 style: TextStyle(
                   color: (context.read<AuthProvider>().currentUser?.isVerified ?? false) 
-                      ? textColor.withOpacity(0.7) 
+                      ? textColor.withValues(alpha: 0.7) 
                       : textColor, 
                   fontWeight: FontWeight.bold
                 ),
@@ -296,12 +294,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 decoration: InputDecoration(
                   labelText: lang.translate('phone_number'),
                   counterText: "",
-                  labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
-                  prefixIcon: Icon(Icons.phone_iphone_rounded, color: textColor.withOpacity(0.54)),
+                  labelStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
+                  prefixIcon: Icon(Icons.phone_iphone_rounded, color: textColor.withValues(alpha: 0.54)),
                   prefixText: "+90 ", 
                   prefixStyle: TextStyle(
                     color: (context.read<AuthProvider>().currentUser?.isVerified ?? false) 
-                      ? textColor.withOpacity(0.7) 
+                      ? textColor.withValues(alpha: 0.7) 
                       : textColor,
                     fontWeight: FontWeight.bold
                   ),
@@ -309,7 +307,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     ? Container(
                         margin: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
@@ -318,12 +316,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         margin: const EdgeInsets.all(8),
                         width: 20,
                         alignment: Alignment.center,
-                        child: Icon(Icons.info_outline_rounded, color: Colors.orange.withOpacity(0.7), size: 20),
+                        child: Icon(Icons.info_outline_rounded, color: Colors.orange.withValues(alpha: 0.7), size: 20),
                       ),
                   filled: true,
                   // Dim if read-only
                   fillColor: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
-                      ? cardColor.withOpacity(0.5) 
+                      ? cardColor.withValues(alpha: 0.5) 
                       : cardColor,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   helperText: (context.read<AuthProvider>().currentUser?.isVerified ?? false)
@@ -382,8 +380,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       validator: (val) => val == null || val.isEmpty ? lang.translate('fill_all_fields') : null,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
-        prefixIcon: Icon(icon, color: textColor.withOpacity(0.54)),
+        labelStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
+        prefixIcon: Icon(icon, color: textColor.withValues(alpha: 0.54)),
         filled: true,
         fillColor: cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -402,13 +400,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         canvasColor: cardColor,
       ),
       child: DropdownButtonFormField<String>(
-        value: _selectedGender,
+        initialValue: _selectedGender,
         style: TextStyle(color: textColor),
         borderRadius: BorderRadius.circular(20), 
         decoration: InputDecoration(
           labelText: lang.translate('gender'),
-          labelStyle: TextStyle(color: textColor.withOpacity(0.6)),
-          prefixIcon: Icon(Icons.wc, color: textColor.withOpacity(0.54)),
+          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.6)),
+          prefixIcon: Icon(Icons.wc, color: textColor.withValues(alpha: 0.54)),
           filled: true,
           fillColor: cardColor,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
@@ -438,15 +436,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         controller: TextEditingController(
           text: _selectedBirthDate == null ? "" : DateFormat('dd.MM.yyyy').format(_selectedBirthDate!)
         ),
-        style: TextStyle(color: textColor.withOpacity(0.5)), // Dimmed text
+        style: TextStyle(color: textColor.withValues(alpha: 0.5)), // Dimmed text
         decoration: InputDecoration(
           labelText: lang.translate('birth_date'),
-          labelStyle: TextStyle(color: textColor.withOpacity(0.4)),
-          prefixIcon: Icon(Icons.calendar_today, color: textColor.withOpacity(0.3)), // Dimmed icon
+          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
+          prefixIcon: Icon(Icons.calendar_today, color: textColor.withValues(alpha: 0.3)), // Dimmed icon
           filled: true,
-          fillColor: cardColor.withOpacity(0.5), // Dimmed background
+          fillColor: cardColor.withValues(alpha: 0.5), // Dimmed background
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-          suffixIcon: Icon(Icons.lock_outline, color: textColor.withOpacity(0.3)), // Lock icon instead of arrow
+          suffixIcon: Icon(Icons.lock_outline, color: textColor.withValues(alpha: 0.3)), // Lock icon instead of arrow
         ),
       ),
     );

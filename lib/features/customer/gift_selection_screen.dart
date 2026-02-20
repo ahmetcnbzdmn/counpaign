@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/providers/business_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/auto_text.dart';
 import 'scanner_screen.dart';
@@ -67,23 +66,15 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
         _isLoading = false;
       });
     } catch (e) {
-      print("Error fetching gifts: $e");
+      debugPrint("Error fetching gifts: $e");
       setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _cancelCode(String? code) async {
-    if (code == null) return;
-    try {
-        await context.read<ApiService>().cancelRedemption(code);
-        print("Explicit cancel for code: $code");
-    } catch (e) {
-        print("Cancel failed (might already be used): $e");
-    }
-  }
 
   Future<void> _redeemGift(dynamic gift) async {
     final lang = Provider.of<LanguageProvider>(context, listen: false);
+    final api = context.read<ApiService>();
     
     // 1. Confirmation Dialog
     final confirm = await showDialog<bool>(
@@ -119,7 +110,6 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     setState(() => _redeemingGiftId = gift['_id']);
 
     try {
-      final api = context.read<ApiService>();
       await api.prepareRedemption(widget.businessId, gift['_id']);
       
       // 3. Open QR Scanner to scan business's static QR
@@ -159,6 +149,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
 
   Future<void> _redeemGiftEntitlement() async {
     final lang = Provider.of<LanguageProvider>(context, listen: false);
+    final api = context.read<ApiService>();
 
     // 1. Confirm Entitlement Usage
     final confirm = await showDialog<bool>(
@@ -189,7 +180,6 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
 
     // 2. Prepare Redemption & Open Scanner
     try {
-      final api = context.read<ApiService>();
       await api.prepareRedemption(widget.businessId, "", type: 'GIFT_ENTITLEMENT');
 
       // 3. Open QR Scanner to scan business's static QR
@@ -223,10 +213,9 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final lang = Provider.of<LanguageProvider>(context);
     final int giftsCount = widget.currentGifts;
-    bool isTr = lang.locale.languageCode == 'tr';
+    final bool isTr = lang.locale.languageCode == 'tr';
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA), // Clean off-white background
@@ -251,7 +240,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                 color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0,2))
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0,2))
                 ]
               ),
               child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1A1A1A), size: 20),
@@ -284,7 +273,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                       top: 10,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
@@ -316,9 +305,9 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.white.withOpacity(0.0),
-                                        Colors.white.withOpacity(0.1),
-                                        Colors.white.withOpacity(0.0),
+                                        Colors.white.withValues(alpha: 0.0),
+                                        Colors.white.withValues(alpha: 0.1),
+                                        Colors.white.withValues(alpha: 0.0),
                                       ],
                                       stops: const [0.3, 0.5, 0.7],
                                       begin: Alignment(-2.0 + (_animation.value / 10 * 4), -1.0),
@@ -340,7 +329,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                     Text(
                                       widget.businessName.toUpperCase(),
                                       style: GoogleFonts.outfit(
-                                        color: Colors.white.withOpacity(0.7),
+                                        color: Colors.white.withValues(alpha: 0.7),
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
                                         letterSpacing: 2.0,
@@ -350,7 +339,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                     Text(
                                       isTr ? "KULLANIMA UYGUNDUR" : "VALID FOR REDEMPTION",
                                       style: GoogleFonts.outfit(
-                                        color: Colors.white.withOpacity(0.4),
+                                        color: Colors.white.withValues(alpha: 0.4),
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
                                         letterSpacing: 1.0,
@@ -393,7 +382,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                       style: GoogleFonts.outfit(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.white.withOpacity(0.8),
+                                        color: Colors.white.withValues(alpha: 0.8),
                                         letterSpacing: 4.0,
                                       ),
                                     ),
@@ -411,7 +400,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                     Text(
                                       lang.translate('spendable_amount'),
                                       style: GoogleFonts.outfit(
-                                        color: Colors.white.withOpacity(0.5),
+                                        color: Colors.white.withValues(alpha: 0.5),
                                         fontSize: 10,
                                       ),
                                     ),
@@ -448,7 +437,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFFFF8F00).withOpacity(0.3),
+                                color: const Color(0xFFFF8F00).withValues(alpha: 0.3),
                                 blurRadius: 16,
                                 offset: const Offset(0, 8),
                               ),
@@ -463,7 +452,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                 children: [
                                   Positioned(
                                     right: -10, bottom: -10,
-                                    child: Icon(Icons.card_giftcard, size: 100, color: Colors.white.withOpacity(0.15)),
+                                    child: Icon(Icons.card_giftcard, size: 100, color: Colors.white.withValues(alpha: 0.15)),
                                   ),
                                   Padding(
                                     padding: const EdgeInsets.all(24),
@@ -475,7 +464,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                             color: Colors.white,
                                             shape: BoxShape.circle,
                                             boxShadow: [
-                                              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0,2)),
+                                              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0,2)),
                                             ],
                                           ),
                                           child: const Icon(Icons.celebration_rounded, color: Color(0xFFFF8F00), size: 28),
@@ -491,7 +480,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
                                                   color: Colors.white,
-                                                  shadows: [Shadow(color: Colors.black.withOpacity(0.1), blurRadius: 2)],
+                                                  shadows: [Shadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 2)],
                                                 ),
                                               ),
                                               const SizedBox(height: 4),
@@ -499,7 +488,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                                 "$giftsCount ${lang.translate('gift_entitlement_subtitle')}",
                                                 style: GoogleFonts.outfit(
                                                   fontSize: 14,
-                                                  color: Colors.white.withOpacity(0.9),
+                                                  color: Colors.white.withValues(alpha: 0.9),
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
@@ -509,7 +498,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.2),
+                                            color: Colors.white.withValues(alpha: 0.2),
                                             shape: BoxShape.circle,
                                           ),
                                           child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
@@ -530,7 +519,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                           child: Center(
                             child: Column(
                               children: [
-                                Icon(Icons.redeem_rounded, size: 64, color: Colors.grey.withOpacity(0.2)),
+                                Icon(Icons.redeem_rounded, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
                                 const SizedBox(height: 16),
                                 Text(
                                   lang.translate('no_gifts_yet'),
@@ -567,7 +556,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                             borderRadius: BorderRadius.circular(24),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04), // Softer shadow
+                                color: Colors.black.withValues(alpha: 0.04), // Softer shadow
                                 blurRadius: 16,
                                 offset: const Offset(0, 6),
                               ),
@@ -578,8 +567,8 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                             child: InkWell(
                               onTap: (canAfford && !isRedeeming) ? () => _redeemGift(gift) : null,
                               borderRadius: BorderRadius.circular(24),
-                              splashColor: const Color(0xFFD32F2F).withOpacity(0.05),
-                              highlightColor: const Color(0xFFD32F2F).withOpacity(0.02),
+                              splashColor: const Color(0xFFD32F2F).withValues(alpha: 0.05),
+                              highlightColor: const Color(0xFFD32F2F).withValues(alpha: 0.02),
                               child: Padding(
                                 padding: const EdgeInsets.all(20),
                                 child: Row(
@@ -649,14 +638,14 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                           color: const Color(0xFFD32F2F),
                                           shape: BoxShape.circle,
                                           boxShadow: [
-                                            BoxShadow(color: const Color(0xFFD32F2F).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))
+                                            BoxShadow(color: const Color(0xFFD32F2F).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))
                                           ]
                                         ),
                                         child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
                                       )
                                     else
                                       // Locked/Disabled State
-                                      Icon(Icons.lock_rounded, color: Colors.grey.withOpacity(0.3), size: 20),
+                                      Icon(Icons.lock_rounded, color: Colors.grey.withValues(alpha: 0.3), size: 20),
                                   ],
                                 ),
                               ),
@@ -679,7 +668,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
 class _TicketClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    Path path = Path();
+    final Path path = Path();
     
     // Perforation radius and count
     const double perfRadius = 4.0;
@@ -721,7 +710,7 @@ class _DashedLinePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     double dashWidth = 9, dashSpace = 5, startX = 0;
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.3)
+      ..color = Colors.white.withValues(alpha: 0.3)
       ..strokeWidth = 1;
       
     while (startX < size.width) {
@@ -737,7 +726,7 @@ class _DashedLinePainter extends CustomPainter {
 class _BarcodePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withOpacity(0.5);
+    final paint = Paint()..color = Colors.white.withValues(alpha: 0.5);
     final random = Random(42); // Fixed seed for consistent look
     
     double x = 0;

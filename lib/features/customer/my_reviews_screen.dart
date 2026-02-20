@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/utils/ui_utils.dart';
 
 class MyReviewsScreen extends StatefulWidget {
@@ -101,7 +99,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
           bottom: TabBar(
             indicatorColor: activeColor,
             labelColor: activeColor,
-            unselectedLabelColor: textColor.withOpacity(0.5),
+            unselectedLabelColor: textColor.withValues(alpha: 0.5),
             labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
             tabs: [
               Tab(text: lang.translate('rated_tab')),
@@ -146,7 +144,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   selectedColor: const Color(0xFFEE2C2C),
                   backgroundColor: cardColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  side: BorderSide(color: isSelected ? Colors.transparent : textColor.withOpacity(0.1)),
+                  side: BorderSide(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
                 ),
               );
             }).toList(),
@@ -176,7 +174,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: textColor.withOpacity(0.05)),
+                        border: Border.all(color: textColor.withValues(alpha: 0.05)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +185,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                                 width: 40, height: 40,
                                 margin: const EdgeInsets.only(right: 12),
                                 decoration: BoxDecoration(
-                                  color: color.withOpacity(0.1),
+                                  color: color.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(Icons.store_rounded, color: color, size: 20),
@@ -202,7 +200,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                                     ),
                                     Text(
                                       formattedDate,
-                                      style: GoogleFonts.outfit(color: textColor.withOpacity(0.4), fontSize: 12),
+                                      style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12),
                                     ),
                                   ],
                                 ),
@@ -212,7 +210,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                                   return Icon(
                                     Icons.coffee_rounded,
                                     size: 16,
-                                    color: (starIndex < rating) ? Colors.amber : Colors.grey.withOpacity(0.2),
+                                    color: (starIndex < rating) ? Colors.amber : Colors.grey.withValues(alpha: 0.2),
                                   );
                                 }),
                               )
@@ -224,12 +222,12 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: textColor.withOpacity(0.03),
+                                color: textColor.withValues(alpha: 0.03),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
                                 comment,
-                                style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 14),
+                                style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 14),
                               ),
                             ),
                           ]
@@ -265,14 +263,14 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                 decoration: BoxDecoration(
                   color: cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: textColor.withOpacity(0.05)),
+                  border: Border.all(color: textColor.withValues(alpha: 0.05)),
                 ),
                 child: Row(
                   children: [
                     Container(
                       width: 50, height: 50,
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.1),
+                        color: color.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(Icons.history_rounded, color: color, size: 24),
@@ -288,7 +286,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                           ),
                           Text(
                             formattedDate,
-                            style: GoogleFonts.outfit(color: textColor.withOpacity(0.4), fontSize: 12),
+                            style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12),
                           ),
                         ],
                       ),
@@ -316,11 +314,11 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.star_outline_rounded, size: 64, color: textColor.withOpacity(0.2)),
+          Icon(Icons.star_outline_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
           const SizedBox(height: 16),
           Text(
             lang.translate(key),
-            style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 16),
+            style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16),
           ),
         ],
       ),
@@ -400,14 +398,14 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                       try {
                         final api = context.read<ApiService>();
                         await api.submitReview(transactionId, businessId, rating, commentController.text);
-                        if (mounted) {
-                          Navigator.pop(context);
-                          _fetchReviews(); // Refresh lists
-                          showCustomPopup(context, message: Provider.of<LanguageProvider>(context, listen: false).translate('success_review'), type: PopupType.success);
-                        }
+                        if (!context.mounted) return;
+                        Navigator.pop(context);
+                        _fetchReviews(); // Refresh lists
+                        showCustomPopup(context, message: Provider.of<LanguageProvider>(context, listen: false).translate('success_review'), type: PopupType.success);
                       } catch (e) {
                          setModalState(() => isSubmitting = false);
-                         if (mounted) showCustomPopup(context, message: e.toString(), type: PopupType.error);
+                         if (!context.mounted) return;
+                         showCustomPopup(context, message: e.toString(), type: PopupType.error);
                       }
                     },
                     child: isSubmitting 

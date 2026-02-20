@@ -1,9 +1,7 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import '../../core/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
@@ -53,7 +51,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final city = data['city'] ?? '';
     final district = data['district'] ?? '';
     final neighborhood = data['neighborhood'] ?? '';
-    List<String> parts = [];
+    final List<String> parts = [];
     if (neighborhood.toString().isNotEmpty) parts.add(neighborhood.toString());
     if (district.toString().isNotEmpty) parts.add(district.toString());
     if (city.toString().isNotEmpty) parts.add(city.toString());
@@ -81,7 +79,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             _points = (updatedData['points'] ?? _points).toString();
         });
       } catch (e) {
-          print("Error refreshing business data: $e");
+          debugPrint("Error refreshing business data: $e");
       }
   }
 
@@ -217,7 +215,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: color.withOpacity(0.1),
+                                color: color.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -267,8 +265,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Widget build(BuildContext context) {
     final data = widget.businessData;
     final String name = data['name'] ?? 'İşletme';
-    final String value = data['value'] ?? '0.00'; 
-    dynamic rawColor = data['color'];
+    final dynamic rawColor = data['color'];
     Color brandColor;
     if (rawColor is Color) {
       brandColor = rawColor;
@@ -334,8 +331,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             ),
             centerTitle: false,
             titleSpacing: 0,
-            actions: [
-               const SizedBox(width: 48),
+            actions: const [
+               SizedBox(width: 48),
             ],
             flexibleSpace: FlexibleSpaceBar(
               stretchModes: const [StretchMode.zoomBackground],
@@ -392,7 +389,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     () {
                                       final raw = data['logo'] ?? data['image'];
                                       final resolved = resolveImageUrl(raw);
-                                      print("🖼️ LOGO DEBUG: Raw: $raw | Resolved: $resolved");
+                                      debugPrint("🖼️ LOGO DEBUG: Raw: $raw | Resolved: $resolved");
                                       return resolved ?? 'https://placehold.co/100.png';
                                     }()
                                   ),
@@ -430,7 +427,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                     child: CircularProgressIndicator(
                                       value: _stamps / _stampsTarget,
                                       color: const Color(0xFFFFD54F),
-                                      backgroundColor: Colors.white.withOpacity(0.1),
+                                      backgroundColor: Colors.white.withValues(alpha: 0.1),
                                       strokeWidth: 4,
                                     ),
                                   ),
@@ -522,7 +519,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   if (_address != null) ...[
                     Row(
                       children: [
-                        Icon(Icons.location_on_rounded, size: 16, color: brandColor.withOpacity(0.7)),
+                        Icon(Icons.location_on_rounded, size: 16, color: brandColor.withValues(alpha: 0.7)),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -687,7 +684,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           if (_isNew)
             Positioned.fill(
               child: Container(
-                color: Colors.grey.withOpacity(0.2), // Light grey overlay
+                color: Colors.grey.withValues(alpha: 0.2), // Light grey overlay
               ),
             ),
           // [FIX] Active Back Button even when locked
@@ -713,7 +710,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
+                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))
               ],
             ),
             child: ElevatedButton(
@@ -763,35 +760,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     }
   }
 
-  Widget _buildQuickAction(IconData icon, String label, Color color) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 8),
-            Text(label, style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildCampaignCard(CampaignModel campaign, Color color) {
-    final lang = context.read<LanguageProvider>();
     return GestureDetector(
       onTap: () => context.push('/campaign-detail', extra: campaign),
       child: Container(
@@ -801,7 +771,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -817,7 +787,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   child: Image.network(
                     resolveImageUrl(campaign.headerImage)!,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(color: color.withOpacity(0.1)),
+                    errorBuilder: (context, error, stackTrace) => Container(color: color.withValues(alpha: 0.1)),
                   ),
                 ),
               
@@ -827,8 +797,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        Colors.black.withOpacity(0.8),
-                        Colors.black.withOpacity(0.2),
+                        Colors.black.withValues(alpha: 0.8),
+                        Colors.black.withValues(alpha: 0.2),
                       ],
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
@@ -846,7 +816,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: color.withOpacity(0.8),
+                        color: color.withValues(alpha: 0.8),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(

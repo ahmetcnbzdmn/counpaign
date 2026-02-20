@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/providers/business_provider.dart';
 
 import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
-import 'dart:convert';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
 
@@ -29,8 +27,7 @@ class CampaignsScreen extends StatefulWidget {
 class _CampaignsScreenState extends State<CampaignsScreen> {
   final TextEditingController _searchController = TextEditingController();
   
-  // Tabs
-  final List<String> _tabs = ["Tümü", "Cüzdandakiler", "Diğerleri"];
+
   int _selectedTabIndex = 0;
 
   bool get _isFiltered => widget.firmId != null;
@@ -91,7 +88,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                          },
                        ),
                        Text(
-                         _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : "${lang.translate('deals')}", 
+                         _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : lang.translate('deals'), 
                          style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)
                        ),
                      ],
@@ -109,8 +106,8 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 style: GoogleFonts.outfit(color: textColor),
                 decoration: InputDecoration(
                   hintText: lang.translate('search_deal_venue'),
-                  hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
-                  prefixIcon: Icon(Icons.search_rounded, color: textColor.withOpacity(0.5)),
+                  hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),
+                  prefixIcon: Icon(Icons.search_rounded, color: textColor.withValues(alpha: 0.5)),
                   filled: true,
                   fillColor: cardColor,
                   border: OutlineInputBorder(
@@ -142,12 +139,12 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       decoration: BoxDecoration(
                         color: isSelected ? primaryBrand : cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isSelected ? primaryBrand : textColor.withOpacity(0.1)),
+                        border: Border.all(color: isSelected ? primaryBrand : textColor.withValues(alpha: 0.1)),
                       ),
                       child: Text(
                         lang.translate(sectionKeys[index]),
                         style: TextStyle(
-                          color: isSelected ? Colors.white : textColor.withOpacity(0.6),
+                          color: isSelected ? Colors.white : textColor.withValues(alpha: 0.6),
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -218,13 +215,13 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off_rounded, size: 64, color: textColor.withOpacity(0.2)),
+                          Icon(Icons.search_off_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
                           const SizedBox(height: 16),
                           Text(
                             _isFiltered 
                                 ? "${widget.firmName ?? 'Bu kafe'} ${lang.translate('no_active_deals_firm')}"
                                 : lang.translate('no_deals_found'), 
-                            style: GoogleFonts.outfit(color: textColor.withOpacity(0.4))
+                            style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4))
                           ),
                         ],
                       ),
@@ -274,7 +271,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, 10)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10)),
           ],
         ),
         child: ClipRRect(
@@ -305,8 +302,8 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       end: Alignment.bottomCenter,
                       colors: [
                         Colors.transparent,
-                        Colors.black.withOpacity(0.3),
-                        Colors.black.withOpacity(0.9),
+                        Colors.black.withValues(alpha: 0.3),
+                        Colors.black.withValues(alpha: 0.9),
                       ],
                       stops: const [0.4, 0.6, 1.0],
                     ),
@@ -326,7 +323,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -352,7 +349,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                         color: const Color(0xFFEE2C2C),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFFEE2C2C).withOpacity(0.4), blurRadius: 10),
+                          BoxShadow(color: const Color(0xFFEE2C2C).withValues(alpha: 0.4), blurRadius: 10),
                         ]
                       ),
                       child: Text(
@@ -389,7 +386,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                             const SizedBox(height: 6),
                             AutoText(
                               campaign.shortDescription,
-                              style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),

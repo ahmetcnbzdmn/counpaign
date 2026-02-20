@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
@@ -95,7 +94,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                        shape: BoxShape.circle,
-                       color: theme.primaryColor.withOpacity(0.1),
+                       color: theme.primaryColor.withValues(alpha: 0.1),
                     ),
                     child: Image.asset(
                       'assets/images/splash_logo.png',
@@ -122,7 +121,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   'Hesabınıza kayıtlı e-posta adresinizi girin. Size şifrenizi sıfırlamanız için bir bağlantı göndereceğiz.',
                   style: GoogleFonts.outfit(
                     fontSize: 16,
-                    color: textColor.withOpacity(0.7),
+                    color: textColor.withValues(alpha: 0.7),
                     height: 1.5,
                   ),
                 ),
@@ -135,7 +134,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                      borderRadius: BorderRadius.circular(16),
                      boxShadow: [
                        BoxShadow(
-                         color: Colors.black.withOpacity(0.05),
+                         color: Colors.black.withValues(alpha: 0.05),
                          blurRadius: 10,
                          offset: const Offset(0, 4),
                        )
@@ -148,8 +147,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                      cursorColor: theme.primaryColor,
                      decoration: InputDecoration(
                        hintText: 'E-posta Adresi',
-                       hintStyle: TextStyle(color: textColor.withOpacity(0.4)),
-                       prefixIcon: Icon(Icons.mail_outline_rounded, color: textColor.withOpacity(0.5)),
+                       hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
+                       prefixIcon: Icon(Icons.mail_outline_rounded, color: textColor.withValues(alpha: 0.5)),
                        border: InputBorder.none,
                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                      ),
@@ -168,7 +167,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                        backgroundColor: theme.primaryColor,
                        foregroundColor: Colors.white,
                        elevation: 2,
-                       shadowColor: theme.primaryColor.withOpacity(0.4),
+                       shadowColor: theme.primaryColor.withValues(alpha: 0.4),
                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                      ),

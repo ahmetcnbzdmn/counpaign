@@ -3,7 +3,6 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
-import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
@@ -28,7 +27,7 @@ class AuthProvider extends ChangeNotifier {
       try {
         await fetchProfile();
       } catch (e) {
-        print("Session Load Error: $e");
+        debugPrint("Session Load Error: $e");
         // If fetch fails (token expired or net error), clear session
         // But don't block app start. If net error, user might still want to see cached data?
         // For now, logout on error implies "Require Login".
@@ -51,12 +50,12 @@ class AuthProvider extends ChangeNotifier {
           await _authService.apiService.updateFcmToken(token);
         }
       } catch (e) {
-        print("FCM Sync Error: $e");
+        debugPrint("FCM Sync Error: $e");
       }
 
       notifyListeners();
     } catch (e) {
-      print("Fetch Profile Error: $e");
+      debugPrint("Fetch Profile Error: $e");
       rethrow;
     }
   }

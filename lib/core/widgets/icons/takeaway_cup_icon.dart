@@ -64,7 +64,7 @@ class _CupPainter extends CustomPainter {
     final bodyPaint = Paint()
       ..shader = LinearGradient(
         colors: [
-           cupColor.withOpacity(0.9), // Left highlight
+           cupColor.withValues(alpha: 0.9), // Left highlight
            Colors.grey.shade300,      // Shadow
            cupColor,                  // Right highlight
         ],
@@ -91,15 +91,7 @@ class _CupPainter extends CustomPainter {
       
       // Top Surface of Liquid (Elliptical) if not full
       if (fillLevel < 1.0) {
-         final surfaceRect = Rect.fromLTWH(
-           centerX - (cupTopWidth * 0.6) / 2, // Approximate width at that height
-           liquidTop - 5, 
-           cupTopWidth * 0.6, 
-           10
-         );
-         // Simplified surface line
-         final surfacePaint = Paint()..color = liquidColor.withOpacity(0.8);
-         // canvas.drawOval(surfaceRect, surfacePaint); // Optional detail
+         // Optional detail
       }
       
       canvas.restore();
@@ -131,7 +123,7 @@ class _CupPainter extends CustomPainter {
     
     // Lid Shadow / Line at bottom of lid
     final lidLinePaint = Paint()
-       ..color = Colors.grey.withOpacity(0.3)
+       ..color = Colors.grey.withValues(alpha: 0.3)
        ..style = PaintingStyle.stroke
        ..strokeWidth = 1;
     canvas.drawPath(lidPath, lidLinePaint);

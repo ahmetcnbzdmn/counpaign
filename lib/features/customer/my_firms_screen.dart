@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/business_provider.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 
 import '../../core/providers/campaign_provider.dart';
 import '../../core/utils/ui_utils.dart';
@@ -33,6 +32,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
       final orderedIds = firms.map((f) => f['id'].toString()).toList();
       await api.reorderWallet(orderedIds);
     } catch (e) {
+      if (!mounted) return;
       showCustomPopup(
         context,
         message: '${Provider.of<LanguageProvider>(context, listen: false).translate('error_reorder')}: $e',
@@ -55,7 +55,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     final district = business['district'] ?? '';
     final neighborhood = business['neighborhood'] ?? '';
     
-    List<String> parts = [];
+    final List<String> parts = [];
     if (neighborhood != null && neighborhood.toString().isNotEmpty) parts.add(neighborhood.toString());
     if (district != null && district.toString().isNotEmpty) parts.add(district.toString());
     if (city != null && city.toString().isNotEmpty) parts.add(city.toString());
@@ -95,7 +95,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     return Material(
                       elevation: 8,
                       color: Colors.transparent, // Important for custom shapes
-                      shadowColor: Colors.black.withOpacity(0.2),
+                      shadowColor: Colors.black.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(16),
                       child: child,
                     );
@@ -111,10 +111,15 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                 final iconName = firm['cardIcon'] ?? 'storefront';
                     
                 IconData iconData = Icons.storefront;
-                if (iconName == 'local_cafe_rounded') iconData = Icons.local_cafe_rounded;
-                else if (iconName == 'coffee_rounded') iconData = Icons.coffee_rounded;
-                else if (iconName == 'lunch_dining_rounded') iconData = Icons.lunch_dining_rounded;
-                else if (iconName == 'checkroom_rounded') iconData = Icons.checkroom_rounded;
+                if (iconName == 'local_cafe_rounded') {
+                  iconData = Icons.local_cafe_rounded;
+                } else if (iconName == 'coffee_rounded') {
+                  iconData = Icons.coffee_rounded;
+                } else if (iconName == 'lunch_dining_rounded') {
+                  iconData = Icons.lunch_dining_rounded;
+                } else if (iconName == 'checkroom_rounded') {
+                  iconData = Icons.checkroom_rounded;
+                }
 
                 return Dismissible(
                   key: ValueKey(firm['id']),
@@ -142,16 +147,16 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                         ),
                         content: Text(
                           Provider.of<LanguageProvider>(context, listen: false).translate('delete_firm_content'),
-                          style: GoogleFonts.outfit(color: textColor.withOpacity(0.8), fontSize: 16),
+                          style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 16),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.of(context).pop(false),
-                            child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
+                            child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6))),
                           ),
                           Container(
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: TextButton(
@@ -164,6 +169,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     );
 
                     if (confirm != true) return false;
+                    if (!context.mounted) return false;
 
                     // 2. Show Password Dialog (Styled & Stateful for Error Handling)
                     final passwordController = TextEditingController();
@@ -192,7 +198,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                 children: [
                                   Text(
                                     Provider.of<LanguageProvider>(context, listen: false).translate('enter_password_msg'),
-                                    style: GoogleFonts.outfit(color: textColor.withOpacity(0.8)),
+                                    style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8)),
                                   ),
                                   const SizedBox(height: 20),
                                   TextField(
@@ -201,7 +207,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                     style: GoogleFonts.outfit(color: textColor),
                                     decoration: InputDecoration(
                                       hintText: Provider.of<LanguageProvider>(context, listen: false).translate('your_password'),
-                                      hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
+                                      hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),
                                       filled: true,
                                       fillColor: bgColor,
                                       border: OutlineInputBorder(
@@ -218,7 +224,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                               actions: [
                                 TextButton(
                                   onPressed: isLoading ? null : () => Navigator.of(context).pop(false),
-                                  child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withOpacity(0.6))),
+                                  child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6))),
                                 ),
                                 isLoading 
                                 ? const Padding(
@@ -276,6 +282,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     );
 
                     if (deleted == true) {
+                      if (!context.mounted) return false;
                       showCustomPopup(
                         context,
                         message: Provider.of<LanguageProvider>(context, listen: false).translate('firm_deleted_success'),
@@ -299,7 +306,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                       leading: Container(
                         width: 50, height: 50,
                         decoration: BoxDecoration(
-                          color: color.withOpacity(0.2),
+                          color: color.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(iconData, color: color),
@@ -310,9 +317,9 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                       ),
                       subtitle: Text(
                         "${firm['category'] ?? Provider.of<LanguageProvider>(context).translate('general')}${_formatAddress(firm).isNotEmpty ? ' • ${_formatAddress(firm)}' : ''}",
-                        style: GoogleFonts.outfit(color: textColor.withOpacity(0.7)),
+                        style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7)),
                       ),
-                      trailing: Icon(Icons.drag_handle_rounded, color: textColor.withOpacity(0.3)),
+                      trailing: Icon(Icons.drag_handle_rounded, color: textColor.withValues(alpha: 0.3)),
                     ),
                   ),
                 );

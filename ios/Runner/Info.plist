@@ -37,6 +37,10 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>QR kod okutmak ve profil fotoğrafı çekmek için kamera erişimi gereklidir.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>İşletmelerdeki QR kodlarını doğrularken konumunuzu belirlemek için izin gereklidir.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>İşletmelerdeki QR kodlarını doğrularken konumunuzu belirlemek için izin gereklidir.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Yerel ağdaki hata ayıklama araçlarına ve sunuculara bağlanmak için gereklidir.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

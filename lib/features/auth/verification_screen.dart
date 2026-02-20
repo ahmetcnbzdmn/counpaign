@@ -105,7 +105,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         border: Border.all(color: Colors.transparent),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -117,7 +117,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       border: Border.all(color: primaryColor),
       boxShadow: [
         BoxShadow(
-          color: primaryColor.withOpacity(0.2),
+          color: primaryColor.withValues(alpha: 0.2),
           blurRadius: 8,
           offset: const Offset(0, 4),
         ),
@@ -148,7 +148,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: primaryColor.withOpacity(0.1),
+                  color: primaryColor.withValues(alpha: 0.1),
                 ),
                 child: Icon(Icons.mark_email_unread_rounded, size: 48, color: primaryColor),
               ),
@@ -170,7 +170,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 textAlign: TextAlign.center,
                 text: TextSpan(
                   text: 'Lütfen ',
-                  style: GoogleFonts.outfit(color: textColor.withOpacity(0.6), fontSize: 16),
+                  style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontSize: 16),
                   children: [
                     TextSpan(
                       text: widget.phoneNumber,
@@ -219,7 +219,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     backgroundColor: primaryColor,
                     foregroundColor: Colors.white,
                     elevation: 4,
-                    shadowColor: primaryColor.withOpacity(0.4),
+                    shadowColor: primaryColor.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                   ),
@@ -237,7 +237,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 child: Text(
                   "Kodu tekrar gönder",
                   style: TextStyle(
-                    color: textColor.withOpacity(0.5),
+                    color: textColor.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,
                   ),
                 ),

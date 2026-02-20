@@ -7,7 +7,6 @@ import '../../core/models/campaign_model.dart';
 import '../../core/services/api_service.dart';
 import '../../core/widgets/swipe_back_detector.dart';
 
-import '../../core/providers/business_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
@@ -51,7 +50,7 @@ class CampaignDetailScreen extends StatelessWidget {
         icon: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             shape: BoxShape.circle,
           ),
           child: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
@@ -73,7 +72,7 @@ class CampaignDetailScreen extends StatelessWidget {
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.2)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.2)],
                     stops: const [0.6, 1.0],
                   ),
                 ),
@@ -118,9 +117,9 @@ class CampaignDetailScreen extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
+                    color: color.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: color.withOpacity(0.3)),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     businessName,
@@ -140,9 +139,9 @@ class CampaignDetailScreen extends StatelessWidget {
                 Container(
                   width: 60, height: 60,
                   decoration: BoxDecoration(
-                    color: accentColor.withOpacity(0.08),
+                    color: accentColor.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(30), // Radius 30
-                    border: Border.all(color: accentColor.withOpacity(0.12), width: 1.5),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.12), width: 1.5),
                   ),
                   child: Icon(_parseCampaignIcon(campaign.icon), color: accentColor, size: 28),
                 ),
@@ -163,7 +162,7 @@ class CampaignDetailScreen extends StatelessWidget {
                       const SizedBox(height: 4),
                       AutoText(
                         campaign.shortDescription,
-                        style: GoogleFonts.outfit(fontSize: 14, color: textColor.withOpacity(0.5), fontWeight: FontWeight.w500),
+                        style: GoogleFonts.outfit(fontSize: 14, color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
@@ -178,7 +177,7 @@ class CampaignDetailScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: cardColor,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: textColor.withOpacity(0.05), width: 1),
+                      border: Border.all(color: textColor.withValues(alpha: 0.05), width: 1),
                     ),
                     child: Row(
                       children: [
@@ -196,7 +195,7 @@ class CampaignDetailScreen extends StatelessWidget {
                                     '₺${campaign.totalPrice.toStringAsFixed(0)}',
                                     style: GoogleFonts.outfit(
                                       fontSize: 14,
-                                      color: textColor.withOpacity(0.5),
+                                      color: textColor.withValues(alpha: 0.5),
                                       decoration: TextDecoration.lineThrough,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -225,7 +224,7 @@ class CampaignDetailScreen extends StatelessWidget {
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(width: 1, height: 40, color: textColor.withOpacity(0.1)),
+                            child: Container(width: 1, height: 40, color: textColor.withValues(alpha: 0.1)),
                           ),
                         ],
                         _buildInfoItem(
@@ -244,7 +243,7 @@ class CampaignDetailScreen extends StatelessWidget {
               const SizedBox(height: 12),
               AutoText(
                 campaign.content,
-                style: GoogleFonts.outfit(fontSize: 15, color: textColor.withOpacity(0.7), height: 1.6),
+                style: GoogleFonts.outfit(fontSize: 15, color: textColor.withValues(alpha: 0.7), height: 1.6),
               ),
               const SizedBox(height: 32),
               _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('how_to_use')),
@@ -303,7 +302,7 @@ class CampaignDetailScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: GoogleFonts.outfit(fontSize: 12, color: textColor.withOpacity(0.5), fontWeight: FontWeight.bold),
+                  style: GoogleFonts.outfit(fontSize: 12, color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

@@ -1,5 +1,4 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -18,16 +17,16 @@ class NotificationService {
   // Initialize Notification Service
   static Future<void> initialize() async {
     // Request Permission (Firebase)
-    NotificationSettings settings = await _firebaseMessaging.requestPermission(
+    final NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      print('User granted permission');
+      debugPrint('User granted permission');
     } else {
-      print('User declined or has not accepted permission');
+      debugPrint('User declined or has not accepted permission');
     }
 
     // Initialize Local Notifications
@@ -46,7 +45,7 @@ class NotificationService {
       initializationSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         // Handle notification tap
-        print('Notification tapped: ${response.payload}');
+        debugPrint('Notification tapped: ${response.payload}');
       },
     );
 
@@ -65,14 +64,14 @@ class NotificationService {
 
     // Foreground Message Handling
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      debugPrint('Got a message whilst in the foreground!');
+      debugPrint('Message data: ${message.data}');
 
-      RemoteNotification? notification = message.notification;
+      final RemoteNotification? notification = message.notification;
       
       // If notification exists, show it!
       if (notification != null) {
-        print('Message also contained a notification: ${notification.title}');
+        debugPrint('Message also contained a notification: ${notification.title}');
         _flutterLocalNotificationsPlugin.show(
           notification.hashCode,
           notification.title,
@@ -98,7 +97,7 @@ class NotificationService {
 
     // Handle background message open
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        print('A new onMessageOpenedApp event was published!');
+        debugPrint('A new onMessageOpenedApp event was published!');
         // Navigator.pushNamed(context, '/message', arguments: MessageArguments(message, true));
     });
   }
@@ -108,23 +107,23 @@ class NotificationService {
     // iOS: Wait for APNs token first (Robust Retry)
     if (defaultTargetPlatform == TargetPlatform.iOS) {
       for (int i = 0; i < 5; i++) {
-        String? apnsToken = await _firebaseMessaging.getAPNSToken();
+        final String? apnsToken = await _firebaseMessaging.getAPNSToken();
         if (apnsToken != null) {
-          print("✅ APNs Token found: $apnsToken");
+          debugPrint("✅ APNs Token found: $apnsToken");
           break;
         }
-        print("⏳ APNs Token is null, waiting... attempt ${i + 1}/5");
+        debugPrint("⏳ APNs Token is null, waiting... attempt ${i + 1}/5");
         await Future<void>.delayed(const Duration(seconds: 2));
       }
     }
     
     // Now get FCM token
     try {
-      String? token = await _firebaseMessaging.getToken();
-      print("🔥 FCM Token: $token");
+      final String? token = await _firebaseMessaging.getToken();
+      debugPrint("🔥 FCM Token: $token");
       return token;
     } catch (e) {
-      print("❌ Error getting FCM token: $e");
+      debugPrint("❌ Error getting FCM token: $e");
       return null;
     }
   }
@@ -135,7 +134,7 @@ class NotificationService {
     // If you're going to use other Firebase services in the background, such as Firestore,
     // make sure you call `initializeApp` before using other Firebase services.
     // await Firebase.initializeApp();
-    print("Handling a background message: ${message.messageId}");
+    debugPrint("Handling a background message: ${message.messageId}");
   }
 }
 

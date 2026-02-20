@@ -2,9 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../models/campaign_model.dart';
-import '../providers/language_provider.dart';
 import 'auto_text.dart';
 
 class CampaignSlider extends StatefulWidget {
@@ -58,7 +56,6 @@ class _CampaignSliderState extends State<CampaignSlider> {
   Widget build(BuildContext context) {
     if (widget.campaigns.isEmpty) return const SizedBox.shrink();
     
-    final lang = context.watch<LanguageProvider>();
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -79,7 +76,7 @@ class _CampaignSliderState extends State<CampaignSlider> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.3),
+                    color: Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -144,7 +141,7 @@ class _CampaignSliderState extends State<CampaignSlider> {
                 width: isSelected ? 12 : 6,
                 height: 6,
                 decoration: BoxDecoration(
-                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.3),
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(3),
                 ),
               );

@@ -1,4 +1,5 @@
-import 'dart:ui';
+import 'package:flutter/foundation.dart';
+
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
@@ -22,9 +23,38 @@ class ApiService {
         }
         return handler.next(options);
       },
-      onError: (DioException e, handler) {
-        // Handle global errors (e.g. 401 Unauthorized -> Logout)
+      onError: (DioException e, handler) async {
+        // Handle global errors (e.g. 401 Unauthorized)
         if (e.response?.statusCode == 401) {
+          final refreshToken = await _storageService.getRefreshToken();
+          
+          if (refreshToken != null) {
+            try {
+              // Create a new Dio instance to avoid interceptor loop
+              final refreshDio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+              final refreshResponse = await refreshDio.post(
+                '/auth/refresh-token',
+                data: {'refreshToken': refreshToken},
+              );
+
+              if (refreshResponse.statusCode == 200) {
+                final newToken = refreshResponse.data['token'];
+                await _storageService.saveToken(newToken);
+
+                // Retry original request with new token
+                final options = e.requestOptions;
+                options.headers['Authorization'] = 'Bearer $newToken';
+                
+                // Create a generic response using the resolved token
+                final retryResponse = await _dio.fetch(options);
+                return handler.resolve(retryResponse);
+              }
+            } catch (refreshErr) {
+              debugPrint('Token refresh failed: $refreshErr');
+              // Token refresh failed, continue to trigger unauthorized
+            }
+          }
+
           onUnauthorized?.call();
         }
         return handler.next(e);
@@ -66,9 +96,9 @@ class ApiService {
   }
 
   Future<List<dynamic>> getMyFirms() async {
-    print("[DEBUG] ApiService: Calling getMyFirms()");
+    debugPrint("[DEBUG] ApiService: Calling getMyFirms()");
     final response = await _dio.get('/wallet/my');
-    print("[DEBUG] ApiService: getMyFirms returned ${response.data.length} items");
+    debugPrint("[DEBUG] ApiService: getMyFirms returned ${response.data.length} items");
     return response.data as List<dynamic>;
   }
 
@@ -116,9 +146,9 @@ class ApiService {
   }
 
   Future<List<dynamic>> getTransactionHistory(String businessId) async {
-    print("[DEBUG] ApiService: Calling getTransactionHistory for $businessId");
+    debugPrint("[DEBUG] ApiService: Calling getTransactionHistory for $businessId");
     final response = await _dio.get('/transactions/history/$businessId');
-    print("[DEBUG] ApiService: getTransactionHistory returned ${response.data.length} items");
+    debugPrint("[DEBUG] ApiService: getTransactionHistory returned ${response.data.length} items");
     return response.data as List<dynamic>;
   }
 
@@ -147,13 +177,15 @@ class ApiService {
   }
 
   // QR Methods
-  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId}) async {
+  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId, double? latitude, double? longitude}) async {
     try {
       final response = await _dio.post(
         '/qr/validate',
         data: {
           'token': token,
           if (expectedBusinessId != null) 'expectedBusinessId': expectedBusinessId,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
         }
       );
       return response.data;
@@ -198,6 +230,16 @@ class ApiService {
   }
 
 
+  // Participation Methods
+  Future<List<dynamic>> getMyParticipations() async {
+    final response = await _dio.get('/participations/my');
+    return response.data as List<dynamic>;
+  }
+
+  Future<void> joinCampaign(String campaignId) async {
+    await _dio.post('/participations/join/$campaignId');
+  }
+
   // Product / Menu Methods
   Future<List<dynamic>> getBusinessProducts(String businessId) async {
     final response = await _dio.get('/products/$businessId');
@@ -208,9 +250,9 @@ class ApiService {
   Future<void> updateFcmToken(String token) async {
     try {
       await _dio.post('/users/update-fcm-token', data: {'fcmToken': token});
-      print("[DEBUG] FCM Token updated on backend");
+      debugPrint("[DEBUG] FCM Token updated on backend");
     } catch (e) {
-      print('Update FCM Token Error: $e');
+      debugPrint('Update FCM Token Error: $e');
     }
   }
   Future<List<dynamic>> getUserNotifications() async {

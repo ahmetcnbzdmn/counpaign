@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 
@@ -12,7 +13,7 @@ class LocationHelper {
       final jsonString = await rootBundle.loadString('lib/core/constants/location_data.json');
       _data = json.decode(jsonString);
     } catch (e) {
-      print('Location data loading error: $e');
+      debugPrint('Location data loading error: $e');
     } finally {
       _isLoading = false;
     }

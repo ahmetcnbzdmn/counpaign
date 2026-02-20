@@ -60,7 +60,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 50,
               decoration: BoxDecoration(
                 color: Theme.of(context).cardColor,
-                border: Border(bottom: BorderSide(color: Colors.grey.withOpacity(0.2))),
+                border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -270,7 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                        borderRadius: BorderRadius.circular(32),
                        boxShadow: [
                          BoxShadow(
-                             color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.05),
+                             color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
                              blurRadius: 20, 
                              offset: const Offset(0, 10)
                          )
@@ -327,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                            child: DropdownButtonHideUnderline(
                              child: DropdownButton<String>(
                                value: _selectedGender,
-                               hint: Text("Cinsiyet", style: TextStyle(color: textColor.withOpacity(0.3), fontSize: 14)),
+                               hint: Text("Cinsiyet", style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
                                isExpanded: true,
                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
                                items: [
@@ -352,7 +352,7 @@ class _LoginScreenState extends State<LoginScreen> {
                              ),
                              child: Row(
                                children: [
-                                 Icon(Icons.calendar_today_rounded, size: 18, color: textColor.withOpacity(0.5)),
+                                 Icon(Icons.calendar_today_rounded, size: 18, color: textColor.withValues(alpha: 0.5)),
                                  const SizedBox(width: 12),
                                  Expanded(
                                    child: Text(
@@ -360,12 +360,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                          ? "Doğum Tarihi" 
                                          : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
                                      style: TextStyle(
-                                       color: _selectedBirthDate == null ? textColor.withOpacity(0.3) : textColor,
+                                       color: _selectedBirthDate == null ? textColor.withValues(alpha: 0.3) : textColor,
                                        fontSize: 14,
                                      ),
                                    ),
                                  ),
-                                 Icon(Icons.arrow_forward_ios_rounded, size: 14, color: textColor.withOpacity(0.3)),
+                                 Icon(Icons.arrow_forward_ios_rounded, size: 14, color: textColor.withValues(alpha: 0.3)),
                                ],
                              ),
                            ),
@@ -376,7 +376,7 @@ class _LoginScreenState extends State<LoginScreen> {
                            padding: const EdgeInsets.only(left: 4),
                            child: Text(
                              "* Kayıt olduktan sonra doğum tarihini değiştiremezsiniz.",
-                             style: TextStyle(color: primaryBrand.withOpacity(0.8), fontSize: 11, fontStyle: FontStyle.italic),
+                             style: TextStyle(color: primaryBrand.withValues(alpha: 0.8), fontSize: 11, fontStyle: FontStyle.italic),
                            ),
                          ),
                          const SizedBox(height: 16),
@@ -397,7 +397,7 @@ class _LoginScreenState extends State<LoginScreen> {
                            alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () => context.push('/forgot-password'),
-                              child: Text("Parolamı Unuttum?", style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 13)),
+                              child: Text("Parolamı Unuttum?", style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 13)),
                             ),
                          ),
 
@@ -435,13 +435,13 @@ class _LoginScreenState extends State<LoginScreen> {
                            child: Container(
                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
                              decoration: BoxDecoration(
-                               color: textColor.withOpacity(0.05),
+                               color: textColor.withValues(alpha: 0.05),
                                borderRadius: BorderRadius.circular(30),
                              ),
                              child: Text(
                                _activePageIndex == 0 ? "Hesabın yok mu? Kayıt Ol" : "Zaten üye misin? Giriş Yap",
                                style: TextStyle(
-                                 color: textColor.withOpacity(0.7),
+                                 color: textColor.withValues(alpha: 0.7),
                                  fontWeight: FontWeight.w500,
                                ),
                              ),
@@ -483,8 +483,8 @@ class _LoginScreenState extends State<LoginScreen> {
         cursorColor: Theme.of(context).primaryColor,
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.3)),
-          prefixIcon: Icon(icon, color: Theme.of(context).textTheme.bodyLarge?.color?.withOpacity(0.54), size: 20),
+          hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.3)),
+          prefixIcon: Icon(icon, color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.54), size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),

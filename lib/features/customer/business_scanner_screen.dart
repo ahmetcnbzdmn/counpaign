@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/services/api_service.dart';
@@ -92,35 +91,6 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
     }
   }
 
-  Future<void> _addPoints() async {
-    final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return;
-
-    try {
-      final api = context.read<ApiService>();
-      final result = await api.simulateAddPoints(user.id, _businessId, 10);
-      
-      if (mounted) {
-        setState(() {
-          _points = result['points'].toString();
-        });
-        
-        showCustomPopup(
-          context,
-          message: "10 Puan Eklendi! ⭐️",
-          type: PopupType.success,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        showCustomPopup(
-          context,
-          message: "$e",
-          type: PopupType.error,
-        );
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +191,7 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _brandColor.withOpacity(0.1),
+                          color: _brandColor.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text("$_stamps/$_stampsTarget", 
@@ -291,7 +261,7 @@ class _ScannerOverlayPainter extends CustomPainter {
     final rect = Rect.fromCenter(center: Offset(centerX, centerY), width: cutoutSize, height: cutoutSize);
 
     // Overlay
-    final paint = Paint()..color = Colors.black.withOpacity(0.5);
+    final paint = Paint()..color = Colors.black.withValues(alpha: 0.5);
     final backgroundPath = Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     final cutoutPath = Path()..addRRect(RRect.fromRectAndRadius(rect, const Radius.circular(24)));
     final overlayPath = Path.combine(PathOperation.difference, backgroundPath, cutoutPath);
@@ -304,35 +274,35 @@ class _ScannerOverlayPainter extends CustomPainter {
       ..strokeWidth = 4
       ..strokeCap = StrokeCap.round;
 
-    final double length = 30;
-    final double radius = 24;
+    const double length = 30;
+    const double radius = 24;
 
     // TL
     canvas.drawPath(Path()
       ..moveTo(rect.left, rect.top + length)
       ..lineTo(rect.left, rect.top + radius)
-      ..arcToPoint(Offset(rect.left + radius, rect.top), radius: Radius.circular(radius))
+      ..arcToPoint(Offset(rect.left + radius, rect.top), radius: const Radius.circular(radius))
       ..lineTo(rect.left + length, rect.top), borderPaint);
 
     // TR
     canvas.drawPath(Path()
       ..moveTo(rect.right - length, rect.top)
       ..lineTo(rect.right - radius, rect.top)
-      ..arcToPoint(Offset(rect.right, rect.top + radius), radius: Radius.circular(radius))
+      ..arcToPoint(Offset(rect.right, rect.top + radius), radius: const Radius.circular(radius))
       ..lineTo(rect.right, rect.top + length), borderPaint);
 
     // BR
     canvas.drawPath(Path()
       ..moveTo(rect.right, rect.bottom - length)
       ..lineTo(rect.right, rect.bottom - radius)
-      ..arcToPoint(Offset(rect.right - radius, rect.bottom), radius: Radius.circular(radius))
+      ..arcToPoint(Offset(rect.right - radius, rect.bottom), radius: const Radius.circular(radius))
       ..lineTo(rect.right - length, rect.bottom), borderPaint);
 
     // BL
     canvas.drawPath(Path()
       ..moveTo(rect.left + length, rect.bottom)
       ..lineTo(rect.left + radius, rect.bottom)
-      ..arcToPoint(Offset(rect.left, rect.bottom - radius), radius: Radius.circular(radius))
+      ..arcToPoint(Offset(rect.left, rect.bottom - radius), radius: const Radius.circular(radius))
       ..lineTo(rect.left, rect.bottom - length), borderPaint);
   }
 

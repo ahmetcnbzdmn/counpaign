@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:go_router/go_router.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/providers/language_provider.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
@@ -33,7 +31,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         _notifications = List<Map<String, dynamic>>.from(data);
       });
     } catch (e) {
-      print("Notification Fetch Error: $e");
+      debugPrint("Notification Fetch Error: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -54,7 +52,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Bildirim okundu olarak işaretlendi'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 2),
@@ -62,10 +60,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       }
     } catch (e) {
-      print("Mark Read Error: $e");
+      debugPrint("Mark Read Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('İşlem başarısız'),
             backgroundColor: Colors.red,
           ),
@@ -85,7 +83,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Bildirim silindi'),
             backgroundColor: Colors.red,
             duration: Duration(seconds: 2),
@@ -93,10 +91,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         );
       }
     } catch (e) {
-      print("Delete Error: $e");
+      debugPrint("Delete Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Silme işlemi başarısız'),
             backgroundColor: Colors.red,
           ),
@@ -134,23 +132,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: primaryBrand),
+            icon: const Icon(Icons.refresh, color: primaryBrand),
             onPressed: _fetchNotifications,
           )
         ],
       ),
       body: _isLoading 
-          ? Center(child: CircularProgressIndicator(color: primaryBrand)) 
+          ? const Center(child: CircularProgressIndicator(color: primaryBrand)) 
           : _notifications.isEmpty
               ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.notifications_off_rounded, size: 64, color: textColor.withOpacity(0.2)),
+                      Icon(Icons.notifications_off_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
                       const SizedBox(height: 16),
                       Text(
                         lang.translate('no_notifications'),
-                        style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 16),
+                        style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16),
                       ),
                     ],
                   ),
@@ -197,7 +195,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           padding: const EdgeInsets.only(left: 24),
                           child: Row(
                             children: [
-                              Icon(Icons.delete_rounded, color: Colors.white, size: 28),
+                              const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
                               const SizedBox(width: 8),
                               Text(
                                 'Sil',
@@ -231,7 +229,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
+                              const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
                             ],
                           ),
                         ),
@@ -242,14 +240,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.03),
+                                color: Colors.black.withValues(alpha: 0.03),
                                 blurRadius: 10,
                                 offset: const Offset(0, 4),
                               )
                             ],
                             border: isRead 
                                 ? null 
-                                : Border.all(color: primaryBrand.withOpacity(0.3), width: 1),
+                                : Border.all(color: primaryBrand.withValues(alpha: 0.3), width: 1),
                           ),
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -257,8 +255,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 color: isRead 
-                                    ? Colors.grey.withOpacity(0.1) 
-                                    : primaryBrand.withOpacity(0.1),
+                                    ? Colors.grey.withValues(alpha: 0.1) 
+                                    : primaryBrand.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -270,7 +268,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             title: Text(
                               title,
                               style: GoogleFonts.outfit(
-                                color: isRead ? textColor.withOpacity(0.5) : textColor,
+                                color: isRead ? textColor.withValues(alpha: 0.5) : textColor,
                                 fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -282,7 +280,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 Text(
                                   body,
                                   style: TextStyle(
-                                    color: isRead ? textColor.withOpacity(0.4) : textColor.withOpacity(0.7), 
+                                    color: isRead ? textColor.withValues(alpha: 0.4) : textColor.withValues(alpha: 0.7), 
                                     fontSize: 13,
                                   ),
                                 ),
@@ -292,7 +290,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     Text(
                                       time,
                                       style: GoogleFonts.outfit(
-                                        color: isRead ? textColor.withOpacity(0.3) : textColor.withOpacity(0.4), 
+                                        color: isRead ? textColor.withValues(alpha: 0.3) : textColor.withValues(alpha: 0.4), 
                                         fontSize: 11,
                                       ),
                                     ),
@@ -301,13 +299,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       Icon(
                                         Icons.check_circle,
                                         size: 12,
-                                        color: Colors.green.withOpacity(0.6),
+                                        color: Colors.green.withValues(alpha: 0.6),
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         'Okundu',
                                         style: GoogleFonts.outfit(
-                                          color: Colors.green.withOpacity(0.6),
+                                          color: Colors.green.withValues(alpha: 0.6),
                                           fontSize: 10,
                                           fontWeight: FontWeight.w500,
                                         ),

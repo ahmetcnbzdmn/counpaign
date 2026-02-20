@@ -31,7 +31,6 @@ class _MenuScreenState extends State<MenuScreen> {
   List<dynamic> _products = []; // Currently displayed (filtered/sorted)
   List<dynamic> _popularProducts = [];
   late Color _brandColor;
-  late Color _brandDark;
   late Color _brandLight;
 
   // Categories
@@ -70,7 +69,6 @@ class _MenuScreenState extends State<MenuScreen> {
       base = Colors.black;
     }
     _brandColor = base;
-    _brandDark = HSLColor.fromColor(base).withLightness(0.3).toColor();
     _brandLight = HSLColor.fromColor(base).withLightness(0.9).toColor();
   }
 
@@ -88,7 +86,7 @@ class _MenuScreenState extends State<MenuScreen> {
         });
       }
     } catch (e) {
-      print('Error fetching menu: $e');
+      debugPrint('Error fetching menu: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -242,7 +240,7 @@ class _MenuScreenState extends State<MenuScreen> {
       leading: Container(
         margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.2),
+          color: Colors.white.withValues(alpha: 0.2),
           shape: BoxShape.circle,
         ),
         child: IconButton(
@@ -261,7 +259,7 @@ class _MenuScreenState extends State<MenuScreen> {
             fontSize: 24,
             letterSpacing: 1.2,
             shadows: [
-              Shadow(color: Colors.black.withOpacity(0.3), offset: const Offset(0, 2), blurRadius: 4),
+              Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
             ]
           ),
         ),
@@ -275,9 +273,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Colors.black.withOpacity(0.2),
+                    Colors.black.withValues(alpha: 0.2),
                     Colors.transparent,
-                    Colors.white.withOpacity(0.1),
+                    Colors.white.withValues(alpha: 0.1),
                   ],
                 ),
               ),
@@ -287,7 +285,7 @@ class _MenuScreenState extends State<MenuScreen> {
               right: -50, top: -50,
               child: Container(
                 width: 200, height: 200,
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
               ),
             ),
             if (widget.businessImage != null)
@@ -408,8 +406,8 @@ class _MenuScreenState extends State<MenuScreen> {
                           color: isSelected ? _brandColor : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: isSelected 
-                              ? [BoxShadow(color: _brandColor.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))]
-                              : [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+                              ? [BoxShadow(color: _brandColor.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]
+                              : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
                         ),
                         child: Text(
                           category,
@@ -441,7 +439,7 @@ class _MenuScreenState extends State<MenuScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF9E9E9E).withOpacity(0.2), blurRadius: 20, offset: const Offset(0, 10)),
+          BoxShadow(color: const Color(0xFF9E9E9E).withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10)),
         ],
       ),
       child: ClipRRect(
@@ -461,7 +459,7 @@ class _MenuScreenState extends State<MenuScreen> {
               child: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.8)],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     stops: const [0.5, 1.0],
@@ -493,7 +491,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         Text(
                           '₺${product['price']}',
                           style: GoogleFonts.outfit(
-                            color: Colors.white.withOpacity(0.6),
+                            color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 12,
                             decoration: TextDecoration.lineThrough,
                           ),
@@ -519,7 +517,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
                     padding: const EdgeInsets.all(6),
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     child: const Icon(Icons.local_fire_department_rounded, color: Colors.orangeAccent, size: 18),
                   ),
                 ),
@@ -572,7 +570,7 @@ class _MenuScreenState extends State<MenuScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5)),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5)),
         ],
       ),
       child: Column(
@@ -604,7 +602,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
                         ),
                         child: Row(
                           children: [
@@ -675,7 +673,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                     )
                   else
-                    Spacer(), // Push content up if no desc
+                    const Spacer(), // Push content up if no desc
                 ],
               ),
             ),

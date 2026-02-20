@@ -44,7 +44,7 @@ class BusinessProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       // Don't rethrow to avoid crashing UI, just log or handle
-      print("Error fetching my firms: $e");
+      debugPrint("Error fetching my firms: $e");
     } finally {
       _setLoading(false);
     }
@@ -57,7 +57,7 @@ class BusinessProvider extends ChangeNotifier {
       _exploreFirms = firms;
       notifyListeners();
     } catch (e) {
-      print("Error fetching explore firms: $e");
+      debugPrint("Error fetching explore firms: $e");
     } finally {
       _setLoading(false);
     }

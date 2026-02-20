@@ -10,7 +10,7 @@ class CampaignProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Map<String, List<CampaignModel>> _businessCampaigns = {};
+  final Map<String, List<CampaignModel>> _businessCampaigns = {};
   List<CampaignModel> _globalCampaigns = [];
 
   List<CampaignModel> get allCampaigns => _globalCampaigns; // Now returns fetched global list
@@ -40,7 +40,7 @@ class CampaignProvider extends ChangeNotifier {
       _globalCampaigns = data.map((json) => CampaignModel.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {
-      print("Error fetching all campaigns: $e");
+      debugPrint("Error fetching all campaigns: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -56,7 +56,7 @@ class CampaignProvider extends ChangeNotifier {
       _businessCampaigns[businessId] = data.map((json) => CampaignModel.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {
-      print("Error fetching campaigns: $e");
+      debugPrint("Error fetching campaigns: $e");
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../core/providers/language_provider.dart';
-import '../../../core/widgets/icons/takeaway_cup_icon.dart';
+
 
 class WalletCard extends StatefulWidget {
   final Map<String, dynamic> firm;
@@ -102,7 +102,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
     
     // Localization from Provider
     final langProvider = context.watch<LanguageProvider>();
-    bool isTr = langProvider.locale.languageCode == 'tr';
+    final bool isTr = langProvider.locale.languageCode == 'tr';
     
     return Container(
       width: double.infinity,
@@ -111,13 +111,13 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         gradient: LinearGradient(
-          colors: [color, color.withOpacity(0.8)],
+          colors: [color, color.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha: 0.4),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -128,7 +128,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
           // Background Decor
           Positioned(
             right: -20, bottom: -20,
-            child: Icon(Icons.credit_card_rounded, size: 150, color: Colors.white.withOpacity(0.05)),
+            child: Icon(Icons.credit_card_rounded, size: 150, color: Colors.white.withValues(alpha: 0.05)),
           ),
           
           Column(
@@ -155,7 +155,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
                   Text(
                     'COUNPAIGN',
                     style: GoogleFonts.outfit(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.5,
@@ -183,7 +183,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
                           fontSize: 20,
                           fontWeight: FontWeight.w500,
                           letterSpacing: 2.0,
-                          shadows: [Shadow(color: Colors.black26, offset: Offset(0,1), blurRadius: 2)]
+                          shadows: [const Shadow(color: Colors.black26, offset: Offset(0,1), blurRadius: 2)]
                         ),
                        ),
                      ),
@@ -241,7 +241,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
                   margin: const EdgeInsets.only(right: 16),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.flip_camera_android_rounded, color: Colors.white, size: 20),
@@ -262,13 +262,13 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
     
     // Localization from Provider
     final langProvider = context.watch<LanguageProvider>();
-    bool isTr = langProvider.locale.languageCode == 'tr';
+    final bool isTr = langProvider.locale.languageCode == 'tr';
     
-    String legalText = isTr 
+    final String legalText = isTr 
       ? 'Bu kart, $firmName tarafından düzenlenmiştir.\nHer $target damgada 1 hediye kahve kazanırsınız.'
       : 'This card is issued by $firmName.\nCollect $target stamps to get 1 free coffee.';
       
-    String subText = isTr 
+    final String subText = isTr 
       ? 'Mülkiyeti işletmeye aittir. Kurallara tabidir.'
       : 'Property of issuer. Subject to terms.';
 
@@ -288,7 +288,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -309,7 +309,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
                height: 40,
                margin: const EdgeInsets.symmetric(horizontal: 24),
                decoration: BoxDecoration(
-                 color: Colors.white.withOpacity(0.9),
+                 color: Colors.white.withValues(alpha: 0.9),
                  borderRadius: BorderRadius.circular(4),
                ),
                child: Row(
@@ -381,7 +381,7 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: Colors.white.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.flip_camera_android_rounded, color: Colors.white, size: 20),
@@ -394,40 +394,12 @@ class _WalletCardState extends State<WalletCard> with SingleTickerProviderStateM
   }
 }
 
-class _Rotating3DCup extends StatelessWidget {
-  final double size;
-  final Color color;
-  final int stamps;
-  final int target;
-
-  const _Rotating3DCup({
-    required this.size, 
-    required this.color,
-    required this.stamps,
-    required this.target,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Transform(
-      alignment: Alignment.center,
-      transform: Matrix4.identity()
-        ..setEntry(3, 2, 0.001) 
-        ..rotateY(-0.4), 
-      child: TakeawayCupIcon(
-        size: size, 
-        cupColor: color,
-        fillLevel: 1.0, // Always full for gift view? Or maybe valid? Let's show full for aesthetics.
-      ),
-    );
-  }
-}
 
 class _SignaturePatternPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
+      ..color = Colors.grey.withValues(alpha: 0.2)
       ..strokeWidth = 1.0;
       
     // Draw diagonal lines

@@ -22,7 +22,7 @@ class ParticipationProvider with ChangeNotifier {
       final data = await _apiService.getMyParticipations();
       _participations = data.map((json) => ParticipationModel.fromJson(json)).toList();
     } catch (e) {
-      print("Error fetching participations: $e");
+      debugPrint("Error fetching participations: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -42,7 +42,7 @@ class ParticipationProvider with ChangeNotifier {
         await fetchMyParticipations();
         return true;
       }
-      print("Error joining campaign: $e");
+      debugPrint("Error joining campaign: $e");
       return false;
     } finally {
       _isLoading = false;

@@ -166,9 +166,9 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
 
       if (!mounted) return;
 
-      final available = results[0] as List<dynamic>;
-      final myFirms = results[1] as List<dynamic>;
-      final newest = results[2] as List<dynamic>;
+      final available = results[0];
+      final myFirms = results[1];
+      final newest = results[2];
       
       final myFirmIds = myFirms.map((f) => f['id'].toString()).toSet();
 
@@ -205,6 +205,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
 
     try {
       await api.addFirm(id);
+      if (!mounted) return;
       setState(() {
         _addedFirms.add(id);
         _applyFilters(); 
@@ -215,6 +216,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         type: PopupType.success,
       );
     } catch (e) {
+      if (!mounted) return;
       showCustomPopup(
         context,
         message: '$e',
@@ -271,8 +273,8 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
               style: GoogleFonts.outfit(color: textColor),
               decoration: InputDecoration(
                 hintText: lang.translate('search_cafe'),
-                hintStyle: GoogleFonts.outfit(color: textColor.withOpacity(0.5)),
-                prefixIcon: Icon(Icons.search, color: textColor.withOpacity(0.5)),
+                hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),
+                prefixIcon: Icon(Icons.search, color: textColor.withValues(alpha: 0.5)),
                 filled: true,
                 fillColor: cardColor,
                 border: OutlineInputBorder(
@@ -351,7 +353,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: textColor.withOpacity(0.05)),
+                        border: Border.all(color: textColor.withValues(alpha: 0.05)),
                       ),
                       child: Stack(
                         children: [
@@ -364,7 +366,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: color.withOpacity(0.1),
+                                    color: color.withValues(alpha: 0.1),
                                     shape: BoxShape.circle,
                                   ),
                                   child: Icon(_getIcon(firm['cardIcon']), color: color, size: 16),
@@ -380,7 +382,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                                     ),
                                     Text(
                                       firm['category'] ?? lang.translate('general'),
-                                      style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 10),
+                                      style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 10),
                                       maxLines: 1,
                                     ),
                                   ],
@@ -389,9 +391,9 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                             ),
                           ),
                           if (isAdded)
-                            Positioned(
+                            const Positioned(
                               top: 6, right: 6,
-                              child: const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                              child: Icon(Icons.check_circle, color: Colors.green, size: 16),
                             ),
                         ],
                       ),
@@ -448,14 +450,14 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: textColor.withOpacity(0.05)),
+                        side: BorderSide(color: textColor.withValues(alpha: 0.05)),
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(12),
                         leading: Container(
                           width: 50, height: 50,
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.2),
+                            color: color.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(_getIcon(firm['cardIcon']), color: color),
@@ -469,14 +471,14 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                           children: [
                             Text(
                               firm['category'] ?? lang.translate('general'),
-                              style: GoogleFonts.outfit(color: textColor.withOpacity(0.7), fontSize: 14),
+                              style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7), fontSize: 14),
                             ),
                             if (firm['district'] != null && firm['district'].isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
                                 child: Text(
                                   "${firm['district']} / ${firm['neighborhood'] ?? ''}",
-                                  style: GoogleFonts.outfit(color: textColor.withOpacity(0.5), fontSize: 12),
+                                  style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 12),
                                 ),
                               )
                           ],
@@ -486,7 +488,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                           duration: const Duration(milliseconds: 300),
                           child: isAdded 
                               ? const Icon(Icons.check_circle, key: ValueKey('added'), color: Colors.green, size: 30)
-                              : Icon(Icons.add_circle_outline_rounded, key: const ValueKey('add'), color: textColor.withOpacity(0.4), size: 30),
+                              : Icon(Icons.add_circle_outline_rounded, key: const ValueKey('add'), color: textColor.withValues(alpha: 0.4), size: 30),
                         ),
                       ),
                     );
@@ -513,14 +515,14 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: enabled ? cardColor : cardColor.withOpacity(0.5),
+        color: enabled ? cardColor : cardColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withOpacity(0.1)),
+        border: Border.all(color: textColor.withValues(alpha: 0.1)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: items.contains(value) ? value : null,
-          hint: Text(hint, style: GoogleFonts.outfit(color: textColor.withOpacity(enabled ? 0.6 : 0.3), fontSize: 13)),
+          hint: Text(hint, style: GoogleFonts.outfit(color: textColor.withValues(alpha: enabled ? 0.6 : 0.3), fontSize: 13)),
           items: items.map((item) {
             return DropdownMenuItem<T>(
               value: item,
@@ -529,7 +531,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           }).toList(),
           onChanged: enabled ? onChanged : null,
           dropdownColor: cardColor,
-          icon: Icon(Icons.arrow_drop_down, color: textColor.withOpacity(enabled ? 0.6 : 0.3)),
+          icon: Icon(Icons.arrow_drop_down, color: textColor.withValues(alpha: enabled ? 0.6 : 0.3)),
           style: GoogleFonts.outfit(color: textColor, fontSize: 13),
         ),
       ),
@@ -555,13 +557,13 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           color: isSelected ? const Color(0xFFEE2C2C) : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.transparent : textColor.withOpacity(0.1),
+            color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1),
           ),
         ),
         child: Text(
           label,
           style: GoogleFonts.outfit(
-            color: isSelected ? Colors.white : textColor.withOpacity(0.7),
+            color: isSelected ? Colors.white : textColor.withValues(alpha: 0.7),
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             fontSize: 13,
           ),

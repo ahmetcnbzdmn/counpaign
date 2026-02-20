@@ -71,7 +71,7 @@ class _AnimatedBranchContainerState extends State<AnimatedBranchContainer> with 
       _nextIndex = widget.currentIndex;
 
       
-      bool isPop = (widget.currentIndex == 0);
+      final bool isPop = (widget.currentIndex == 0);
       
       // Parallax Config
       final Offset enterBegin = isPop ? const Offset(-0.25, 0.0) : const Offset(1.0, 0.0);
@@ -135,7 +135,7 @@ class _AnimatedBranchContainerState extends State<AnimatedBranchContainer> with 
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2), // Depth shadow
+                            color: Colors.black.withValues(alpha: 0.2), // Depth shadow
                             blurRadius: 20,
                             spreadRadius: -2,
                             offset: const Offset(-5, 0), // Shadow on LEFT edge

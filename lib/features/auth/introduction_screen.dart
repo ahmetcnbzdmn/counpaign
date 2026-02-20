@@ -48,7 +48,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    primaryColor.withOpacity(0.05),
+                    primaryColor.withValues(alpha: 0.05),
                     theme.scaffoldBackgroundColor,
                   ],
                 ),
@@ -88,7 +88,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                             Container(
                               padding: const EdgeInsets.all(40),
                               decoration: BoxDecoration(
-                                color: primaryColor.withOpacity(0.1),
+                                color: primaryColor.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
@@ -113,7 +113,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
                                 fontSize: 16,
-                                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
                                 height: 1.5,
                               ),
                             ),
@@ -135,7 +135,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                       height: 8,
                       width: _currentPage == index ? 24 : 8,
                       decoration: BoxDecoration(
-                        color: _currentPage == index ? primaryColor : primaryColor.withOpacity(0.2),
+                        color: _currentPage == index ? primaryColor : primaryColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),

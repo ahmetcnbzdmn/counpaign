@@ -46,13 +46,16 @@ class _TerminalsScreenState extends State<TerminalsScreen> {
                   idController.text, 
                   passwordController.text
                 );
+                if (!context.mounted) return;
                 Navigator.pop(context);
+                if (!context.mounted) return;
                 showCustomPopup(
                   context,
                   message: 'Terminal oluşturuldu',
                   type: PopupType.success,
                 );
               } catch (e) {
+                if (!context.mounted) return;
                 showCustomPopup(
                   context,
                   message: '$e',

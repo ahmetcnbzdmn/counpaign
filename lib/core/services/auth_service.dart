@@ -1,6 +1,5 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import '../config/api_config.dart';
-import 'dart:convert';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'api_service.dart';
 import 'storage_service.dart';
@@ -33,7 +32,7 @@ class AuthService {
       } catch (firebaseError) {
         // FALLBACK: If real email fails, try Legacy "Fake" Email
         // Old users are stored as "phone@counpaign.local" in Firebase
-        print("Login with real email failed ($firebaseError). Trying legacy fallback...");
+        debugPrint("Login with real email failed ($firebaseError). Trying legacy fallback...");
         
         final legacyEmail = "$phoneNumber@counpaign.local";
         userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -52,7 +51,7 @@ class AuthService {
       
       return {'user': user};
     } catch (e) {
-      print("Firebase Login Error: $e");
+      debugPrint("Firebase Login Error: $e");
       rethrow;
     }
   }
@@ -97,12 +96,12 @@ class AuthService {
         return response.data;
       } catch (backendError) {
         // ROLLBACK: Delete Firebase User if Backend fails
-        print("Backend Register Failed: $backendError. Rollback Firebase User.");
+        debugPrint("Backend Register Failed: $backendError. Rollback Firebase User.");
         await user?.delete();
         rethrow;
       }
     } catch (e) {
-       print("Dual Register Error: $e");
+       debugPrint("Dual Register Error: $e");
       rethrow;
     }
   }
@@ -117,8 +116,8 @@ class AuthService {
       return response.data;
     } catch (e) {
       if (e is DioException) {
-         print("Backend Error: ${e.response?.data ?? e.message}");
-         print("Request URI: ${e.requestOptions.uri}");
+         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
+         debugPrint("Request URI: ${e.requestOptions.uri}");
       }
       rethrow;
     }
@@ -150,7 +149,7 @@ class AuthService {
       return response.data;
     } catch (e) {
       if (e is DioException) {
-         print("Backend Error: ${e.response?.data ?? e.message}");
+         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
       }
       rethrow;
     }
@@ -163,7 +162,7 @@ class AuthService {
       });
     } catch (e) {
       if (e is DioException) {
-         print("SMS Send Error: ${e.response?.data}");
+         debugPrint("SMS Send Error: ${e.response?.data}");
       }
       rethrow;
     }
@@ -177,12 +176,17 @@ class AuthService {
       });
       
       final token = response.data['token'];
+      final refreshToken = response.data['refreshToken'];
+
       if (token != null) {
         await _storageService.saveToken(token);
+        if (refreshToken != null) {
+          await _storageService.saveRefreshToken(refreshToken);
+        }
       }
     } catch (e) {
       if (e is DioException) {
-         print("SMS Verify Error: ${e.response?.data}");
+         debugPrint("SMS Verify Error: ${e.response?.data}");
       }
       rethrow;
     }

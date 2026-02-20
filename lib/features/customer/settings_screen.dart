@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/widgets/swipe_back_detector.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -46,7 +45,7 @@ class SettingsScreen extends StatelessWidget {
                     bottomRight: Radius.circular(40),
                   ),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10)),
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10)),
                   ]
                 ),
                 child: Column(
@@ -77,7 +76,7 @@ class SettingsScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(color: primaryBrand, width: 2),
                             boxShadow: [
-                              BoxShadow(color: primaryBrand.withOpacity(0.3), blurRadius: 20),
+                              BoxShadow(color: primaryBrand.withValues(alpha: 0.3), blurRadius: 20),
                             ]
                           ),
                           child: CircleAvatar(
@@ -93,7 +92,7 @@ class SettingsScreen extends StatelessWidget {
                     // Name
                     Text(user?.fullName ?? context.read<LanguageProvider>().translate('guest_user'), style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 4),
-                    Text(user?.email ?? "", style: TextStyle(color: textColor.withOpacity(0.5), fontSize: 14)),
+                    Text(user?.email ?? "", style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 14)),
                     
                     const SizedBox(height: 24),
                     
@@ -103,7 +102,7 @@ class SettingsScreen extends StatelessWidget {
                       icon: const Icon(Icons.edit_rounded, size: 16),
                       label: Text(context.watch<LanguageProvider>().translate('edit_profile')),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: textColor.withOpacity(0.05),
+                        backgroundColor: textColor.withValues(alpha: 0.05),
                         foregroundColor: textColor,
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -147,14 +146,14 @@ class SettingsScreen extends StatelessWidget {
                            decoration: BoxDecoration(
                              color: cardColor,
                              borderRadius: BorderRadius.circular(20),
-                             border: Border.all(color: textColor.withOpacity(0.05)),
+                             border: Border.all(color: textColor.withValues(alpha: 0.05)),
                            ),
                            child: ListTile(
                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                              leading: Container(
                                padding: const EdgeInsets.all(8),
                                decoration: BoxDecoration(
-                                 color: textColor.withOpacity(0.1),
+                                 color: textColor.withValues(alpha: 0.1),
                                  shape: BoxShape.circle,
                                ),
                                child: Icon(isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded, color: textColor, size: 20),
@@ -163,7 +162,7 @@ class SettingsScreen extends StatelessWidget {
                              trailing: Switch.adaptive(
                                value: isDarkMode, 
                                onChanged: (val) => themeProvider.toggleTheme(val),
-                               activeColor: const Color(0xFFEE2C2C),
+                               activeTrackColor: const Color(0xFFEE2C2C),
                              ),
                            ),
                          ),
@@ -236,7 +235,7 @@ class SettingsScreen extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Text(
         title.toUpperCase(),
-        style: GoogleFonts.outfit(color: textColor.withOpacity(0.4), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
+        style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.5),
       ),
     );
   }
@@ -257,7 +256,7 @@ class SettingsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: textColor.withOpacity(0.05)),
+        border: Border.all(color: textColor.withValues(alpha: 0.05)),
       ),
       child: ListTile(
         onTap: onTap,
@@ -265,14 +264,14 @@ class SettingsScreen extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: (iconColor ?? textColor).withOpacity(0.1),
+            color: (iconColor ?? textColor).withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: iconColor ?? textColor, size: 20),
         ),
         title: Text(title, style: GoogleFonts.outfit(color: titleColor ?? textColor, fontSize: 16, fontWeight: FontWeight.w600)),
         trailing: showArrow 
-            ? Icon(Icons.arrow_forward_ios_rounded, color: textColor.withOpacity(0.3), size: 16)
+            ? Icon(Icons.arrow_forward_ios_rounded, color: textColor.withValues(alpha: 0.3), size: 16)
             : null,
       ),
     );
@@ -290,7 +289,7 @@ class SettingsScreen extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         margin: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withOpacity(0.1) : Colors.transparent,
+          color: isSelected ? activeColor.withValues(alpha: 0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: isSelected ? Border.all(color: activeColor, width: 1.5) : Border.all(color: Colors.transparent),
         ),
