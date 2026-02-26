@@ -27,6 +27,7 @@ import 'features/auth/forgot_password_screen.dart';
 import 'features/auth/verification_screen.dart';
 import 'features/customer/campaign_detail_screen.dart';
 import 'features/customer/notifications_screen.dart';
+import 'features/customer/privacy_security_screen.dart';
 import 'core/models/campaign_model.dart';
 
 import 'core/services/storage_service.dart';
@@ -75,7 +76,8 @@ void main() async {
 
   // Link ApiService 401 handling to AuthProvider logout
   apiService.onUnauthorized = () {
-    authProvider.logout();
+    // Keep user logged in offline/stale per user requirement instead of forcing logout 
+    debugPrint("401 Unauthorized triggered. App will stay logged in.");
   };
 
   // Don't await here! It blocks runApp if network is slow/down.
@@ -245,6 +247,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
               businessName: data['businessName'],
               businessColor: data['businessColor'],
               businessImage: data['businessImage'],
+              businessLogo: data['businessLogo'],
             );
           },
         ),
@@ -277,14 +280,29 @@ class _CounpaignAppState extends State<CounpaignApp> {
           builder: (context, state) => const NotificationsScreen(),
         ),
         GoRoute(
+          path: '/privacy-security',
+          builder: (context, state) => const PrivacySecurityScreen(),
+        ),
+        GoRoute(
           path: '/forgot-password',
           builder: (context, state) => const ForgotPasswordScreen(),
         ),
         GoRoute(
           path: '/verify-phone',
           builder: (context, state) {
-            final phone = state.extra as String? ?? '';
-            return VerificationScreen(phoneNumber: phone);
+            final extra = state.extra;
+            if (extra is Map<String, dynamic>) {
+              return VerificationScreen(
+                phoneNumber: extra['phoneNumber'] ?? '',
+                email: extra['email'],
+                password: extra['password'],
+                name: extra['name'],
+                surname: extra['surname'],
+              );
+            } else if (extra is String) {
+              return VerificationScreen(phoneNumber: extra);
+            }
+            return const VerificationScreen(phoneNumber: '');
           },
         ),
         GoRoute(
@@ -304,13 +322,14 @@ class _CounpaignAppState extends State<CounpaignApp> {
         final isIntro = state.uri.toString() == '/intro';
 
         final isForgotPassword = state.uri.toString() == '/forgot-password';
-
         final isVerifyPhone = state.uri.toString() == '/verify-phone';
 
-        if (!isLoggedIn && !isLoggingIn && !isIntro && !isForgotPassword && !isVerifyPhone) return '/intro';
+        if (!isLoggedIn && !isLoggingIn && !isIntro && !isForgotPassword && !isVerifyPhone) {
+           return '/login'; // Token expired/invalid -> Force Login immediately instead of intro
+        }
 
         if (isLoggedIn && (isLoggingIn || isIntro)) {
-          return '/home'; // All users go to Customer Home
+          return '/home'; // All auth'd users go to Customer Home
         }
 
         return null;

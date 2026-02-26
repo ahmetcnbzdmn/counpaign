@@ -1,0 +1,11 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 223 86" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Vector 5">
+<path d="M27.8073 70.6757L4.96111 16.6757C1.61371 8.76365 7.42172 0 16.0127 0H206.906C213.533 0 218.906 5.37258 218.906 12V66C218.906 72.6274 213.533 78 206.906 78H38.8589C34.0382 78 29.6856 75.1153 27.8073 70.6757Z" fill="url(#paint0_linear_107_22)" shape-rendering="crispEdges"/>
+<path d="M16.0125 0.25H206.906C213.395 0.25 218.656 5.51065 218.656 12V66C218.656 72.4893 213.395 77.75 206.906 77.75H38.8591C34.1389 77.75 29.877 74.9253 28.0379 70.5781L5.19117 16.5781C1.91372 8.83106 7.60065 0.25018 16.0125 0.25Z" stroke="#F9C06A" stroke-width="0.5" shape-rendering="crispEdges"/>
+</g>
+<defs>
+<stop stop-color="#FFFDF7"/>
+<stop offset="1" stop-color="#F9C06A" stop-opacity="0.44"/>
+</linearGradient>
+</defs>
+</svg>

@@ -7,6 +7,7 @@ import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../core/theme/app_theme.dart';
 
 class CustomerScannerScreen extends StatefulWidget {
   final Map<String, dynamic>? extra; // To accept expectedBusinessId etc.
@@ -29,6 +30,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
   // Expected Business Data & Stats
   String? _expectedBusinessId;
   String? _expectedBusinessName;
+  String? _expectedBusinessLogo;
   Color? _expectedBusinessColor;
   int _currentStamps = 0;
   int _targetStamps = 6;
@@ -52,6 +54,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
           ? widget.extra!['expectedBusinessColor'] 
           : null;
        
+       _expectedBusinessLogo = widget.extra!['expectedBusinessLogo'];
+
        debugPrint("✅ Expected Business: $_expectedBusinessName (ID: $_expectedBusinessId)");
 
        // Parse color if string
@@ -138,7 +142,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                    const SizedBox(height: 16),
-                   const CircularProgressIndicator(color: Color(0xFFEE2C2C)),
+                   CircularProgressIndicator(color: AppTheme.primaryColor),
                    const SizedBox(height: 24),
                    Text(
                      Provider.of<LanguageProvider>(context, listen: false).translate('waiting_approval'),
@@ -191,16 +195,15 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       }
 
       if (!mounted) return;
-      Navigator.of(context).pop(); // Close waiting dialog
-         
       if (isConfirmed) {
          if (mounted) {
-            final bId = _expectedBusinessId ?? result['business']?['id'] ?? '';
-            final tId = finalResult?['transactionId'] ?? '';
-            debugPrint("⭐ Triggering Rating for Transaction: $tId at Business: $bId");
-            await _showRatingDialog(context, tId, bId);
+            await showCustomPopup(
+              context,
+              message: Provider.of<LanguageProvider>(context, listen: false).translate('approved'),
+              type: PopupType.success,
+            );
          }
-         if (mounted) context.pop(true);
+         if (mounted) context.go('/home');
       } else if (isCancelled) {
           // [NEW] Handle Cancellation
           if (mounted) {
@@ -229,6 +232,13 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       // Improved Error Handling
       if (e.toString().contains("FIRM_MISMATCH")) {
           errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('firm_mismatch_error')}$_expectedBusinessName";
+      } else if (e.toString().contains("NO_CAMPAIGN")) {
+          // Extract message portion from Exception string (e.g. Exception: NO_CAMPAIGN:Firm XYZ işletmesinin ...)
+          try {
+             errorMessage = e.toString().split("NO_CAMPAIGN:")[1].trim();
+          } catch (_) {
+             errorMessage = "Bu işletmenin aktif bir kampanyası bulunmamaktadır.";
+          }
       } else if (e.toString().contains("404") || e.toString().contains("Invalid or expired")) {
          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('expired_qr_error');
       } else if (e.toString().contains("400")) { 
@@ -252,151 +262,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       }
     }
   }
-  Future<void> _showRatingDialog(BuildContext context, String transactionId, String businessId) async {
-    int rating = 5;
-    final TextEditingController commentController = TextEditingController();
-    bool isSubmitting = false;
-
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 24),
-              // Success Header
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
-                child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                Provider.of<LanguageProvider>(context).translate('approved'),
-                style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                child: Text(
-                  Provider.of<LanguageProvider>(context).translate('rate_subtitle'),
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 14),
-                ),
-              ),
-              const SizedBox(height: 30),
-              // Stars
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return GestureDetector(
-                    onTap: () => setModalState(() => rating = index + 1),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Icon(
-                        Icons.coffee_rounded,
-                        size: 40,
-                        color: index < rating ? Colors.amber : Colors.grey[300],
-                      ),
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 30),
-              // Comment Field
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: TextField(
-                  controller: commentController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: Provider.of<LanguageProvider>(context).translate('rating_comment_hint'),
-                    hintStyle: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
-                    filled: true,
-                    fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-              // Buttons
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: Text(
-                          Provider.of<LanguageProvider>(context).translate('skip'),
-                          style: GoogleFonts.outfit(color: Colors.grey[600], fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEE2C2C),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        ),
-                        onPressed: isSubmitting ? null : () async {
-                          setModalState(() => isSubmitting = true);
-                          try {
-                            if (transactionId.isEmpty || businessId.isEmpty) {
-                               throw Exception("Geçersiz işlem veya işletme ID.");
-                            }
-
-                            final api = context.read<ApiService>();
-                            await api.submitReview(
-                              transactionId,
-                              businessId,
-                              rating,
-                              commentController.text,
-                            );
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                          } catch (e) {
-                            debugPrint("❌ Review Error: $e");
-                            setModalState(() => isSubmitting = false);
-                            if (!context.mounted) return;
-                             showCustomPopup(
-                               context, 
-                               message: e.toString(), 
-                               type: PopupType.error
-                             );
-                          }
-                        },
-                        child: isSubmitting 
-                          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(Provider.of<LanguageProvider>(context).translate('submit_review'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
+
   void dispose() {
     _scannerController.dispose();
     super.dispose();
@@ -535,10 +402,25 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                          Container(
                            width: 50, height: 50,
                            decoration: BoxDecoration(
-                             color: brandColor,
+                             color: _expectedBusinessLogo == null ? brandColor : Colors.white,
                              shape: BoxShape.circle,
+                             boxShadow: [
+                               if (_expectedBusinessLogo != null)
+                                 BoxShadow(
+                                   color: Colors.black.withValues(alpha: 0.1),
+                                   blurRadius: 4,
+                                 ),
+                             ]
                            ),
-                           child: const Icon(Icons.local_cafe, color: Colors.white, size: 24),
+                           child: _expectedBusinessLogo != null
+                             ? ClipOval(
+                                 child: Image.network(
+                                   resolveImageUrl(_expectedBusinessLogo)!,
+                                   fit: BoxFit.cover,
+                                   errorBuilder: (_, __, ___) => Icon(Icons.local_cafe, color: Colors.white, size: 24),
+                                 ),
+                               )
+                             : const Icon(Icons.local_cafe, color: Colors.white, size: 24),
                          ),
                          const SizedBox(width: 16),
                          Expanded(

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'dart:async';
 import 'package:dio/dio.dart';
 import '../config/api_config.dart';
 import 'storage_service.dart';
@@ -7,6 +8,8 @@ import 'storage_service.dart';
 class ApiService {
   final Dio _dio;
   final StorageService _storageService;
+  bool _isRefreshing = false;
+  final List<Completer<bool>> _requestQueue = [];
 
   ApiService(this._storageService)
       : _dio = Dio(BaseOptions(
@@ -18,14 +21,32 @@ class ApiService {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await _storageService.getToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+        if (token != null && token.isNotEmpty) {
+          options.headers.addAll({'Authorization': 'Bearer $token'});
         }
         return handler.next(options);
       },
       onError: (DioException e, handler) async {
         // Handle global errors (e.g. 401 Unauthorized)
         if (e.response?.statusCode == 401) {
+          if (_isRefreshing) {
+            // If already refreshing, wait for it to finish
+            final completer = Completer<bool>();
+            _requestQueue.add(completer);
+            final success = await completer.future;
+            if (success) {
+              final newToken = await _storageService.getToken();
+              final options = e.requestOptions;
+              options.headers['Authorization'] = 'Bearer $newToken';
+              final retryResponse = await _dio.fetch(options);
+              return handler.resolve(retryResponse);
+            } else {
+              return handler.next(e);
+            }
+          }
+
+          _isRefreshing = true;
+
           final refreshToken = await _storageService.getRefreshToken();
           
           if (refreshToken != null) {
@@ -41,9 +62,16 @@ class ApiService {
                 final newToken = refreshResponse.data['token'];
                 await _storageService.saveToken(newToken);
 
+                // Notify all queued requests that refresh was successful
+                for (var completer in _requestQueue) {
+                  completer.complete(true);
+                }
+                _requestQueue.clear();
+                _isRefreshing = false;
+
                 // Retry original request with new token
                 final options = e.requestOptions;
-                options.headers['Authorization'] = 'Bearer $newToken';
+                options.headers.addAll({'Authorization': 'Bearer $newToken'});
                 
                 // Create a generic response using the resolved token
                 final retryResponse = await _dio.fetch(options);
@@ -54,6 +82,13 @@ class ApiService {
               // Token refresh failed, continue to trigger unauthorized
             }
           }
+
+          // Refresh failed completely
+          for (var completer in _requestQueue) {
+            completer.complete(false);
+          }
+          _requestQueue.clear();
+          _isRefreshing = false;
 
           onUnauthorized?.call();
         }
@@ -125,6 +160,10 @@ class ApiService {
     final response = await _dio.get(ApiConfig.getPendingReviews);
     return response.data as List<dynamic>;
   }
+  // Account Management
+  Future<void> deleteAccount(String password) async {
+    await _dio.delete('/customer/profile', data: {'password': password});
+  }
 
   // Simulation Methods (for development/demo)
   Future<Map<String, dynamic>> simulateProcessTransaction(String customerId, String businessId) async {
@@ -192,6 +231,8 @@ class ApiService {
     } on DioException catch (e) {
       if (e.response?.statusCode == 400 && e.response?.data['error'] == 'Firm Mismatch') {
          throw Exception("FIRM_MISMATCH");
+      } else if (e.response?.statusCode == 400 && e.response?.data['error'] == 'Kampanya Bulunamadı') {
+         throw Exception("NO_CAMPAIGN:${e.response?.data['message']}");
       }
       rethrow; // Replaced _handleDioError(e) as it's not defined in the provided context.
     }

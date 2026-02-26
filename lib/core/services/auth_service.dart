@@ -66,48 +66,47 @@ class AuthService {
     DateTime? birthDate,
   }) async {
     try {
-      // 1. Register in Firebase with REAL Email
-      final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
+      // ONLY Register in Custom Backend (MongoDB) - TempUser Queue
+      final response = await _apiService.client.post(
+        '/auth/register',
+        data: {
+          'name': name,
+          'surname': surname,
+          'phoneNumber': phoneNumber,
+          'email': email,
+          'password': password,
+          'gender': gender,
+          'birthDate': birthDate?.toIso8601String(),
+        },
       );
-
-      final user = userCredential.user;
-      if (user != null) {
-        await user.updateDisplayName("$name $surname");
-      }
-
-      try {
-        // 2. Register in Custom Backend (MongoDB)
-        final response = await _apiService.client.post(
-          '/auth/register',
-          data: {
-            'name': name,
-            'surname': surname,
-            'phoneNumber': phoneNumber,
-            'email': email,
-            'password': password,
-            'gender': gender,
-            'birthDate': birthDate?.toIso8601String(),
-            'firebaseUid': user?.uid, // Added UID for linking if needed later
-          },
-        );
-        
-        return response.data;
-      } catch (backendError) {
-        // ROLLBACK: Delete Firebase User if Backend fails
-        debugPrint("Backend Register Failed: $backendError. Rollback Firebase User.");
-        await user?.delete();
-        rethrow;
-      }
+      
+      return response.data;
     } catch (e) {
-       debugPrint("Dual Register Error: $e");
+      if (e is DioException) {
+         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
+      }
       rethrow;
     }
   }
 
   Future<void> logout() async {
     await _storageService.clearSession();
+  }
+
+  Future<void> deleteAccount(String password) async {
+    // 1. Delete MongoDB data via API
+    await _apiService.deleteAccount(password);
+    
+    // 2. Delete Firebase Auth user locally
+    try {
+      await FirebaseAuth.instance.currentUser?.delete();
+    } catch (e) {
+      debugPrint("Firebase user deletion failed locally: $e");
+      // Non-blocking. The JWT and Mongo records are already dead.
+    }
+    
+    // 3. Clear session
+    await logout();
   }
 
   Future<Map<String, dynamic>> getProfile() async {
@@ -168,7 +167,7 @@ class AuthService {
     }
   }
 
-  Future<void> verifySmsCode(String phoneNumber, String code) async {
+  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname}) async {
     try {
       final response = await _apiService.client.post('/auth/verify-code', data: {
         'phoneNumber': phoneNumber,
@@ -184,6 +183,25 @@ class AuthService {
           await _storageService.saveRefreshToken(refreshToken);
         }
       }
+
+      // If this is a NEW Registration flow bridging from TempUser
+      if (email != null && password != null) {
+        try {
+          // Now create Firebase Auth Credentials safely since we know phone is real
+          final userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          
+          if (name != null) {
+            await userCredential.user?.updateDisplayName("$name ${surname ?? ''}");
+          }
+        } catch (fbError) {
+          debugPrint("Safe Firebase Creation Warning: $fbError");
+          // Non-blocking error. The backend JWT gives us full access anyway.
+        }
+      }
+
     } catch (e) {
       if (e is DioException) {
          debugPrint("SMS Verify Error: ${e.response?.data}");

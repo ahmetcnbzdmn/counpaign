@@ -154,18 +154,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                      const SizedBox(height: 24),
                      SizedBox(
                        width: double.infinity,
-                       child: ElevatedButton(
-                         onPressed: () {
-                           Navigator.pop(ctx); // Close dialog
-                           Navigator.pop(context); // Close screen
-                         },
-                         style: ElevatedButton.styleFrom(
-                           backgroundColor: const Color(0xFFEE2C2C),
-                           foregroundColor: Colors.white,
-                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                           padding: const EdgeInsets.symmetric(vertical: 16),
+                       child: Container(
+                         decoration: BoxDecoration(
+                           gradient: const LinearGradient(
+                             begin: Alignment.topLeft,
+                             end: Alignment.bottomRight,
+                             colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                           ),
+                           borderRadius: BorderRadius.circular(12),
                          ),
-                         child: Text(context.read<LanguageProvider>().translate('ok'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                         child: ElevatedButton(
+                           onPressed: () {
+                             Navigator.pop(ctx); // Close dialog
+                             Navigator.pop(context); // Close screen
+                           },
+                           style: ElevatedButton.styleFrom(
+                             backgroundColor: Colors.transparent,
+                             shadowColor: Colors.transparent,
+                             foregroundColor: Colors.white,
+                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                             padding: const EdgeInsets.symmetric(vertical: 16),
+                           ),
+                           child: Text(context.read<LanguageProvider>().translate('ok'), style: const TextStyle(fontWeight: FontWeight.bold)),
+                         ),
                        ),
                      ),
                    ],
@@ -186,12 +197,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
      }
    }
 
-  @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = theme.cardColor;
-    const primaryBrand = Color(0xFFEE2C2C);
+    final textColor = const Color(0xFF131313);
+    final cardColor = Colors.white;
+    const primaryBrand = Color(0xFF76410B);
     final lang = context.watch<LanguageProvider>();
 
     ImageProvider? imageProvider;
@@ -202,7 +211,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: const Color(0xFFEBEBEB),
       appBar: AppBar(
         title: Text(lang.translate('edit_profile'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.transparent,
@@ -240,10 +249,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: const BoxDecoration(
-                            color: primaryBrand,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                            ),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.black, size: 20),
+                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                         ),
                       ),
                     ),
@@ -344,17 +357,35 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBrand,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x3F7F7F7F),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: context.watch<AuthProvider>().isLoading 
-                    ? const CircularProgressIndicator(color: Colors.black) 
-                    : Text(lang.translate('save_changes')),
+                  child: ElevatedButton(
+                    onPressed: _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    child: context.watch<AuthProvider>().isLoading 
+                      ? const CircularProgressIndicator(color: Colors.white) 
+                      : Text(lang.translate('save_changes')),
+                  ),
                 ),
               ),
             ],
@@ -370,8 +401,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = Theme.of(context).cardColor;
+    final textColor = const Color(0xFF131313);
+    final cardColor = Colors.white;
+    final primaryBrand = const Color(0xFF76410B);
     final lang = context.read<LanguageProvider>();
     return TextFormField(
       controller: controller,
@@ -386,14 +418,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fillColor: cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Color(0xFFEE2C2C))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryBrand)),
       ),
     );
   }
 
   Widget _buildDropdownField(LanguageProvider lang) {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = Theme.of(context).cardColor;
+    final textColor = const Color(0xFF131313);
+    final cardColor = Colors.white;
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -427,8 +459,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildDatePickerField(LanguageProvider lang) {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = Theme.of(context).cardColor;
+    final textColor = const Color(0xFF131313);
+    final cardColor = Colors.white;
     
     return AbsorbPointer(
       child: TextFormField(

@@ -116,10 +116,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryBrand = Color(0xFFEE2C2C);
+    final bgColor = const Color(0xFFEBEBEB);
+    final cardColor = Colors.white;
+    final textColor = const Color(0xFF131313);
+    const primaryBrand = Color(0xFF76410B);
     
     final lang = context.watch<LanguageProvider>();
 
@@ -130,6 +130,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           lang.translate('notifications'),
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh, color: primaryBrand),

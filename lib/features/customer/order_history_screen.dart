@@ -78,10 +78,11 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const activeColor = Color(0xFFEE2C2C); // Red
+    final isDark = theme.brightness == Brightness.dark;
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFEBEBEB);
+    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color textColor = isDark ? Colors.white : const Color(0xFF131313);
+    const activeColor = Color(0xFF76410B); // Brand Brown
 
     final lang = context.watch<LanguageProvider>();
     final filteredTransactions = _getFilteredTransactions();
@@ -163,62 +164,67 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                             final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
         
                             String title = lang.translate('transaction');
-                            String amount = "";
-                            Color amountColor = textColor;
                             IconData icon = Icons.receipt_long_rounded;
-        
+                            
                             final description = tx['description'] ?? '';
                             final pointsEarned = tx['pointsEarned']; // Can be negative number, null, or string
+                            
+                            final List<Widget> amountWidgets = [];
+                            
+                            // Parse points securely
+                            double? pts;
+                            if (pointsEarned != null) {
+                               if (pointsEarned is num) pts = pointsEarned.toDouble();
+                               if (pointsEarned is String) pts = double.tryParse(pointsEarned);
+                            } else if (type == 'POINT' && value != null) {
+                               if (value is num) pts = value.toDouble();
+                               if (value is String) pts = double.tryParse(value);
+                            }
 
                             if (type == 'gift_redemption') {
                                final isEntitlementText = description.toString().toLowerCase().contains('hediye hakkı');
-                               final isZeroPoints = pointsEarned != null && (pointsEarned == 0 || pointsEarned == '0');
+                               final isZeroPoints = pts == null || pts == 0;
                                
                                if (isEntitlementText || isZeroPoints) {
                                   title = lang.translate('hediye_hakki_kullanimi');
-                                  amount = "-1";
-                                  amountColor = Colors.amber; // Yellow
                                   icon = Icons.coffee_rounded; 
+                                  amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
                                } else {
-                                  // Point Purchase (Hediye Alımı: [GiftName])
-                                  // Extract gift name
                                   final giftName = description.replaceAll('Hediye Alımı: ', '');
                                   title = "${lang.translate('hediye_alimi')}: $giftName";
-                                  
-                                  // Safe cast to avoid 'null' string
-                                  final cost = pointsEarned?.toString() ?? '0';
-                                  amount = cost; 
-                                  amountColor = const Color(0xFFEE2C2C); // Red
                                   icon = Icons.card_giftcard_rounded;
+                                  if (pts != null) amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
                                }
                             } else if (type == 'STAMP') {
-                              title = lang.translate('stamp_earned'); 
-                              amount = "+$value";
-                              amountColor = Colors.orange;
-                              icon = Icons.local_cafe_rounded;
+                               title = lang.translate('stamp_earned'); 
+                               icon = Icons.local_cafe_rounded;
+                               if (value != null && value > 0) {
+                                  amountWidgets.add(Text("+$value Damga", style: GoogleFonts.outfit(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 15)));
+                               }
+                               if (pts != null && pts != 0) {
+                                  amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)));
+                               }
                             } else if (type == 'POINT') {
-                              // Check for negative points (spend)
-                              if (pointsEarned != null && (pointsEarned is num) && pointsEarned < 0) {
-                                 title = "Puan Harcama";
-                                 amount = "$pointsEarned";
-                                 amountColor = const Color(0xFFEE2C2C);
-                                 icon = Icons.shopping_bag_outlined;
-                              } else {
-                                 title = lang.translate('point_earned');
-                                 final val = tx['pointsEarned'] ?? value;
-                                 amount = "+$val";
-                                 amountColor = Colors.green;
-                                 icon = Icons.stars_rounded;
-                              }
+                               if (pts != null && pts < 0) {
+                                  title = "Puan Harcama";
+                                  icon = Icons.shopping_bag_outlined;
+                                  amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
+                               } else {
+                                  title = lang.translate('point_earned');
+                                  icon = Icons.stars_rounded;
+                                  if (pts != null && pts > 0) {
+                                     amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15)));
+                                  }
+                               }
                             } else if (type == 'GIFT_REDEEM') {
-                              title = lang.translate('gift_redeemed');
-                              amount = "-1";
-                              amountColor = Colors.red;
-                              icon = Icons.card_giftcard_rounded;
+                               title = lang.translate('gift_redeemed');
+                               icon = Icons.card_giftcard_rounded;
+                               amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
                             }
         
                             final colorHex = business['cardColor'] ?? '#333333';
                             final color = Color(int.parse(colorHex.replaceAll('#', '0xFF')));
+                            final String? logoUrl = resolveImageUrl(business['logo'] ?? business['image'] ?? business['logoUrl']);
         
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -227,65 +233,81 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: textColor.withValues(alpha: 0.05)),
                               ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.all(16),
-                                leading: Container(
-                                  width: 50, height: 50,
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(icon, color: color),
-                                ),
-                                title: Text(
-                                  business['companyName'] ?? lang.translate('unknown_business'),
-                                  style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
-                                    const SizedBox(height: 4),
-                                    Text(title, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7))),
-                                    Text(formattedDate, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12)),
-                                  ],
-                                ),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      amount,
-                                      style: GoogleFonts.outfit(color: amountColor, fontWeight: FontWeight.bold, fontSize: 18),
-                                    ),
-                                    if (tx['review'] != null)
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.coffee_rounded, size: 12, color: Colors.amber),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            "${tx['review']['rating']}/5",
-                                            style: GoogleFonts.outfit(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
-                                          ),
-                                        ],
-                                      )
-                                    else if (type != 'GIFT_REDEEM') // Only rate earnings? Or everything? Let's allow all for now
-                                      GestureDetector(
-                                        onTap: () => _showRatingDialog(context, tx),
-                                        child: Container(
-                                          margin: const EdgeInsets.only(top: 4),
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.amber.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
-                                          ),
-                                          child: Text(
-                                            lang.translate('rate_transaction'),
-                                            style: GoogleFonts.outfit(color: Colors.amber[800], fontSize: 10, fontWeight: FontWeight.bold),
-                                          ),
-                                        ),
+                                    Container(
+                                      width: 50, height: 50,
+                                      decoration: BoxDecoration(
+                                        color: color.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                        image: (logoUrl != null && logoUrl.isNotEmpty) 
+                                           ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
+                                           : null,
                                       ),
+                                      child: (logoUrl == null || logoUrl.isEmpty) 
+                                         ? Padding(
+                                             padding: const EdgeInsets.all(8.0),
+                                             child: Image.asset('assets/images/app_logo.png', fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(icon, color: color)),
+                                           )
+                                         : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            business['companyName'] ?? lang.translate('unknown_business'),
+                                            style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 16),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(title, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7))),
+                                          Text(formattedDate, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4), fontSize: 12)),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        ...amountWidgets,
+                                        if (tx['review'] != null)
+                                          Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.coffee_rounded, size: 12, color: Colors.amber),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "${tx['review']['rating']}/5",
+                                                style: GoogleFonts.outfit(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold),
+                                              ),
+                                            ],
+                                          )
+                                        else if (type != 'GIFT_REDEEM') // Only rate earnings? Or everything? Let's allow all for now
+                                          GestureDetector(
+                                            onTap: () => _showRatingDialog(context, tx),
+                                            child: Container(
+                                              margin: const EdgeInsets.only(top: 4),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                                              ),
+                                              child: Text(
+                                                lang.translate('rate_transaction'),
+                                                style: GoogleFonts.outfit(color: Colors.amber[800], fontSize: 10, fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ),

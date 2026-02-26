@@ -19,10 +19,11 @@ class CampaignDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final cardColor = theme.cardColor;
-    const accentColor = Color(0xFFEE2C2C);
+    final isDark = theme.brightness == Brightness.dark;
+    final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFEBEBEB);
+    final Color textColor = isDark ? Colors.white : const Color(0xFF131313);
+    final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
+    const Color accentColor = Color(0xFF76410B);
 
     return SwipeBackDetector(
       child: Scaffold(
@@ -232,7 +233,7 @@ class CampaignDetailScreen extends StatelessWidget {
                           Icons.calendar_today_rounded,
                           Provider.of<LanguageProvider>(context).translate('date_label'),
                           DateFormat('dd.MM.yyyy').format(campaign.endDate),
-                          Colors.blueAccent,
+                          accentColor,
                         ),
                       ],
                     ),

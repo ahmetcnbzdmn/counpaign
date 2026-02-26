@@ -29,6 +29,8 @@ class CampaignMenuItem {
 class CampaignModel {
   final String id;
   final String businessId;
+  final String businessName;
+  final String? businessLogo;
   final String title;
   final String shortDescription;
   final String? headerImage;
@@ -47,6 +49,8 @@ class CampaignModel {
   CampaignModel({
     required this.id,
     required this.businessId,
+    this.businessName = '',
+    this.businessLogo,
     required this.title,
     required this.shortDescription,
     this.headerImage,
@@ -67,9 +71,30 @@ class CampaignModel {
   double get discountedPrice => (totalPrice - discountAmount).clamp(0, double.infinity);
 
   factory CampaignModel.fromJson(Map<String, dynamic> json) {
+    // Flexible business data extraction
+    final bData = json['businessId'] ?? json['business'];
+    String bName = '';
+    String? bLogo;
+
+    // 1. Try to get from populated Map
+    if (bData is Map) {
+      bName = bData['companyName'] ?? bData['businessName'] ?? bData['name'] ?? '';
+      bLogo = bData['logo'] ?? bData['logoUrl'] ?? bData['businessLogo'];
+    }
+    
+    // 2. Fallback to top-level fields if still empty (backend might send flat data or populate failed)
+    if (bName.isEmpty) {
+      bName = json['businessName'] ?? json['companyName'] ?? '';
+    }
+    if (bLogo == null) {
+      bLogo = json['businessLogo'] ?? json['logo'];
+    }
+
     return CampaignModel(
       id: json['_id'] ?? '',
-      businessId: json['businessId'] ?? '',
+      businessId: (bData is Map) ? (bData['_id'] ?? '') : (bData ?? ''),
+      businessName: bName.isNotEmpty ? bName : 'Counpaign',
+      businessLogo: bLogo,
       title: json['title'] ?? '',
       shortDescription: json['shortDescription'] ?? '',
       headerImage: json['headerImage'],
@@ -77,9 +102,9 @@ class CampaignModel {
       icon: json['icon'] ?? 'star_rounded',
       isPromoted: json['isPromoted'] ?? false,
       displayOrder: json['displayOrder'] ?? 0,
-      startDate: DateTime.parse(json['startDate']),
-      endDate: DateTime.parse(json['endDate']),
-      createdAt: DateTime.parse(json['createdAt']),
+      startDate: json['startDate'] != null ? DateTime.parse(json['startDate']) : DateTime.now(),
+      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : DateTime.now(),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
       menuItems: json['menuItems'] != null
           ? (json['menuItems'] as List).map((e) => CampaignMenuItem.fromJson(e)).toList()
           : [],
@@ -93,6 +118,7 @@ class CampaignModel {
     return {
       '_id': id,
       'businessId': businessId,
+      'businessName': businessName,
       'title': title,
       'shortDescription': shortDescription,
       'headerImage': headerImage,

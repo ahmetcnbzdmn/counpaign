@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/config/api_config.dart';
 
 class MyReviewsScreen extends StatefulWidget {
   const MyReviewsScreen({super.key});
@@ -81,8 +83,15 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const activeColor = Color(0xFFEE2C2C); // Red
+    final textColor = const Color(0xFF131313);
+    final activeColor = AppTheme.primaryColor;
+
+    String resolveLogoUrl(String? path) {
+      if (path == null || path.isEmpty) return '';
+      if (path.startsWith('http')) return path;
+      final baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+      return '$baseUrl$path';
+    }
 
     final lang = context.watch<LanguageProvider>();
 
@@ -111,15 +120,15 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 children: [
-                  _buildRatedList(lang, textColor, cardColor),
-                  _buildPendingList(lang, textColor, cardColor),
+                  _buildRatedList(lang, textColor, cardColor, resolveLogoUrl),
+                  _buildPendingList(lang, textColor, cardColor, resolveLogoUrl),
                 ],
               ),
       ),
     );
   }
 
-  Widget _buildRatedList(LanguageProvider lang, Color textColor, Color cardColor) {
+  Widget _buildRatedList(LanguageProvider lang, Color textColor, Color cardColor, String Function(String?) resolveLogoUrl) {
     final filteredReviews = _getFilteredReviews();
     return Column(
       children: [
@@ -141,7 +150,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   onSelected: (selected) {
                     if (selected) setState(() => _selectedFilter = filterKey);
                   },
-                  selectedColor: const Color(0xFFEE2C2C),
+                  selectedColor: AppTheme.primaryColor,
                   backgroundColor: cardColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   side: BorderSide(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
@@ -164,9 +173,9 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                     final dateStr = review['createdAt'];
                     final date = dateStr != null ? DateTime.parse(dateStr).toLocal() : DateTime.now();
                     final formattedDate = DateFormat('dd MMM yyyy').format(date);
-
-                    final colorHex = business['cardColor'] ?? '#333333';
-                    final color = Color(int.parse(colorHex.replaceAll('#', '0xFF')));
+                    
+                    final rawLogo = business['logo'] ?? business['image'] ?? business['logoUrl'];
+                    final logoUrl = resolveLogoUrl(rawLogo);
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -182,13 +191,22 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                           Row(
                             children: [
                               Container(
-                                width: 40, height: 40,
+                                width: 44, height: 44,
                                 margin: const EdgeInsets.only(right: 12),
                                 decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  image: logoUrl.isNotEmpty 
+                                    ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
+                                    : null,
+                                  border: Border.all(color: textColor.withValues(alpha: 0.1)),
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+                                  ],
                                 ),
-                                child: Icon(Icons.store_rounded, color: color, size: 20),
+                                child: logoUrl.isEmpty 
+                                  ? const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20)
+                                  : null,
                               ),
                               Expanded(
                                 child: Column(
@@ -241,7 +259,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     );
   }
 
-  Widget _buildPendingList(LanguageProvider lang, Color textColor, Color cardColor) {
+  Widget _buildPendingList(LanguageProvider lang, Color textColor, Color cardColor, String Function(String?) resolveLogoUrl) {
     return _pendingReviews.isEmpty
         ? _buildEmptyState(lang, textColor, 'no_pending_reviews')
         : ListView.builder(
@@ -253,9 +271,9 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
               final dateStr = tx['createdAt'];
               final date = dateStr != null ? DateTime.parse(dateStr).toLocal() : DateTime.now();
               final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
-
-              final colorHex = business['cardColor'] ?? '#333333';
-              final color = Color(int.parse(colorHex.replaceAll('#', '0xFF')));
+              
+              final rawLogo = business['logo'] ?? business['image'] ?? business['logoUrl'];
+              final logoUrl = resolveLogoUrl(rawLogo);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
@@ -270,10 +288,19 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                     Container(
                       width: 50, height: 50,
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        image: logoUrl.isNotEmpty 
+                          ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
+                          : null,
+                        border: Border.all(color: textColor.withValues(alpha: 0.1)),
+                        boxShadow: [
+                           BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+                        ],
                       ),
-                      child: Icon(Icons.history_rounded, color: color, size: 24),
+                      child: logoUrl.isEmpty 
+                        ? const Icon(Icons.history_rounded, color: AppTheme.deepBrown, size: 24)
+                        : null,
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -294,7 +321,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                     ElevatedButton(
                       onPressed: () => _showRateNowBottomSheet(tx['_id'], business['_id'] ?? business['id']),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEE2C2C),
+                        backgroundColor: AppTheme.primaryColor,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -389,7 +416,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                    width: double.infinity,
                    child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEE2C2C),
+                      backgroundColor: AppTheme.primaryColor,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),

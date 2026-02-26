@@ -19,6 +19,34 @@ class BusinessProvider extends ChangeNotifier {
   List<dynamic> _exploreFirms = [];
   List<dynamic> get exploreFirms => _exploreFirms;
 
+  // Track currently viewed firm (Context-Aware Scanner Guard)
+  String? _currentViewedFirmId;
+  String? _currentViewedFirmName;
+  Map<String, dynamic>? _currentViewedFirmExtra;
+
+  int _homeSelectedFirmIndex = 0;
+  int get homeSelectedFirmIndex => _homeSelectedFirmIndex;
+
+  void setHomeSelectedFirmIndex(int index) {
+    _homeSelectedFirmIndex = index;
+  }
+
+  String? get currentViewedFirmId => _currentViewedFirmId;
+  String? get currentViewedFirmName => _currentViewedFirmName;
+  Map<String, dynamic>? get currentViewedFirmExtra => _currentViewedFirmExtra;
+
+  void setContextFirm(String id, String name, [Map<String, dynamic>? extra]) {
+    _currentViewedFirmId = id;
+    _currentViewedFirmName = name;
+    _currentViewedFirmExtra = extra;
+  }
+
+  void clearContextFirm() {
+    _currentViewedFirmId = null;
+    _currentViewedFirmName = null;
+    _currentViewedFirmExtra = null;
+  }
+
   bool isFirmInWallet(String businessId) {
     return _myFirms.any((firm) => firm['id'] == businessId);
   }

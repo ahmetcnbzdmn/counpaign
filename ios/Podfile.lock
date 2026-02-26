@@ -151,6 +151,8 @@ PODS:
   - smart_auth (0.0.1):
     - Flutter
   - TOCropViewController (2.6.1)
+  - url_launcher_ios (0.0.1):
+    - Flutter
   - vibration (3.0.0):
     - Flutter
 
@@ -171,6 +173,7 @@ DEPENDENCIES:
   - sensors_plus (from `.symlinks/plugins/sensors_plus/ios`)
   - shared_preferences_foundation (from `.symlinks/plugins/shared_preferences_foundation/darwin`)
   - smart_auth (from `.symlinks/plugins/smart_auth/ios`)
+  - url_launcher_ios (from `.symlinks/plugins/url_launcher_ios/ios`)
   - vibration (from `.symlinks/plugins/vibration/ios`)
 
 SPEC REPOS:
@@ -233,6 +236,8 @@ EXTERNAL SOURCES:
     :path: ".symlinks/plugins/shared_preferences_foundation/darwin"
   smart_auth:
     :path: ".symlinks/plugins/smart_auth/ios"
+  url_launcher_ios:
+    :path: ".symlinks/plugins/url_launcher_ios/ios"
   vibration:
     :path: ".symlinks/plugins/vibration/ios"
 
@@ -277,6 +282,7 @@ SPEC CHECKSUMS:
   shared_preferences_foundation: 7036424c3d8ec98dfe75ff1667cb0cd531ec82bb
   smart_auth: 33668081c5f646af84f10492a067d25fdcd16951
   TOCropViewController: edfd4f25713d56905ad1e0b9f5be3fbe0f59c863
+  url_launcher_ios: 7a95fa5b60cc718a708b8f2966718e93db0cef1b
   vibration: ca8104a8875b9c493e15b21b04e456befd0ff6eb
 
 PODFILE CHECKSUM: a4ca0f8b95c6513dac6372f28c44d07d6cf54046

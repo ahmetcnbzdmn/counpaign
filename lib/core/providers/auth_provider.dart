@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -22,26 +23,47 @@ class AuthProvider extends ChangeNotifier {
   bool get isInitialized => _isInitialized;
 
   Future<void> loadUserSession() async {
-    final token = await _storageService.getToken();
-    if (token != null) {
-      try {
-        await fetchProfile();
-      } catch (e) {
-        debugPrint("Session Load Error: $e");
-        // If fetch fails (token expired or net error), clear session
-        // But don't block app start. If net error, user might still want to see cached data?
-        // For now, logout on error implies "Require Login".
-        await logout();
+    try {
+      final token = await _storageService.getToken();
+      
+      if (token != null && token.isNotEmpty) {
+        // Optimistically load cached user to prevent 401 kicks
+        try {
+          final cachedUserStr = await _storageService.getCachedUser();
+          if (cachedUserStr != null && cachedUserStr.isNotEmpty) {
+            _currentUser = User.fromJson(jsonDecode(cachedUserStr));
+          }
+        } catch (e) {
+          debugPrint("Error loading cached user: $e");
+        }
+
+        try {
+          await fetchProfile();
+        } catch (e) {
+          debugPrint("Session Load (fetchProfile) Error: $e");
+          // Do NOT call logout() here, allowing the app to rely on cached user
+        }
+      } else {
+         // No token found, ensure state is clean
+         _currentUser = null;
       }
+    } catch(e) {
+       debugPrint("Storage Read Error: $e");
+       await logout();
+    } finally {
+      // Must always initialize so Splash Screen can route away
+      _isInitialized = true;
+      notifyListeners();
     }
-    _isInitialized = true;
-    notifyListeners();
   }
 
   Future<void> fetchProfile() async {
     try {
       final userData = await _authService.getProfile();
       _currentUser = User.fromJson(userData);
+      
+      // Save to cache for persistent login across restarts even on 401s
+      await _storageService.saveCachedUser(jsonEncode(userData));
       
       // Sync FCM Token silently
       try {
@@ -74,10 +96,17 @@ class AuthProvider extends ChangeNotifier {
     await _authService.sendSmsVerification(phoneNumber);
   }
 
-  Future<void> verifySmsCode(String phoneNumber, String code) async {
+  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname}) async {
     _setLoading(true);
     try {
-      await _authService.verifySmsCode(phoneNumber, code);
+      await _authService.verifySmsCode(
+        phoneNumber, 
+        code,
+        email: email,
+        password: password,
+        name: name,
+        surname: surname,
+      );
       await fetchProfile(); // Now we are fully logged in
     } finally {
       _setLoading(false);
@@ -131,6 +160,17 @@ class AuthProvider extends ChangeNotifier {
       );
       _currentUser = User.fromJson(updatedData);
       notifyListeners(); 
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> deleteAccount(String password) async {
+    _setLoading(true);
+    try {
+      await _authService.deleteAccount(password);
+      _currentUser = null;
+      notifyListeners();
     } finally {
       _setLoading(false);
     }

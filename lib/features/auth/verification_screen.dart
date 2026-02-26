@@ -9,10 +9,18 @@ import '../../core/providers/auth_provider.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String phoneNumber;
+  final String? email;
+  final String? password;
+  final String? name;
+  final String? surname;
   
   const VerificationScreen({
     super.key, 
     required this.phoneNumber,
+    this.email,
+    this.password,
+    this.name,
+    this.surname,
   });
 
   @override
@@ -42,7 +50,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     try {
       final auth = context.read<AuthProvider>();
-      await auth.verifySmsCode(widget.phoneNumber, _pinController.text);
+      await auth.verifySmsCode(
+        widget.phoneNumber, 
+        _pinController.text,
+        email: widget.email,
+        password: widget.password,
+        name: widget.name,
+        surname: widget.surname,
+      );
       
       if (mounted) {
         // Success Haptic
@@ -87,8 +102,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1E2329);
-    final primaryColor = theme.primaryColor;
+    final textColor = const Color(0xFF131313);
+    const primaryColor = Color(0xFF76410B);
+    const bgColor = Color(0xFFEBEBEB);
 
     // Pinput Theme
     final defaultPinTheme = PinTheme(
@@ -100,7 +116,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         color: textColor,
       ),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2329) : const Color(0xFFF3F4F6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.transparent),
         boxShadow: [
@@ -125,11 +141,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
     );
 
     final submittedPinTheme = defaultPinTheme.copyDecorationWith(
-      color: isDark ? const Color(0xFF2C333D) : const Color(0xFFE5E7EB),
+      color: Colors.white,
     );
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -213,19 +229,36 @@ class _VerificationScreenState extends State<VerificationScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _verify,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    foregroundColor: Colors.white,
-                    elevation: 4,
-                    shadowColor: primaryColor.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x3F7F7F7F),
+                        blurRadius: 4,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: _isLoading 
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('DOĞRULA'),
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _verify,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                    child: _isLoading 
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('DOĞRULA'),
+                  ),
                 ),
               ),
 

@@ -1,19 +1,25 @@
-import 'dart:math';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/auto_text.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'scanner_screen.dart';
+import 'widgets/customer_points_card.dart';
 
 class GiftSelectionScreen extends StatefulWidget {
   final String businessId;
   final String businessName;
   final double currentPoints;
   final int currentGifts;
+  final String? logoUrl;
+  final double? reviewScore;
+  final int? reviewCount;
 
   const GiftSelectionScreen({
     super.key,
@@ -21,6 +27,9 @@ class GiftSelectionScreen extends StatefulWidget {
     required this.businessName,
     required this.currentPoints,
     required this.currentGifts,
+    this.logoUrl,
+    this.reviewScore,
+    this.reviewCount,
   });
 
   @override
@@ -32,9 +41,8 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
   late Animation<double> _animation;
   bool _isLoading = true;
   List<dynamic> _gifts = [];
-
-  // State for redemption process
   String? _redeemingGiftId; 
+  String _selectedCategory = 'Tümü';
 
   @override
   void initState() {
@@ -61,8 +69,10 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     try {
       final api = context.read<ApiService>();
       final gifts = await api.getBusinessGifts(widget.businessId);
+      final lang = Provider.of<LanguageProvider>(context, listen: false);
       setState(() {
         _gifts = gifts;
+        _selectedCategory = lang.locale.languageCode == 'tr' ? 'Tümü' : 'All';
         _isLoading = false;
       });
     } catch (e) {
@@ -120,6 +130,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
               extra: {
                 'expectedBusinessId': widget.businessId,
                 'expectedBusinessName': widget.businessName,
+                'expectedBusinessLogo': widget.logoUrl,
               },
             ),
           ),
@@ -190,6 +201,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
               extra: {
                 'expectedBusinessId': widget.businessId,
                 'expectedBusinessName': widget.businessName,
+                'expectedBusinessLogo': widget.logoUrl,
               },
             ),
           ),
@@ -214,531 +226,546 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
   @override
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context);
-    final int giftsCount = widget.currentGifts;
     final bool isTr = lang.locale.languageCode == 'tr';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA), // Clean off-white background
-      appBar: AppBar(
-        centerTitle: true,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          lang.translate('gift_selection_title'), 
-          style: GoogleFonts.outfit(
-            color: const Color(0xFF1A1A1A), 
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          )
-        ),
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: IconButton(
-            icon: Container(
-              padding: const EdgeInsets.all(8),
+      backgroundColor: const Color(0xFFEBEBEB),
+      body: Stack(
+        children: [
+          // Soft Hill background shape from Figma
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipPath(
+              clipper: _HillClipper(),
+              child: Container(
+                height: 380,
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xFFFFECCC),
+                      Color(0xFFF9C06A),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Large half-star background deco
+          Positioned(
+            top: -120,
+            left: 60,
+            child: Opacity(
+              opacity: 0.2, // Very subtle
+              child: SvgPicture.asset(
+                'assets/images/vector2.svg',
+                width: 480,
+                height: 480,
+                colorFilter: const ColorFilter.mode(Color(0xFFF9C06A), BlendMode.srcIn),
+              ),
+            ),
+          ),
+          // Subtle watermark
+          Positioned(
+            left: -150,
+            top: 220,
+            child: SvgPicture.asset(
+              'assets/images/union.svg',
+              height: 320,
+              colorFilter: ColorFilter.mode(
+                Colors.black.withOpacity(0.015),
+                BlendMode.srcIn,
+              ),
+            ),
+          ),
+          
+          SafeArea(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context),
+                _buildCafeInfoCard(isTr),
+                
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      const SizedBox(height: 20),
+                      _buildPointsCard(isTr),
+                      const SizedBox(height: 32),
+                      _buildMenuTitle(isTr),
+                      const SizedBox(height: 16),
+                      _buildCategoryFilters(isTr),
+                      const SizedBox(height: 24),
+                      _buildProductGrid(lang, isTr),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          GestureDetector(
+            onTap: () => context.pop(),
+            child: Container(
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0,2))
-                ]
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                ],
               ),
-              child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF1A1A1A), size: 20),
+              child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
             ),
-            onPressed: () => context.pop(),
           ),
-        ),
-      ),
-      extendBodyBehindAppBar: true, 
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            // 1. Creative Ticket Header
-            AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset: Offset(0, _animation.value),
-                  child: child,
-                );
-              },
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.fromLTRB(24, 20, 24, 30),
-                child: Stack(
-                  children: [
-                    // Shadow
-                    Positioned.fill(
-                      top: 10,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                    ),
-                    
-                    // Ticket Shape
-                    ClipPath(
-                      clipper: _TicketClipper(),
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 280, // Explicit height for ticket
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)], // Brand Red
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            ),
-                          ),
-                          
-                          // Shimmer/Glow Overlay
-                          Positioned.fill(
-                            child: AnimatedBuilder(
-                              animation: _animation,
-                              builder: (context, child) {
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.white.withValues(alpha: 0.0),
-                                        Colors.white.withValues(alpha: 0.1),
-                                        Colors.white.withValues(alpha: 0.0),
-                                      ],
-                                      stops: const [0.3, 0.5, 0.7],
-                                      begin: Alignment(-2.0 + (_animation.value / 10 * 4), -1.0),
-                                      end: Alignment(2.0 + (_animation.value / 10 * 4), 1.0),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          
-                          Column(
-                            children: [
-                              // Top Section
-                              Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  children: [
-                                    Text(
-                                      widget.businessName.toUpperCase(),
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white.withValues(alpha: 0.7),
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        letterSpacing: 2.0,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      isTr ? "KULLANIMA UYGUNDUR" : "VALID FOR REDEMPTION",
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white.withValues(alpha: 0.4),
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                        letterSpacing: 1.0,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              
-                              // Divider Line
-                              SizedBox(
-                                height: 1,
-                                width: double.infinity,
-                                child: CustomPaint(painter: _DashedLinePainter()),
-                              ),
-                              
-                              // Bottom Section (Points)
-                              Container(
-                                padding: const EdgeInsets.fromLTRB(24, 30, 24, 24),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
-                                      children: [
-                                        Text(
-                                          "${widget.currentPoints.toInt()}",
-                                          style: GoogleFonts.shareTechMono( // Tech/Ticket Font
-                                            fontSize: 64,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                            height: 0.9,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    Text(
-                                      lang.translate('points').toUpperCase(),
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.white.withValues(alpha: 0.8),
-                                        letterSpacing: 4.0,
-                                      ),
-                                    ),
-                                    
-                                    const SizedBox(height: 20),
-                                    
-                                    // Barcode Visual
-                                    SizedBox(
-                                      height: 40,
-                                      width: 200,
-                                      child: CustomPaint(painter: _BarcodePainter()),
-                                    ),
-                                    
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      lang.translate('spendable_amount'),
-                                      style: GoogleFonts.outfit(
-                                        color: Colors.white.withValues(alpha: 0.5),
-                                        fontSize: 10,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+          Row(
+            children: [
+              // Notifications Button
+              GestureDetector(
+                onTap: () => context.push('/notifications'),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.4),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFDADADA)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 4)),
+                    ],
+                  ),
+                  child: const Icon(Icons.notifications_none_rounded, color: Colors.black, size: 24),
                 ),
               ),
+              const SizedBox(width: 12),
+              // Profile Button
+              Builder(
+                builder: (context) {
+                  final user = context.watch<AuthProvider>().currentUser;
+                  ImageProvider? imageProvider;
+                  if (user?.profileImage != null && user!.profileImage!.isNotEmpty) {
+                    try {
+                      imageProvider = MemoryImage(base64Decode(user.profileImage!));
+                    } catch (e) {
+                      imageProvider = const AssetImage('assets/images/default_profile.png');
+                    }
+                  } else {
+                    imageProvider = const AssetImage('assets/images/default_profile.png');
+                  }
+                  
+                  return GestureDetector(
+                    onTap: () => context.push('/settings'),
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.4),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFDADADA)),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(42),
+                        child: imageProvider != const AssetImage('assets/images/default_profile.png')
+                          ? CircleAvatar(
+                              backgroundColor: Colors.transparent,
+                              backgroundImage: imageProvider,
+                            )
+                          : const Icon(Icons.person_outline_rounded, size: 24, color: Colors.black),
+                      ),
+                    ),
+                  );
+                }
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCafeInfoCard(bool isTr) {
+    final String? resolvedLogo = resolveImageUrl(widget.logoUrl);
+    
+    return Container(
+      margin: const EdgeInsets.only(top: 10, right: 20),
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        height: 64,
+        width: 185, // Matches the expansion in business detail
+        child: Stack(
+          alignment: Alignment.centerLeft,
+          children: [
+            // Background SVG with shadow
+            SvgPicture.asset(
+              'assets/images/vector5.svg',
+              width: 185,
+              height: 74,
+              fit: BoxFit.fill, // Allows stretching
             ),
-  
-            Expanded(
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F)))
-                : ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    physics: const BouncingScrollPhysics(),
+            // Content
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 30, right: 10), // Same padding alignment
+                child: Transform.translate(
+                  offset: const Offset(0, -3), // Move slightly up
+                  child: Row(
                     children: [
-                      // 2. Gift Entitlement Banner (Gold)
-                      if (giftsCount > 0)
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFC107), Color(0xFFFF8F00)], 
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFFFF8F00).withValues(alpha: 0.3),
-                                blurRadius: 16,
-                                offset: const Offset(0, 8),
+                      Container(
+                        width: 20, // Smaller logo size for alignment
+                        height: 20,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color: Colors.white,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: resolvedLogo != null
+                              ? Image.network(
+                                  resolvedLogo,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                                )
+                              : Image.asset('assets/images/logo.png', fit: BoxFit.cover),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 110,
+                              child: Text(
+                                widget.businessName,
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF131313),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.1,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(24),
-                              onTap: () => _redeemGiftEntitlement(),
-                              child: Stack(
+                            ),
+                            const SizedBox(height: 2),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
                                 children: [
-                                  Positioned(
-                                    right: -10, bottom: -10,
-                                    child: Icon(Icons.card_giftcard, size: 100, color: Colors.white.withValues(alpha: 0.15)),
+                                  const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF9C06A)),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    (widget.reviewScore ?? 0.0).toStringAsFixed(1).replaceAll('.', ','),
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF4A4A4A),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
-                                  Padding(
-                                    padding: const EdgeInsets.all(24),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0,2)),
-                                            ],
-                                          ),
-                                          child: const Icon(Icons.celebration_rounded, color: Color(0xFFFF8F00), size: 28),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                lang.translate('gift_entitlement_title'),
-                                                style: GoogleFonts.outfit(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                  shadows: [Shadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 2)],
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                "$giftsCount ${lang.translate('gift_entitlement_subtitle')}",
-                                                style: GoogleFonts.outfit(
-                                                  fontSize: 14,
-                                                  color: Colors.white.withValues(alpha: 0.9),
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.2),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
-                                        ),
-                                      ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isTr ? '(${widget.reviewCount ?? 0} değerlendirme)' : '(${widget.reviewCount ?? 0} reviews)',
+                                    style: GoogleFonts.outfit(
+                                      color: const Color(0xFF4A4A4A),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        
-                      // Empty State
-                      if (_gifts.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 40),
-                          child: Center(
-                            child: Column(
-                              children: [
-                                Icon(Icons.redeem_rounded, size: 64, color: Colors.grey.withValues(alpha: 0.2)),
-                                const SizedBox(height: 16),
-                                Text(
-                                  lang.translate('no_gifts_yet'),
-                                  style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      
-                      if (_gifts.isNotEmpty)
-                        Padding(
-                           padding: const EdgeInsets.only(bottom: 16, left: 8),
-                           child: Text(
-                             lang.translate('available_gifts_header'),
-                             style: GoogleFonts.outfit(
-                               fontSize: 18,
-                               fontWeight: FontWeight.bold,
-                               color: const Color(0xFF1A1A1A),
-                             ),
-                           ),
-                        ),
-  
-                      // 3. Modern Gift List
-                      ..._gifts.map((gift) {
-                        final cost = gift['pointCost'];
-                        final canAfford = widget.currentPoints >= cost;
-                        final isRedeeming = _redeemingGiftId == gift['_id'];
-  
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04), // Softer shadow
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: (canAfford && !isRedeeming) ? () => _redeemGift(gift) : null,
-                              borderRadius: BorderRadius.circular(24),
-                              splashColor: const Color(0xFFD32F2F).withValues(alpha: 0.05),
-                              highlightColor: const Color(0xFFD32F2F).withValues(alpha: 0.02),
-                              child: Padding(
-                                padding: const EdgeInsets.all(20),
-                                child: Row(
-                                  children: [
-                                    // Icon Wrapper (Box Style)
-                                    Container(
-                                      width: 60, height: 60,
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: canAfford 
-                                            ? const Color(0xFFFFEBEE) // Light Red
-                                            : const Color(0xFFF5F5F5), // Light Grey
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Center(
-                                        child: Icon(
-                                          Icons.coffee_rounded, // Assuming coffee
-                                          color: canAfford ? const Color(0xFFD32F2F) : Colors.grey,
-                                          size: 28,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 20),
-                                    
-                                    // Content
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          AutoText(
-                                            gift['title'],
-                                            style: GoogleFonts.outfit(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: canAfford ? const Color(0xFF1A1A1A) : Colors.grey,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.stars_rounded, size: 16, color: canAfford ? const Color(0xFFFBC02D) : Colors.grey),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                "$cost ${lang.translate('points')}",
-                                                style: GoogleFonts.outfit(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: canAfford ? const Color(0xFF1A1A1A) : Colors.grey,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-  
-                                    // Action Button
-                                    if (isRedeeming)
-                                      const SizedBox(
-                                        width: 24, height: 24,
-                                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD32F2F)),
-                                      )
-                                    else if (canAfford)
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFFD32F2F),
-                                          shape: BoxShape.circle,
-                                          boxShadow: [
-                                            BoxShadow(color: const Color(0xFFD32F2F).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))
-                                          ]
-                                        ),
-                                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
-                                      )
-                                    else
-                                      // Locked/Disabled State
-                                      Icon(Icons.lock_rounded, color: Colors.grey.withValues(alpha: 0.3), size: 20),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                      
-                      const SizedBox(height: 40),
+                      ),
                     ],
                   ),
+                ),
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildPointsCard(bool isTr) {
+    final title = isTr ? 'Hesabındaki puan' : 'Points in account';
+    final pointsText = widget.currentPoints.toInt().toString();
+    final noteText = isTr
+        ? 'Puanlar, kazanıldıktan 6 ay sonra kaybolur.'
+        : 'Points expire after 6 months.';
+
+    return CustomerPointsCard(
+      title: title,
+      pointsText: pointsText,
+      noteText: noteText,
+    );
+  }
+
+  Widget _buildMenuTitle(bool isTr) {
+    return Text(
+      isTr ? 'Puan Menüsü' : 'Points Menu',
+      style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF434343)),
+    );
+  }
+
+  Widget _buildCategoryFilters(bool isTr) {
+    final List<String> categories = [isTr ? 'Tümü' : 'All'];
+    for (var gift in _gifts) {
+      final cat = gift['category'];
+      if (cat != null && cat.toString().trim().isNotEmpty && !categories.contains(cat)) {
+        categories.add(cat);
+      }
+    }
+
+    return SizedBox(
+      height: 32,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final isSelected = _selectedCategory == category;
+          return GestureDetector(
+            onTap: () => setState(() => _selectedCategory = category),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFF9C06A) : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: isSelected ? null : Border.all(color: const Color(0xFFE0E0E0)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isSelected)
+                    Container(
+                      padding: const EdgeInsets.all(1),
+                      decoration: const BoxDecoration(color: Color(0xFF77410C), shape: BoxShape.circle),
+                      child: const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF9C06A)),
+                    ),
+                  if (isSelected)
+                    const SizedBox(width: 4),
+                  Text(
+                    category,
+                    style: GoogleFonts.outfit(
+                      color: isSelected ? const Color(0xFF77410C) : const Color(0xFF757575),
+                      fontSize: 14,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildProductGrid(LanguageProvider lang, bool isTr) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F)));
+    }
+
+    final allText = isTr ? 'Tümü' : 'All';
+    final filteredGifts = _selectedCategory == allText 
+        ? _gifts 
+        : _gifts.where((g) => g['category'] == _selectedCategory).toList();
+    
+    if (filteredGifts.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 40),
+        child: Center(
+          child: Text(
+            lang.translate('no_gifts_yet'),
+            style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
+          ),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.85,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: filteredGifts.length,
+      itemBuilder: (context, index) {
+        final gift = filteredGifts[index];
+        return _buildProductCard(gift, lang);
+      },
+    );
+  }
+
+  Widget _buildProductCard(dynamic gift, LanguageProvider lang) {
+    final cost = gift['pointCost'];
+    final canAfford = widget.currentPoints >= cost;
+    final isRedeeming = _redeemingGiftId == gift['_id'];
+
+    return GestureDetector(
+      onTap: (canAfford && !isRedeeming) ? () => _redeemGift(gift) : null,
+      child: Opacity(
+        opacity: canAfford ? 1.0 : 0.6,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Image container
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Stack(
+                      children: [
+                        if (gift['image'] != null && gift['image'].toString().isNotEmpty)
+                          Positioned.fill(
+                            child: Image.network(
+                              resolveImageUrl(gift['image']) ?? '',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.coffee_rounded, size: 40, color: Color(0xFF77410C))),
+                            ),
+                          )
+                        else
+                          const Center(child: Icon(Icons.coffee_rounded, size: 40, color: Color(0xFF77410C))),
+                        if (isRedeeming)
+                          const Center(child: CircularProgressIndicator(color: Color(0xFF77410C))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Info content
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      gift['title'],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      (gift['description'] != null && gift['description'].toString().trim().isNotEmpty)
+                          ? gift['description']
+                          : 'Özel hediye seçeneği',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(fontSize: 10, color: const Color(0xFF4F4B4B)),
+                    ),
+                    const SizedBox(height: 8),
+                    // Points Badge
+                    Align(
+                      alignment: Alignment.bottomRight,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9C06A),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(1),
+                              decoration: const BoxDecoration(color: Color(0xFF77410C), shape: BoxShape.circle),
+                              child: const Icon(Icons.star_rounded, size: 11, color: Color(0xFFF9C06A)),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              "$cost",
+                              style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF77410C)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 }
 
-class _TicketClipper extends CustomClipper<Path> {
+// Hill Clipper for the soft background shape
+class _HillClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    final Path path = Path();
+    final path = Path();
+    path.lineTo(0, size.height * 0.4);
     
-    // Perforation radius and count
-    const double perfRadius = 4.0;
-    const double sideCutoutRadius = 20.0;
+    final centerX = size.width * 0.5;
+    final centerY = size.height;
     
-    path.lineTo(0.0, size.height);
-    path.lineTo(size.width, size.height);
-    path.lineTo(size.width, 0.0);
+    // Very soft curve ascending to a broad peak
+    path.cubicTo(
+      size.width * 0.2, size.height * 0.4,
+      size.width * 0.35, size.height * 0.1,
+      centerX, 0
+    );
+    // Descending curve
+    path.cubicTo(
+      size.width * 0.65, size.height * 0.1,
+      size.width * 0.8, size.height * 0.4,
+      size.width, size.height * 0.4
+    );
     
-    // Main Side Cutouts (where the separator is)
-    final double cutoutY = size.height / 2.5;
-    path.addOval(Rect.fromCircle(center: Offset(0.0, cutoutY), radius: sideCutoutRadius));
-    path.addOval(Rect.fromCircle(center: Offset(size.width, cutoutY), radius: sideCutoutRadius));
-    
-    // Perforations on Left Edge
-    for (double i = 0; i < size.height; i += sideCutoutRadius) {
-      if ((i - cutoutY).abs() > sideCutoutRadius) {
-         path.addOval(Rect.fromCircle(center: Offset(0.0, i), radius: perfRadius));
-      }
-    }
-    
-    // Perforations on Right Edge
-    for (double i = 0; i < size.height; i += sideCutoutRadius) {
-      if ((i - cutoutY).abs() > sideCutoutRadius) {
-         path.addOval(Rect.fromCircle(center: Offset(size.width, i), radius: perfRadius));
-      }
-    }
-    
-    path.fillType = PathFillType.evenOdd;
+    path.lineTo(size.width, 0);
+    path.close();
     return path;
   }
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => true;
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
-class _DashedLinePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    double dashWidth = 9, dashSpace = 5, startX = 0;
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.3)
-      ..strokeWidth = 1;
-      
-    while (startX < size.width) {
-      canvas.drawLine(Offset(startX, 0), Offset(startX + dashWidth, 0), paint);
-      startX += dashWidth + dashSpace;
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
-
-class _BarcodePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = Colors.white.withValues(alpha: 0.5);
-    final random = Random(42); // Fixed seed for consistent look
-    
-    double x = 0;
-    while (x < size.width) {
-      final width = random.nextDouble() * 4 + 1;
-      if (x + width > size.width) break;
-      
-      canvas.drawRect(Rect.fromLTWH(x, 0, width, size.height), paint);
-      x += width + (random.nextDouble() * 3 + 2);
-    }
-  }
-
-  @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
-}
+// Peak Clipper removed

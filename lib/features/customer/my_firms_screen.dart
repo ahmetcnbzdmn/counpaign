@@ -7,6 +7,8 @@ import '../../core/providers/business_provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/config/api_config.dart';
 
 class MyFirmsScreen extends StatefulWidget {
   const MyFirmsScreen({super.key});
@@ -68,10 +70,17 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final textColor = const Color(0xFF131313);
 
     final provider = context.watch<BusinessProvider>();
     final firms = provider.myFirms;
+
+    String resolveLogoUrl(String? path) {
+      if (path == null || path.isEmpty) return '';
+      if (path.startsWith('http')) return path;
+      final baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+      return '$baseUrl$path';
+    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -105,21 +114,8 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
               },
               itemBuilder: (context, index) {
                 final firm = firms[index];
-                
-                final colorHex = firm['cardColor'] ?? '#333333';
-                final color = Color(int.parse(colorHex.replaceAll('#', '0xFF')));
-                final iconName = firm['cardIcon'] ?? 'storefront';
-                    
-                IconData iconData = Icons.storefront;
-                if (iconName == 'local_cafe_rounded') {
-                  iconData = Icons.local_cafe_rounded;
-                } else if (iconName == 'coffee_rounded') {
-                  iconData = Icons.coffee_rounded;
-                } else if (iconName == 'lunch_dining_rounded') {
-                  iconData = Icons.lunch_dining_rounded;
-                } else if (iconName == 'checkroom_rounded') {
-                  iconData = Icons.checkroom_rounded;
-                }
+                final rawLogo = firm['logo'] ?? firm['image'] ?? firm['logoUrl'];
+                final logoUrl = resolveLogoUrl(rawLogo);
 
                 return Dismissible(
                   key: ValueKey(firm['id']),
@@ -302,14 +298,23 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.all(12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         width: 50, height: 50,
                         decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(color: textColor.withValues(alpha: 0.1)),
+                          image: logoUrl.isNotEmpty 
+                            ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover)
+                            : null,
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+                          ],
                         ),
-                        child: Icon(iconData, color: color),
+                        child: logoUrl.isEmpty 
+                          ? const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 24)
+                          : null,
                       ),
                       title: Text(
                         firm['companyName'] ?? '',

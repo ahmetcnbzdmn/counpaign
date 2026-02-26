@@ -1,19 +1,20 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/models/campaign_model.dart';
-import '../../core/widgets/campaign_slider.dart';
-import '../../core/widgets/auto_text.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
-import '../../core/widgets/icons/takeaway_cup_icon.dart';
+import '../../core/theme/app_theme.dart';
 import 'gift_selection_screen.dart';
+import 'menu_screen.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
@@ -34,7 +35,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   bool _isAddingLoading = false;
 
   bool _isNew = false;
-  String? _address;
+
+  // Business menu preview (Figma "Menü" section)
+  List<dynamic> _products = [];
+  bool _isProductsLoading = true;
 
   @override
   void initState() {
@@ -46,21 +50,658 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _points = (data['points'] ?? '0').toString();
     _businessId = data['id'] ?? '';
     _isNew = data['isNew'] ?? false;
-    
-    // Format Address
-    final city = data['city'] ?? '';
-    final district = data['district'] ?? '';
-    final neighborhood = data['neighborhood'] ?? '';
-    final List<String> parts = [];
-    if (neighborhood.toString().isNotEmpty) parts.add(neighborhood.toString());
-    if (district.toString().isNotEmpty) parts.add(district.toString());
-    if (city.toString().isNotEmpty) parts.add(city.toString());
-    _address = parts.isNotEmpty ? parts.join(', ') : null;
 
-    // Fetch campaigns for this business
+    // Fetch campaigns and menu products for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CampaignProvider>().fetchCampaigns(_businessId);
+      context.read<BusinessProvider>().setContextFirm(_businessId, widget.businessData['name'] ?? 'İşletme', {
+        'expectedBusinessId': _businessId,
+        'expectedBusinessName': widget.businessData['name'] ?? '',
+        'expectedBusinessColor': widget.businessData['color'],
+        'expectedBusinessLogo': widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'],
+        'currentStamps': _stamps,
+        'targetStamps': _stampsTarget,
+        'currentGifts': _giftsCount,
+        'currentPoints': _points,
+      });
+      _fetchProducts();
     });
+  }
+
+  @override
+  void dispose() {
+    // Clear context when leaving the detail screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<BusinessProvider>().clearContextFirm();
+      }
+    });
+    super.dispose();
+  }
+
+  Widget _buildActionButtonsRow(LanguageProvider lang, Color brandColor) {
+    final isTr = lang.locale.languageCode == 'tr';
+
+    Widget buildCircleButton({
+      required VoidCallback onTap,
+      required Widget iconWidget,
+      required String label,
+      Gradient? gradient,
+      Color? background,
+      Color? borderColor,
+    }) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
+              width: 64,
+              height: 64,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                gradient: gradient,
+                color: gradient == null ? (background ?? Colors.white) : null,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: borderColor ?? Colors.transparent,
+                  width: 1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x3F7F7F7F),
+                    blurRadius: 4,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Center(
+                child: iconWidget,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF4A4A4A),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+          // QR Okut
+          buildCircleButton(
+            onTap: () {
+              final allCampaigns = context.read<CampaignProvider>().allCampaigns;
+              final firmCampaigns = allCampaigns.where((c) => c.businessId == _businessId).toList();
+              
+              if (firmCampaigns.isEmpty) {
+                showNoCampaignsDialog(context, widget.businessData['name'] ?? 'İşletme');
+                return;
+              }
+
+              context.push('/customer-scanner', extra: {
+                'expectedBusinessId': _businessId,
+                'expectedBusinessName': widget.businessData['name'] ?? '',
+                'expectedBusinessColor': widget.businessData['color'],
+                'expectedBusinessLogo': widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'],
+                'currentStamps': _stamps,
+                'targetStamps': _stampsTarget,
+                'currentGifts': _giftsCount,
+                'currentPoints': _points,
+              });
+            },
+            iconWidget: Image.asset('assets/images/qr.png', fit: BoxFit.contain),
+            label: isTr ? 'QR Okut' : 'Scan QR',
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFA96307), Color(0xFF371E04)],
+            ),
+            borderColor: const Color(0xFF9E560F),
+          ),
+          // Puan Harca
+          buildCircleButton(
+            onTap: _navigateToGiftSelection,
+            iconWidget: Image.asset('assets/images/yildiz.png', fit: BoxFit.contain),
+            label: isTr ? 'Puan Harca' : 'Spend Points',
+            background: const Color(0xFF86551B), // Approximated from visual
+            borderColor: const Color(0xFF6B4210),
+          ),
+          // Siparişlerim
+          buildCircleButton(
+            onTap: _showHistoryBottomSheet,
+            iconWidget: Image.asset('assets/images/gahve.png', fit: BoxFit.contain),
+            label: isTr ? 'Siparişlerim' : 'My Orders',
+            background: const Color(0xB2693500),
+            borderColor: const Color(0xFF905B0B),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStatisticsSection(LanguageProvider lang, Color brandColor, String businessName) {
+    final isTr = lang.locale.languageCode == 'tr';
+    
+    // Coffee cup fill progress
+    final double fillProgress = (_stampsTarget > 0) ? (_stamps / _stampsTarget).clamp(0.0, 1.0) : 0.0;
+    
+    // Review score & count (fallback to defaults if undefined)
+    final double reviewScore = (widget.businessData['reviewScore'] ?? 0.0).toDouble();
+    final int reviewCount = widget.businessData['reviewCount'] ?? 0;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end, // Align elements to bottom to balance the cup and the badges on the same line
+      children: [
+        // Left Column: Coffee Cup
+        Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              height: 145, // Increased size to match Figma better and push it further down naturally
+              width: 100,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/images/coffee_cup_empty.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  if (fillProgress > 0)
+                    Positioned.fill(
+                      child: ClipRect(
+                        clipper: _CoffeeLevelClipper(fillProgress),
+                        child: ShaderMask(
+                          shaderCallback: (bounds) => const LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0xFF77410C), Color(0xFF4A2810)],
+                          ).createShader(bounds),
+                          blendMode: BlendMode.srcIn,
+                          child: Image.asset(
+                            'assets/images/coffee_cup_empty.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "$_giftsCount ${isTr ? 'Hediye İçecek' : 'Gift Drink'}",
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF4A4A4A),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(width: 15),
+        // Right Column: Cafe header card + Badges
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Firm Info Box Using vector5
+              SizedBox(
+                height: 64,
+                width: 185, // Increased from 160 to give text more breathing room so FittedBox doesn't shrink it to unreadable sizes
+                child: Stack(
+                  alignment: Alignment.centerLeft,
+                  children: [
+                    // Background SVG with shadow
+                    SvgPicture.asset(
+                      'assets/images/vector5.svg',
+                      width: 185,
+                      height: 74,
+                      fit: BoxFit.fill, // Allows the image to stretch horizontally 
+                    ),
+                    // Content
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 30, right: 10), // Reduced left padding to push logo further left
+                        child: Transform.translate(
+                          offset: const Offset(0, -3), // Moving the whole row slightly up
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 20, // Reduced logo size slightly more
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(4),
+                                  image: DecorationImage(
+                                    image: NetworkImage(
+                                      () {
+                                        final raw = widget.businessData['logo'] ?? widget.businessData['image'];
+                                        return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
+                                      }()
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  // Visual vertical alignment adjustment removed for better centering
+                                  SizedBox(
+                                    width: 110, // Max space left in the box
+                                    child: Text(
+                                      businessName,
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFF131313),
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        height: 1.1,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.star_rounded, size: 14, color: Color(0xFFF9C06A)), // Reverted slightly bigger star 
+                                        const SizedBox(width: 2),
+                                        Text(
+                                          reviewScore.toStringAsFixed(1).replaceAll('.', ','),
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF4A4A4A),
+                                            fontSize: 13, // Down from 14
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          isTr ? '($reviewCount değerlendirme)' : '($reviewCount reviews)',
+                                          style: GoogleFonts.outfit(
+                                            color: const Color(0xFF4A4A4A),
+                                            fontSize: 10, // Down from 12
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 35),
+              // Damga & Puan Badges
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  // Damga
+                  Column(
+                    children: [
+                      SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            Container(
+                              decoration: const ShapeDecoration(
+                                color: Color(0x4C77410C),
+                                shape: OvalBorder(),
+                                shadows: [
+                                  BoxShadow(color: Color(0x3F7F7F7F), blurRadius: 4, offset: Offset(0, 4))
+                                ],
+                              ),
+                            ),
+                            CircularProgressIndicator(
+                              value: (_stampsTarget > 0) ? (_stamps / _stampsTarget) : 0,
+                              strokeWidth: 2,
+                              backgroundColor: Colors.transparent,
+                              valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF77410C)),
+                            ),
+                            Center(
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: '$_stamps',
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFF77410C),
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: '/$_stampsTarget',
+                                      style: GoogleFonts.outfit(
+                                        color: const Color(0xFF77410C),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.coffee, size: 12, color: Color(0xFF4A4A4A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Damga",
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF4A4A4A),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  // Puan
+                  Column(
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: const ShapeDecoration(
+                          color: Color(0x4C77410C),
+                          shape: OvalBorder(
+                            side: BorderSide(width: 1, color: Color(0xA377410C)),
+                          ),
+                          shadows: [
+                            BoxShadow(color: Color(0x3F7F7F7F), blurRadius: 4, offset: Offset(0, 4))
+                          ],
+                        ),
+                        child: Center(
+                          child: Text(
+                            _points,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF77410C),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          const Icon(Icons.star_rounded, size: 14, color: Color(0xFF4A4A4A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            "Puan",
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF4A4A4A),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Widget _buildMenuSection(BuildContext context, LanguageProvider lang, Color brandColor, String businessName) {
+    final isTr = lang.locale.languageCode == 'tr';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              isTr ? 'Menü' : 'Menu',
+              style: GoogleFonts.outfit(
+                color: const Color(0xFF434343),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MenuScreen(
+                      businessId: _businessId,
+                      businessName: businessName,
+                      businessColor: brandColor,
+                      businessImage: widget.businessData['image'],
+                      businessLogo: widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'],
+                    ),
+                  ),
+                );
+              },
+              child: Text(
+                isTr ? 'Tümünü gör' : 'View all',
+                style: GoogleFonts.outfit(
+                  color: Colors.black,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          height: 166,
+          child: _isProductsLoading
+              ? const Center(child: CircularProgressIndicator())
+              : (_products.isEmpty
+                  ? Center(
+                      child: Text(
+                        isTr ? 'Menü hazırlanıyor...' : 'Menu is being prepared...',
+                        style: GoogleFonts.outfit(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _products.length.clamp(0, 3),
+                      separatorBuilder: (_, __) => const SizedBox(width: 16),
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        return _buildMenuItemCard(product);
+                      },
+                    )),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMenuItemCard(dynamic product) {
+    final imageUrl = resolveImageUrl(product['imageUrl']);
+    final price = (product['price'] as num?) ?? 0;
+
+    return Container(
+      width: 150,
+      height: 166,
+      clipBehavior: Clip.antiAlias,
+      decoration: ShapeDecoration(
+        color: const Color(0xFFFFFDF7),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x3F000000),
+            blurRadius: 4,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // Product Image Container
+          Positioned(
+            left: 2,
+            top: 2,
+            child: Container(
+              width: 146,
+              height: 83,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: imageUrl != null
+                  ? Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
+                    )
+                  : Container(color: Colors.grey[100]),
+            ),
+          ),
+          // Product Info
+          Positioned(
+            left: 10,
+            top: 92,
+            child: SizedBox(
+              width: 130,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    product['name'] ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      color: Colors.black,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    product['description'] ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF4F4A4A),
+                      fontSize: 9,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Price
+          Positioned(
+            right: 10,
+            bottom: 10,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if ((product['discount'] ?? 0) > 0) ...[
+                  Text(
+                    '${price.toStringAsFixed(0)}₺',
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  '${(price - (product['discount'] ?? 0)).toStringAsFixed(0)}₺',
+                  style: GoogleFonts.outfit(
+                    color: Colors.black,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveCampaignsSection(BuildContext context, LanguageProvider lang, Color brandColor) {
+    final isTr = lang.locale.languageCode == 'tr';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          isTr ? 'Aktif Kampanyalar' : 'Active Campaigns',
+          style: GoogleFonts.outfit(
+            color: const Color(0xFF434343),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 18),
+        Consumer<CampaignProvider>(
+          builder: (context, campProvider, child) {
+            final campaigns = campProvider.getCampaignsForBusiness(_businessId);
+            if (campaigns.isEmpty) {
+              return Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Text(
+                  lang.translate('no_campaigns_soon'),
+                  style: GoogleFonts.outfit(color: Colors.grey),
+                ),
+              );
+            }
+
+            return Column(
+              children: campaigns
+                  .map((c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildCampaignCard(c, brandColor),
+                      ))
+                  .toList(),
+            );
+          },
+        ),
+      ],
+    );
   }
 
 
@@ -83,11 +724,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       }
   }
 
+  Future<void> _fetchProducts() async {
+    try {
+      final api = context.read<ApiService>();
+      final products = await api.getBusinessProducts(_businessId);
+      if (!mounted) return;
+      setState(() {
+        _products = products;
+        _isProductsLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Error fetching business products: $e");
+      if (!mounted) return;
+      setState(() {
+        _isProductsLoading = false;
+      });
+    }
+  }
+
   Future<void> _navigateToGiftSelection() async {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return;
 
     final double points = double.tryParse(_points) ?? 0.0;
+    
+    final logoUrl = widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'];
+    final reviewScore = (widget.businessData['reviewScore'] ?? 0.0).toDouble();
+    final reviewCount = widget.businessData['reviewCount'] ?? 0;
 
     final bool? result = await Navigator.push(
       context,
@@ -97,6 +760,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           businessName: widget.businessData['name'] ?? '',
           currentPoints: points,
           currentGifts: _giftsCount,
+          logoUrl: logoUrl,
+          reviewScore: reviewScore,
+          reviewCount: reviewCount,
         ),
       ),
     );
@@ -107,27 +773,74 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _showHistoryBottomSheet() {
+    final rawLogoUrl = widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'];
+    final logoUrl = resolveImageUrl(rawLogoUrl) ?? '';
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          height: MediaQuery.of(context).size.height * 0.7,
+          height: MediaQuery.of(context).size.height * 0.75,
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: Color(0xFFF5F5F7), // Premium light background
             borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
           ),
           child: Column(
             children: [
               const SizedBox(height: 12),
               Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 20),
-              Text(
-                Provider.of<LanguageProvider>(context, listen: false).translate('order_history'),
-                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+              const SizedBox(height: 24),
+              // Header with logo
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    if (logoUrl.isNotEmpty) 
+                      Container(
+                        width: 48, height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                      )
+                    else 
+                      Container(
+                        width: 48, height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 24),
+                      ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            Provider.of<LanguageProvider>(context, listen: false).translate('order_history'),
+                            style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.deepBrown),
+                          ),
+                          Text(
+                             widget.businessData['name'] ?? '',
+                             style: GoogleFonts.outfit(fontSize: 14, color: AppTheme.deepBrown.withValues(alpha: 0.6)),
+                             maxLines: 1, 
+                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
               Expanded(
                 child: FutureBuilder<List<dynamic>>(
                   future: context.read<ApiService>().getTransactionHistory(_businessId),
@@ -153,9 +866,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     }
 
                     return ListView.separated(
-                      padding: const EdgeInsets.all(20),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       itemCount: history.length,
-                      separatorBuilder: (context, index) => const Divider(height: 32),
+                      separatorBuilder: (context, index) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final tx = history[index];
                         final type = tx['type']; // 'STAMP', 'POINT', 'gift_redemption'
@@ -172,82 +885,111 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         Color color = Colors.green;
                         String valueText = "${tx['value'] ?? ''}";
 
-                        if (type == 'gift_redemption') {
-                          // This is the new gift system
-                          final isEntitlement = description.contains('Hediye Hakkı');
-                          
-                          if (isEntitlement) {
-                             // Yellow -1 for Entitlement
-                             title = "Hediye Kullanıldı";
-                             sign = "-";
-                             valueText = "1";
-                             color = Colors.amber; // Yellow/Orange
-                          } else {
-                             // Red -Points for Point Purchase
-                             title = description.replaceAll('Hediye Alımı: ', '');
-                             sign = ""; // pointsEarned is already negative in DB usually, but let's handle display safely
-                             valueText = "$pointsEarned"; 
-                             color = const Color(0xFFEE2C2C); // Red
-                          }
-                        } else if (type == 'STAMP') {
-                           title = Provider.of<LanguageProvider>(context, listen: false).translate('stamp_earned');
-                           valueText = "${tx['stampsEarned'] ?? 1}";
-                           color = Colors.green;
-                        } else if (type == 'POINT') {
-                           // Old logic or direct point earn
-                           if (pointsEarned != null && (pointsEarned as num) < 0) {
-                              title = "Puan Harcama";
-                              color = const Color(0xFFEE2C2C);
-                              valueText = "$pointsEarned";
-                              sign = "";
-                           } else {
-                              title = Provider.of<LanguageProvider>(context, listen: false).translate('point_earned');
-                              valueText = "${tx['pointsEarned'] ?? tx['value']}";
-                           }
-                        } else if (type == 'GIFT_REDEEM') {
-                           // Legacy
-                           title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
-                           color = Colors.orange;
+                        final List<Widget> amountWidgets = [];
+                        
+                        // Parse points securely
+                        double? pts;
+                        if (pointsEarned != null) {
+                           if (pointsEarned is num) pts = pointsEarned.toDouble();
+                           if (pointsEarned is String) pts = double.tryParse(pointsEarned);
+                        } else if (type == 'POINT' && tx['value'] != null) {
+                           if (tx['value'] is num) pts = tx['value'].toDouble();
+                           if (tx['value'] is String) pts = double.tryParse(tx['value']);
                         }
 
-                        return Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: color.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                        if (type == 'gift_redemption') {
+                          final isEntitlement = description.contains('Hediye Hakkı');
+                          
+                          if (isEntitlement || pts == null || pts == 0) {
+                             title = "Hediye Kullanıldı";
+                             color = Colors.amber; 
+                             amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                           } else {
+                              title = description.replaceAll('Hediye Alımı: ', '');
+                              color = AppTheme.primaryColor;
+                              if (pts != null) amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                           }
+                        } else if (type == 'STAMP') {
+                           title = Provider.of<LanguageProvider>(context, listen: false).translate('stamp_earned');
+                           color = const Color(0xFF4CAF50); // Premium Green
+                           final stamps = tx['stampsEarned'] ?? tx['value'] ?? 1;
+                           if (stamps != null) amountWidgets.add(Text("+$stamps Damga", style: GoogleFonts.outfit(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 13)));
+                           if (pts != null && pts != 0) {
+                              amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)));
+                           }
+                        } else if (type == 'POINT') {
+                           if (pts != null && pts < 0) {
+                              title = "Puan Harcama";
+                              color = AppTheme.primaryColor;
+                              amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                           } else {
+                              title = Provider.of<LanguageProvider>(context, listen: false).translate('point_earned');
+                              color = const Color(0xFF4CAF50);
+                              if (pts != null && pts > 0) {
+                                  amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                              }
+                           }
+                        } else if (type == 'GIFT_REDEEM') {
+                           title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
+                           color = Colors.red;
+                           amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                            ],
+                            border: Border.all(color: Colors.black.withValues(alpha: 0.03)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  (sign == "-" || (pointsEarned != null && (pointsEarned as num) < 0)) ? Icons.shopping_bag_outlined : Icons.redeem_rounded,
+                                  color: color,
+                                  size: 24,
+                                ),
                               ),
-                              child: Icon(
-                                (sign == "-" || (pointsEarned != null && (pointsEarned as num) < 0)) ? Icons.remove_circle_outline_rounded : Icons.add_circle_outline_rounded,
-                                color: color,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      title,
+                                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16, color: AppTheme.deepBrown),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      formattedDate,
+                                      style: GoogleFonts.outfit(color: AppTheme.deepBrown.withValues(alpha: 0.5), fontSize: 12),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    title,
-                                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  Text(
-                                    formattedDate,
-                                    style: GoogleFonts.outfit(color: Colors.grey, fontSize: 12),
-                                  ),
-                                ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: amountWidgets,
+                                ),
                               ),
-                            ),
-                            Text(
-                              "$sign$valueText",
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: color,
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         );
                       },
                     );
@@ -273,435 +1015,225 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
       try {
         brandColor = Color(int.parse(rawColor.replaceAll('#', '0xFF')));
       } catch (e) {
-        brandColor = const Color(0xFF333333);
+        brandColor = const Color(0xFF76410B);
       }
     } else {
-      brandColor = const Color(0xFF333333);
+      brandColor = const Color(0xFF76410B);
     } 
-    
-    // User Name
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.currentUser;
-    final userName = user?.fullName ?? "Misafir";
+
     final lang = context.watch<LanguageProvider>();
 
-    // Dynamic Greeting Logic
-    final hour = DateTime.now().hour;
-    String greetingKey;
-    if (hour >= 6 && hour < 12) {
-      greetingKey = 'good_morning';
-    } else if (hour >= 12 && hour < 18) {
-      greetingKey = 'good_afternoon';
-    } else if (hour >= 18 && hour < 22) {
-      greetingKey = 'good_evening';
-    } else {
-      greetingKey = 'good_night';
-    }
-    final greeting = lang.translate(greetingKey);
-
     return Scaffold(
-      backgroundColor: brandColor, 
+      backgroundColor: const Color(0xFFEBEBEB),
       body: Stack(
         children: [
-          AbsorbPointer(
-            absorbing: _isNew,
-            child: CustomScrollView(
-              physics: _isNew 
-                  ? const NeverScrollableScrollPhysics() 
-                  : const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 350.0,
-            floating: false,
-            pinned: true,
-            stretch: true,
-            backgroundColor: brandColor,
-            elevation: 0,
-            // Shape removed -> Flat bottom, but visual curve comes from Body Top Radius
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-              onPressed: () => context.pop(),
-            ),
-            title: Transform.translate(
-              offset: const Offset(-8, 0),
-              child: Text(
-                name,
-                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
-              ),
-            ),
-            centerTitle: false,
-            titleSpacing: 0,
-            actions: const [
-               SizedBox(width: 48),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              stretchModes: const [StretchMode.zoomBackground],
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                   Container(color: brandColor),
-                   Positioned(
-                      right: -30,
-                      bottom: -30,
-                      child: Opacity(
-                        opacity: 0.10, 
-                        child: Image.network(
-                          () {
-                             final raw = data['logo'] ?? data['image'];
-                             return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
-                          }(),
-                          width: 250,
-                          height: 250,
-                          fit: BoxFit.contain,
-                          color: brandColor, // Tint white background to match header color
-                          colorBlendMode: BlendMode.modulate, // effectively hides white background
-                          errorBuilder: (c,o,s) => const SizedBox(),
-                        ),
-                      ),
-                   ),
-                   Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, Colors.black12], // Subtle shadow overlay
-                      ),
-                    ),
-                    child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 50),
-                        
-                        // [1] HEADER
-                        Row(
-                          children: [
-                            Container(
-                              width: 50, height: 50,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                image: DecorationImage(
-                                  image: NetworkImage(
-                                    () {
-                                      final raw = data['logo'] ?? data['image'];
-                                      final resolved = resolveImageUrl(raw);
-                                      debugPrint("🖼️ LOGO DEBUG: Raw: $raw | Resolved: $resolved");
-                                      return resolved ?? 'https://placehold.co/100.png';
-                                    }()
-                                  ),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(greeting, style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)), // Dynamic greeting
-                                  Text(userName, style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // [2] STATS ROW
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end, // Align bottom
-                          children: [
-                            SizedBox(
-                              width: 80, height: 90,
-                              child: Stack(
-                                alignment: Alignment.center,
-                                children: [
-                                  SizedBox(
-                                    width: 70, height: 70,
-                                    child: CircularProgressIndicator(
-                                      value: _stamps / _stampsTarget,
-                                      color: const Color(0xFFFFD54F),
-                                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                                      strokeWidth: 4,
-                                    ),
-                                  ),
-                                  Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.local_cafe_outlined, color: Colors.white, size: 28),
-                                      const SizedBox(height: 4),
-                                      Text("$_stamps/$_stampsTarget", style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(lang.translate('my_coffees'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text("$_giftsCount", style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
-                                    const SizedBox(width: 6),
-                                    const TakeawayCupIcon(cupColor: Colors.white, size: 24),
-                                  ],
-                                ),
-                                const SizedBox(height: 8), // Alignment correction
-                              ],
-                            ),
-
-                            Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(lang.translate('my_points'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 14)),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Text(_points, style: GoogleFonts.outfit(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold, height: 1.0)),
-                                    const SizedBox(width: 6),
-                                    const Icon(Icons.stars_rounded, color: Colors.white, size: 28),
-                                  ],
-                                ),
-                                const SizedBox(height: 8), // Alignment correction
-                              ],
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // [3] CAMPAIGN CARD (Dynamic Slider)
-                        Consumer<CampaignProvider>(
-                          builder: (context, campProvider, child) {
-                            final allCampaigns = campProvider.getCampaignsForBusiness(_businessId);
-                            final promotedCampaigns = allCampaigns.where((c) => c.isPromoted).toList();
-                            
-                            if (promotedCampaigns.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return CampaignSlider(campaigns: promotedCampaigns);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-               ),
-              ],
-            ),
-          ),
-        ),
-
-          SliverToBoxAdapter(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
+          // Scrollable Content layer
+          Positioned.fill(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_address != null) ...[
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_rounded, size: 16, color: brandColor.withValues(alpha: 0.7)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            _address!,
-                            style: GoogleFonts.outfit(
-                              color: Colors.grey[600],
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-
-                  Row(
+                  // Top section (Backgrounds + Stats + Actions)
+                  Stack(
                     children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _navigateToGiftSelection,
-                          child: Container(
-                            height: 100,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: brandColor, // Dynamic Brand Color
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        lang.translate('spend_qr'), 
-                                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.stars_rounded, color: Colors.white),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text(lang.translate('spend_gifts'), style: GoogleFonts.outfit(color: Colors.white, fontSize: 12)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 10),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
+                      // Background Vector (Top Greyish Base - Figma 26:462)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: -60, 
+                        child: SvgPicture.asset(
+                          'assets/figma/bg_top_26_462.svg',
+                          fit: BoxFit.fitWidth,
                         ),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: _showHistoryBottomSheet,
-                          child: Container(
-                            height: 100,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: brandColor, // Dynamic Brand Color
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  crossAxisAlignment: CrossAxisAlignment.start, // Align icon to top
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        lang.translate('order_history').replaceFirst(' ', '\n'), 
-                                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.history, color: Colors.white),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    Text(lang.translate('all'), style: GoogleFonts.outfit(color: Colors.white70, fontSize: 12)),
-                                    const SizedBox(width: 4),
-                                    const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 10),
-                                  ],
-                                )
-                              ],
-                            ),
-                          ),
+                      
+                      // Background Vector (Yellow Curve - Figma 26:461)
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        top: -40,
+                        child: SvgPicture.asset(
+                          'assets/figma/bg_26_461.svg',
+                          fit: BoxFit.fitWidth,
+                          alignment: Alignment.topCenter,
                         ),
+                      ),
+                      
+                      // Content over background
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 130), // Increased spacing for Safe Area Custom Header so vector5 doesn't touch icons
+
+                          // Statistics Section (Coffee cup + Damga/Puan)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: _buildStatisticsSection(lang, brandColor, name),
+                          ),
+
+                          const SizedBox(height: 35), // Space based on Figma
+
+                          // Action Buttons Row
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: _buildActionButtonsRow(lang, brandColor),
+                          ),
+
+                          const SizedBox(height: 70),
+                        ],
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-          ),
-          
-          // 3. News Section (DARK SECTION -> NOW WHITE)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: Container(
-              color: Colors.white, // Full White
-              // No padding here for full width slider, padding applied to children except slider
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 30.0, bottom: 16.0),
-                    child: Text(lang.translate('campaigns'), style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  // Menu and Campaigns (Curved overlapping container)
+                  Transform.translate(
+                    offset: const Offset(0, -50), // Increased pull up to overlap the drawn wavy background better
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF7F7F7),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(30),
+                          topRight: Radius.circular(30),
+                        ),
+                      ),
+                      padding: const EdgeInsets.only(top: 24, bottom: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // [FIGMA] Menü Section
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: _buildMenuSection(context, lang, brandColor, name),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // [FIGMA] Aktif Kampanyalar Section
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: _buildActiveCampaignsSection(context, lang, brandColor),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  
-                   // Slider (Full width)
-                   SizedBox(
-                     height: 180,
-                     child: Consumer<CampaignProvider>(
-                       builder: (context, campProvider, child) {
-                         final campaigns = campProvider.getCampaignsForBusiness(_businessId);
-                         // Sort: Newest first (createdAt descending)
-                         final sortedCampaigns = List<CampaignModel>.from(campaigns)
-                           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-                         if (sortedCampaigns.isEmpty) {
-                           return Center(
-                             child: Text(
-                               lang.translate('no_campaigns_soon'),
-                               style: GoogleFonts.outfit(color: Colors.grey),
-                             ),
-                           );
-                         }
-
-                         return ListView.builder(
-                           scrollDirection: Axis.horizontal,
-                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                           itemCount: sortedCampaigns.length,
-                           itemBuilder: (context, index) {
-                             return _buildCampaignCard(sortedCampaigns[index], brandColor);
-                           },
-                         );
-                       },
-                     ),
-                   ),
-                   const Spacer(),
                 ],
               ),
             ),
           ),
-          ],
-        ),
-      ),
+
+          // Custom Header (Positioned at top)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Back Button moved up completely as requested
+                    Transform.translate(
+                      offset: const Offset(0, -15), // Pulled 1-1.5 CM upwards to avoid touching yellow BG
+                      child: GestureDetector(
+                        onTap: () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/home');
+                          }
+                        },
+                        child: SvgPicture.asset(
+                          'assets/figma/back_button.svg',
+                          width: 33,
+                          height: 33,
+                        ),
+                      ),
+                    ),
+                    
+                    // Right Action Buttons (Notification / Profile)
+                    Row(
+                      children: [
+                        // Notifications Button
+                        GestureDetector(
+                          onTap: () => context.push('/notifications'),
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: ShapeDecoration(
+                              color: Colors.white.withValues(alpha: 0.40),
+                              shape: RoundedRectangleBorder(
+                                side: const BorderSide(width: 1, color: Color(0xFFDADADA)),
+                                borderRadius: BorderRadius.circular(44),
+                              ),
+                              shadows: const [
+                                BoxShadow(color: Color(0x3F7F7F7F), blurRadius: 4, offset: Offset(0, 4))
+                              ],
+                            ),
+                            child: const Icon(Icons.notifications_none_rounded, size: 20, color: Color(0xFF76410B)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Profile Button
+                        Builder(
+                          builder: (context) {
+                            final user = context.watch<AuthProvider>().currentUser;
+                            ImageProvider? imageProvider;
+                            if (user?.profileImage != null && user!.profileImage!.isNotEmpty) {
+                              try {
+                                imageProvider = MemoryImage(base64Decode(user.profileImage!));
+                              } catch (e) {
+                                imageProvider = const AssetImage('assets/images/default_profile.png');
+                              }
+                            } else {
+                              imageProvider = const AssetImage('assets/images/default_profile.png');
+                            }
+                            
+                            return GestureDetector(
+                              onTap: () => context.push('/settings'),
+                              child: Container(
+                                width: 42,
+                                height: 42,
+                                decoration: ShapeDecoration(
+                                  color: Colors.white.withValues(alpha: 0.40),
+                                  shape: RoundedRectangleBorder(
+                                    side: const BorderSide(width: 1.31, color: Color(0xFFDADADA)),
+                                    borderRadius: BorderRadius.circular(57.75),
+                                  ),
+                                  shadows: const [
+                                    BoxShadow(color: Color(0x3F7F7F7F), blurRadius: 5.25, offset: Offset(0, 5.25))
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(57.75),
+                                  child: imageProvider != const AssetImage('assets/images/default_profile.png')
+                                    ? CircleAvatar(
+                                        backgroundColor: Colors.transparent,
+                                        backgroundImage: imageProvider,
+                                      )
+                                    : const Icon(Icons.person_outline_rounded, size: 30, color: Color(0xFF76410B)),
+                                ),
+                              ),
+                            );
+                          }
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
           if (_isNew)
             Positioned.fill(
               child: Container(
                 color: Colors.grey.withValues(alpha: 0.2), // Light grey overlay
               ),
             ),
-          // [FIX] Active Back Button even when locked
-          if (_isNew)
-             Positioned(
-               top: 0, 
-               left: 0,
-               child: SafeArea(
-                 child: Container(
-                   margin: const EdgeInsets.only(left: 4), // Match usual leading padding roughly
-                   child: IconButton(
-                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.transparent),
-                     onPressed: () => context.pop(),
-                   ),
-                 ),
-               ),
-             ),
         ],
       ),
       bottomNavigationBar: _isNew 
@@ -716,7 +1248,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
             child: ElevatedButton(
               onPressed: _isAddingLoading ? null : _addToWallet,
               style: ElevatedButton.styleFrom(
-                backgroundColor: brandColor,
+                backgroundColor: AppTheme.primaryColor,
                 minimumSize: const Size(double.infinity, 56),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               ),
@@ -765,86 +1297,173 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     return GestureDetector(
       onTap: () => context.push('/campaign-detail', extra: campaign),
       child: Container(
-        width: 260,
-        margin: const EdgeInsets.only(right: 16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
+        height: 127,
+        width: double.infinity,
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 1, color: Color(0xFFD7D7D7)),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          shadows: const [
             BoxShadow(
-              color: color.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Color(0x14000000), // 0.08 alpha
+              blurRadius: 4,
+              offset: Offset(0, 4),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              // Background Image
-              if (campaign.headerImage != null)
-                Positioned.fill(
-                  child: Image.network(
-                    resolveImageUrl(campaign.headerImage)!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(color: color.withValues(alpha: 0.1)),
-                  ),
-                ),
-              
-              // Gradient Overlay
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.black.withValues(alpha: 0.8),
-                        Colors.black.withValues(alpha: 0.2),
-                      ],
-                      begin: Alignment.bottomCenter,
-                      end: Alignment.topCenter,
-                    ),
-                  ),
-                ),
-              ),
-
-              // Content
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.8),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        "FIRSAT",
-                        style: GoogleFonts.outfit(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const Spacer(),
-                    AutoText(
-                      campaign.title,
-                      style: GoogleFonts.outfit(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      campaign.shortDescription,
-                      style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+        child: Stack(
+          children: [
+            // Left Image
+            Positioned(
+              left: 7,
+              top: 7,
+              child: Container(
+                width: 140,
+                height: 113,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x3F000000), blurRadius: 4, offset: Offset(0, 4))
                   ],
                 ),
+                child: campaign.headerImage != null
+                    ? Image.network(
+                        resolveImageUrl(campaign.headerImage)!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox(),
+                      )
+                    : const SizedBox(),
               ),
-            ],
-          ),
+            ),
+            // Right Content
+            Positioned(
+              left: 159, // slightly adjusted from 169 to give left padding as 140+7=147
+              top: 15,
+              right: 12, // add right padding constraint instead of fixed width
+              bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Business name placeholder in Figma "The Stock", here using campaign.businessName
+                      Row(
+                        children: [
+                          Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(2),
+                              image: DecorationImage(
+                                image: NetworkImage(
+                                  () {
+                                    final raw = widget.businessData['logo'] ?? widget.businessData['image'];
+                                    return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
+                                  }()
+                                ),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              campaign.businessName.isNotEmpty ? campaign.businessName : 'The Stock',
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF131313),
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        campaign.title,
+                        style: GoogleFonts.outfit(
+                          color: Colors.black,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        campaign.shortDescription,
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF4F4A4A),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                  
+                  // Detayları Gör Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 24, // Expanded slightly from Figma 20px for better touch target
+                    child: ElevatedButton(
+                      onPressed: () => context.push('/campaign-detail', extra: campaign),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF9C06A),
+                        foregroundColor: const Color(0xFF76410B),
+                        elevation: 0,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Detayları Gör',
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF77410C),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _CoffeeLevelClipper extends CustomClipper<Rect> {
+  final double fillProgress;
+  _CoffeeLevelClipper(this.fillProgress);
+
+  @override
+  Rect getClip(Size size) {
+    // Cup body: lid bottom ~24%, cup bottom ~97%
+    final bodyTop = size.height * 0.24;
+    final bodyBottom = size.height * 0.97;
+    final bodyHeight = bodyBottom - bodyTop;
+
+    // Coffee rises from bottom
+    final coffeeTop = bodyBottom - (bodyHeight * fillProgress.clamp(0.0, 1.0));
+    return Rect.fromLTRB(0, coffeeTop, size.width, size.height);
+  }
+
+  @override
+  bool shouldReclip(_CoffeeLevelClipper oldClipper) =>
+      oldClipper.fillProgress != fillProgress;
 }

@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
 
 class LoginScreen extends StatefulWidget {
   final int initialPageIndex;
@@ -160,7 +161,13 @@ class _LoginScreenState extends State<LoginScreen> {
          await auth.sendSmsVerification(_phoneController.text);
          
          if (mounted) {
-           context.push('/verify-phone', extra: _phoneController.text);
+           context.push('/verify-phone', extra: {
+             'phoneNumber': _phoneController.text,
+             'email': _emailController.text,
+             'password': _passwordController.text,
+             'name': _nameController.text,
+             'surname': _surnameController.text,
+           });
          }
       }
     } catch (e) {
@@ -215,10 +222,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     
-    final Color bgColor = theme.scaffoldBackgroundColor;
-    final Color cardColor = theme.cardColor;
-    final Color textColor = isDark ? Colors.white : const Color(0xFF1E2329);
-    final Color primaryBrand = theme.primaryColor;
+    final Color bgColor = const Color(0xFFEBEBEB);
+    final Color cardColor = Colors.white;
+    final Color textColor = const Color(0xFF131313);
+    final Color primaryBrand = const Color(0xFF76410B);
     
     return Scaffold(
       backgroundColor: bgColor,
@@ -238,43 +245,96 @@ class _LoginScreenState extends State<LoginScreen> {
                  const SizedBox(height: 60),
                  
                    // [1] Header Area
-                   SizedBox(
-                     height: 100, // Fixed height to prevent jitter
-                     child: AnimatedSwitcher(
-                       duration: const Duration(milliseconds: 300),
-                       transitionBuilder: (Widget child, Animation<double> animation) {
-                         return FadeTransition(opacity: animation, child: child);
-                       },
-                       child: Align(
-                         alignment: Alignment.centerLeft,
-                         key: ValueKey<int>(_activePageIndex),
-                         child: Text(
-                           _activePageIndex == 0 ? 'Hoşgeldin.\nGiriş Yap.' : 'Hesap\nOluştur.',
-                           style: GoogleFonts.outfit(
-                             fontSize: 40,
-                             fontWeight: FontWeight.bold,
-                             height: 1.1,
-                             color: textColor,
+                   Column(
+                     crossAxisAlignment: CrossAxisAlignment.center,
+                     children: [
+                       // Application Logo with fade-in scale animation
+                       TweenAnimationBuilder(
+                         tween: Tween<double>(begin: 0.8, end: 1.0),
+                         duration: const Duration(milliseconds: 600),
+                         curve: Curves.easeOutBack,
+                         builder: (context, scale, child) {
+                           return Transform.scale(
+                             scale: scale,
+                             child: child,
+                           );
+                         },
+                         child: Container(
+                           height: 90,
+                           width: 90,
+                           decoration: BoxDecoration(
+                             shape: BoxShape.circle,
+                             color: Colors.white,
+                             boxShadow: [
+                               BoxShadow(
+                                 color: primaryBrand.withValues(alpha: 0.15),
+                                 blurRadius: 20,
+                                 offset: const Offset(0, 8),
+                               ),
+                             ],
+                           ),
+                           child: ClipOval(
+                             child: Image.asset(
+                               'assets/images/app_logo.png',
+                               fit: BoxFit.cover,
+                               errorBuilder: (c, o, s) => Image.asset(
+                                 'assets/images/splash_logo.png',
+                                 fit: BoxFit.cover,
+                                 errorBuilder: (context, error, stackTrace) => Icon(
+                                   Icons.local_cafe_rounded,
+                                   size: 40,
+                                   color: primaryBrand,
+                                 ),
+                               ),
+                             ),
                            ),
                          ),
                        ),
-                     ),
+                       
+                       const SizedBox(height: 32),
+                       
+                       SizedBox(
+                         height: 90, // Fixed height to prevent jitter
+                         child: AnimatedSwitcher(
+                           duration: const Duration(milliseconds: 400),
+                           switchInCurve: Curves.easeOutCubic,
+                           switchOutCurve: Curves.easeInCubic,
+                           transitionBuilder: (Widget child, Animation<double> animation) {
+                             return FadeTransition(opacity: animation, child: SlideTransition(
+                               position: Tween<Offset>(
+                                 begin: const Offset(0.0, 0.2),
+                                 end: Offset.zero,
+                               ).animate(animation),
+                               child: child,
+                             ));
+                           },
+                           child: Align(
+                             alignment: Alignment.center,
+                             key: ValueKey<int>(_activePageIndex),
+                             child: Text(
+                               _activePageIndex == 0 ? 'Hoşgeldin.\nGiriş Yap.' : 'Hesap\nOluştur.',
+                               textAlign: TextAlign.center,
+                               style: GoogleFonts.outfit(
+                                 fontSize: 36,
+                                 fontWeight: FontWeight.bold,
+                                 height: 1.2,
+                                 color: textColor,
+                                 letterSpacing: -0.5,
+                               ),
+                             ),
+                           ),
+                         ),
+                       ),
+                     ],
                    ),
                    
-                   const SizedBox(height: 48),
+                   const SizedBox(height: 32),
  
                    // [2] Form Area
                    Container(
                      decoration: BoxDecoration(
                        color: cardColor,
                        borderRadius: BorderRadius.circular(32),
-                       boxShadow: [
-                         BoxShadow(
-                             color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.05),
-                             blurRadius: 20, 
-                             offset: const Offset(0, 10)
-                         )
-                       ]
                      ),
                    padding: const EdgeInsets.all(24),
                    child: Column(
@@ -321,7 +381,7 @@ class _LoginScreenState extends State<LoginScreen> {
                          Container(
                            padding: const EdgeInsets.symmetric(horizontal: 16),
                            decoration: BoxDecoration(
-                             color: isDark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB),
+                             color: Colors.white,
                              borderRadius: BorderRadius.circular(16),
                            ),
                            child: DropdownButtonHideUnderline(
@@ -347,7 +407,7 @@ class _LoginScreenState extends State<LoginScreen> {
                            child: Container(
                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                              decoration: BoxDecoration(
-                               color: isDark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB),
+                               color: Colors.white,
                                borderRadius: BorderRadius.circular(16),
                              ),
                              child: Row(
@@ -407,18 +467,36 @@ class _LoginScreenState extends State<LoginScreen> {
                        SizedBox(
                          width: double.infinity,
                          height: 56,
-                         child: ElevatedButton(
-                           onPressed: isLoading ? null : _submit,
-                           style: ElevatedButton.styleFrom(
-                             backgroundColor: primaryBrand,
-                             foregroundColor: Colors.white, // Button Text is always White on Green
-                             elevation: 0,
-                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                             textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                         child: Container(
+                           decoration: BoxDecoration(
+                             gradient: const LinearGradient(
+                               begin: Alignment.topLeft,
+                               end: Alignment.bottomRight,
+                               colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                             ),
+                             borderRadius: BorderRadius.circular(16),
+                             boxShadow: const [
+                               BoxShadow(
+                                 color: Color(0x3F7F7F7F),
+                                 blurRadius: 4,
+                                 offset: Offset(0, 4),
+                               ),
+                             ],
                            ),
-                           child: isLoading 
-                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                             : Text(_activePageIndex == 0 ? 'Giriş Yap' : 'Kayıt Ol'),
+                           child: ElevatedButton(
+                             onPressed: isLoading ? null : _submit,
+                             style: ElevatedButton.styleFrom(
+                               backgroundColor: Colors.transparent,
+                               shadowColor: Colors.transparent,
+                               foregroundColor: Colors.white,
+                               elevation: 0,
+                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                               textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                             ),
+                             child: isLoading 
+                               ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                               : Text(_activePageIndex == 0 ? 'Giriş Yap' : 'Kayıt Ol'),
+                           ),
                          ),
                        ),
 
@@ -441,7 +519,7 @@ class _LoginScreenState extends State<LoginScreen> {
                              child: Text(
                                _activePageIndex == 0 ? "Hesabın yok mu? Kayıt Ol" : "Zaten üye misin? Giriş Yap",
                                style: TextStyle(
-                                 color: textColor.withValues(alpha: 0.7),
+                                 color: textColor.withValues(alpha: 0.5),
                                  fontWeight: FontWeight.w500,
                                ),
                              ),
@@ -472,19 +550,19 @@ class _LoginScreenState extends State<LoginScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: TextField(
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
-        style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontWeight: FontWeight.w500),
-        cursorColor: Theme.of(context).primaryColor,
+        style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.w500),
+        cursorColor: const Color(0xFF76410B),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.3)),
-          prefixIcon: Icon(icon, color: Theme.of(context).textTheme.bodyLarge?.color?.withValues(alpha: 0.54), size: 20),
+          hintStyle: TextStyle(color: const Color(0xFF131313).withValues(alpha: 0.3)),
+          prefixIcon: Icon(icon, color: const Color(0xFF131313).withValues(alpha: 0.54), size: 20),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         ),

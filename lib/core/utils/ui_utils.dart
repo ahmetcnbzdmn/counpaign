@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../config/api_config.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
+import '../theme/app_theme.dart';
 
 String? resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return null;
@@ -52,17 +53,17 @@ Future<void> showCustomPopup(
 
   switch (type) {
     case PopupType.success:
-      primaryColor = Colors.green;
+      primaryColor = AppTheme.primaryColor;
       icon = Icons.check_circle_rounded;
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('success_title');
       break;
     case PopupType.error:
-      primaryColor = const Color(0xFFEE2C2C);
+      primaryColor = const Color(0xFFD32F2F); // Slightly deeper premium red
       icon = Icons.error_rounded;
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('error');
       break;
     case PopupType.info:
-      primaryColor = Colors.blue;
+      primaryColor = AppTheme.primaryColor;
       icon = Icons.info_rounded;
       defaultTitle = Provider.of<LanguageProvider>(context, listen: false).translate('info');
       break;
@@ -125,7 +126,7 @@ Future<void> showCustomPopup(
                       child: ElevatedButton(
                         onPressed: () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: type == PopupType.error ? const Color(0xFFEE2C2C) : theme.primaryColor,
+                          backgroundColor: primaryColor,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -142,5 +143,65 @@ Future<void> showCustomPopup(
         ),
       );
     },
+  );
+}
+
+void showNoCampaignsDialog(BuildContext context, String firmName) {
+  showDialog(
+    context: context,
+    builder: (ctx) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Theme.of(context).cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.domain_disabled_rounded, color: AppTheme.deepBrown, size: 40),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Aktif Kampanya Bulunamadı',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).textTheme.bodyLarge?.color,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$firmName işletmesinin henüz aktif bir kampanyası bulunmamaktadır.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                color: AppTheme.bodyText,
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  elevation: 0,
+                ),
+                child: Text('Tamam', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
   );
 }

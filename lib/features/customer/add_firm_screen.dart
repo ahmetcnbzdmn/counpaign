@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/utils/location_helper.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/theme/app_theme.dart';
 
 class AddFirmScreen extends StatefulWidget {
   const AddFirmScreen({super.key});
@@ -363,14 +364,22 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.1),
-                                    shape: BoxShape.circle,
+                                  Container(
+                                    width: 32,
+                                    height: 32,
+                                    clipBehavior: Clip.antiAlias,
+                                    decoration: BoxDecoration(
+                                      color: color.withValues(alpha: 0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: (firm['logo'] != null || firm['image'] != null)
+                                        ? Image.network(
+                                            resolveImageUrl(firm['logo'] ?? firm['image']) ?? '',
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => Icon(_getIcon(firm['cardIcon']), color: color, size: 16),
+                                          )
+                                        : Icon(_getIcon(firm['cardIcon']), color: color, size: 16),
                                   ),
-                                  child: Icon(_getIcon(firm['cardIcon']), color: color, size: 16),
-                                ),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -431,7 +440,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: Color(0xFFEE2C2C))) 
+              ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)) 
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   itemCount: _filteredFirms.length,
@@ -456,11 +465,18 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                         contentPadding: const EdgeInsets.all(12),
                         leading: Container(
                           width: 50, height: 50,
+                          clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Icon(_getIcon(firm['cardIcon']), color: color),
+                          child: (firm['logo'] != null || firm['image'] != null)
+                              ? Image.network(
+                                  resolveImageUrl(firm['logo'] ?? firm['image']) ?? '',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Icon(_getIcon(firm['cardIcon']), color: color),
+                                )
+                              : Icon(_getIcon(firm['cardIcon']), color: color),
                         ),
                         title: Text(
                           firm['companyName'] ?? lang.translate('unknown_business'),
@@ -554,7 +570,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFEE2C2C) : theme.cardColor,
+          color: isSelected ? const Color(0xFF7F6041) : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1),

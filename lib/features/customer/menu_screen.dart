@@ -5,13 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'dart:ui'; // For ImageFilter
 import '../../core/services/api_service.dart';
 import '../../core/config/api_config.dart';
-import '../../core/utils/ui_utils.dart';
+import '../../core/theme/app_theme.dart';
 
 class MenuScreen extends StatefulWidget {
   final String businessId;
   final String businessName;
   final dynamic businessColor;
   final String? businessImage;
+  final String? businessLogo;
 
   const MenuScreen({
     super.key,
@@ -19,6 +20,7 @@ class MenuScreen extends StatefulWidget {
     required this.businessName,
     this.businessColor,
     this.businessImage,
+    this.businessLogo,
   });
 
   @override
@@ -30,8 +32,6 @@ class _MenuScreenState extends State<MenuScreen> {
   List<dynamic> _allProducts = []; // Store all fetched products
   List<dynamic> _products = []; // Currently displayed (filtered/sorted)
   List<dynamic> _popularProducts = [];
-  late Color _brandColor;
-  late Color _brandLight;
 
   // Categories
   final List<String> _categories = [
@@ -51,25 +51,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   void initState() {
     super.initState();
-    _parseColor();
     _fetchMenu();
-  }
-
-  void _parseColor() {
-    Color base;
-    if (widget.businessColor is Color) {
-      base = widget.businessColor;
-    } else if (widget.businessColor is String) {
-      try {
-        base = Color(int.parse(widget.businessColor.replaceAll('#', '0xFF')));
-      } catch (e) {
-        base = Colors.black;
-      }
-    } else {
-      base = Colors.black;
-    }
-    _brandColor = base;
-    _brandLight = HSLColor.fromColor(base).withLightness(0.9).toColor();
   }
 
   Future<void> _fetchMenu() async {
@@ -145,7 +127,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 leading: const Icon(Icons.sort),
                 title: Text('Varsayılan', style: GoogleFonts.outfit()),
                 selected: _sortOption == 'default',
-                selectedColor: _brandColor,
+                selectedColor: AppTheme.primaryColor,
                 onTap: () {
                   setState(() => _sortOption = 'default');
                   _applyFilterAndSort();
@@ -156,7 +138,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 leading: const Icon(Icons.arrow_upward_rounded),
                 title: Text('Fiyat: Artan', style: GoogleFonts.outfit()),
                 selected: _sortOption == 'price_asc',
-                selectedColor: _brandColor,
+                selectedColor: AppTheme.primaryColor,
                 onTap: () {
                   setState(() => _sortOption = 'price_asc');
                   _applyFilterAndSort();
@@ -167,7 +149,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 leading: const Icon(Icons.arrow_downward_rounded),
                 title: Text('Fiyat: Azalan', style: GoogleFonts.outfit()),
                 selected: _sortOption == 'price_desc',
-                selectedColor: _brandColor,
+                selectedColor: AppTheme.primaryColor,
                 onTap: () {
                   setState(() => _sortOption = 'price_desc');
                   _applyFilterAndSort();
@@ -191,9 +173,9 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: const Color(0xFFEBEBEB),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: _brandColor))
+          ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor))
           : CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
@@ -216,12 +198,9 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   )
                 else ...[
-                  if (_popularProducts.isNotEmpty && _selectedCategory == 'Tümü') _buildPopularHeader(),
-                  if (_popularProducts.isNotEmpty && _selectedCategory == 'Tümü') _buildPopularList(),
+                  if (_popularProducts.isNotEmpty && _selectedCategory == 'Tümü') _buildPopularSection(),
                   
-                  _buildStickyHeader(), // Categories & Sort
-                  
-                  _buildProductGrid(),
+                  _buildMenuSection(),
                   
                   const SliverToBoxAdapter(child: SizedBox(height: 100)),
                 ],
@@ -231,94 +210,159 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildCreativeAppBar() {
+    final logoUrl = _getImageUrl(widget.businessLogo ?? widget.businessImage);
+    final coverUrl = _getImageUrl(widget.businessImage);
+    final bool hasCover = coverUrl.isNotEmpty && coverUrl != logoUrl;
+
     return SliverAppBar(
-      expandedHeight: 200.0,
+      expandedHeight: 220.0,
       floating: false,
       pinned: true,
-      backgroundColor: _brandColor,
+      backgroundColor: const Color(0xFFEBEBEB),
       elevation: 0,
       leading: Container(
         margin: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: Colors.white,
           shape: BoxShape.circle,
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
         ),
         child: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new, color: AppTheme.deepBrown, size: 20),
           onPressed: () => context.pop(),
         ),
       ),
       flexibleSpace: FlexibleSpaceBar(
-        centerTitle: false,
-        titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+        centerTitle: true,
+        titlePadding: const EdgeInsets.only(bottom: 16),
         title: Text(
-          widget.businessName.toUpperCase(),
+          widget.businessName,
           style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            fontSize: 24,
-            letterSpacing: 1.2,
-            shadows: [
-              Shadow(color: Colors.black.withValues(alpha: 0.3), offset: const Offset(0, 2), blurRadius: 4),
-            ]
+            fontWeight: FontWeight.w800,
+            color: AppTheme.deepBrown,
+            fontSize: 20,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
         background: Stack(
           fit: StackFit.expand,
           children: [
-            Container(color: _brandColor),
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.2),
-                    Colors.transparent,
-                    Colors.white.withValues(alpha: 0.1),
-                  ],
-                ),
-              ),
-            ),
-            // Light Patterns
-            Positioned(
-              right: -50, top: -50,
-              child: Container(
-                width: 200, height: 200,
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), shape: BoxShape.circle),
-              ),
-            ),
-            if (widget.businessImage != null)
-              Positioned.fill(
-                child: Opacity(
-                  opacity: 0.15,
-                  child: Image.network(
-                    resolveImageUrl(widget.businessImage) ?? '',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_,__,___) => const SizedBox(),
+            // Cover Image or Default Gradient
+            if (hasCover)
+               Image.network(coverUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container())
+            else
+               Container(
+                 decoration: BoxDecoration(
+                   gradient: LinearGradient(
+                     begin: Alignment.topCenter,
+                     end: Alignment.bottomCenter,
+                     colors: [
+                       AppTheme.primaryColor.withValues(alpha: 0.08),
+                       const Color(0xFFEBEBEB),
+                     ],
+                   )
+                 ),
+               ),
+
+            // Subtle overlay to ensure text readability and smooth transition to page body
+            if (hasCover)
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.3),
+                      Colors.transparent,
+                      const Color(0xFFEBEBEB),
+                    ],
+                    stops: const [0.0, 0.5, 1.0],
                   ),
                 ),
               ),
+
+            // Big Logo Graphic
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 10),
+                if (logoUrl.isNotEmpty)
+                   Container(
+                     width: 90, height: 90,
+                     decoration: BoxDecoration(
+                       shape: BoxShape.circle,
+                       color: Colors.white,
+                       image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
+                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 15, offset: const Offset(0, 5))],
+                       border: Border.all(color: Colors.white, width: 4),
+                     ),
+                   )
+                else 
+                   Container(
+                     width: 90, height: 90,
+                     decoration: BoxDecoration(
+                       shape: BoxShape.circle,
+                       color: Colors.white,
+                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 15, offset: const Offset(0, 5))],
+                       border: Border.all(color: Colors.white, width: 4),
+                     ),
+                     child: const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 40),
+                   ),
+                const SizedBox(height: 25), // Space for the title
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPopularHeader() {
+  Widget _buildPopularSection() {
     return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-        child: Row(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 5)),
+          ]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
-            const SizedBox(width: 8),
-            Text(
-              'Öne Çıkanlar',
-              style: GoogleFonts.outfit(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF1A1A1A),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Öne Çıkanlar',
+                    style: GoogleFonts.outfit(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF1A1A1A),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 180,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _popularProducts.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 20),
+                itemBuilder: (context, index) {
+                  final product = _popularProducts[index];
+                  return _buildCreativePopularCard(product);
+                },
               ),
             ),
           ],
@@ -327,103 +371,122 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildPopularList() {
+  Widget _buildMenuSection() {
     return SliverToBoxAdapter(
-      child: SizedBox(
-        height: 280,
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: _popularProducts.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 20),
-          itemBuilder: (context, index) {
-            final product = _popularProducts[index];
-            return _buildCreativePopularCard(product);
-          },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 5)),
+          ]
         ),
-      ),
-    );
-  }
-
-  Widget _buildStickyHeader() {
-    return SliverPersistentHeader(
-      pinned: true,
-      delegate: _StickyFilterDelegate(
-        child: Container(
-          color: const Color(0xFFF5F5F7),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 4, height: 24,
-                          decoration: BoxDecoration(color: _brandColor, borderRadius: BorderRadius.circular(2)),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Menü',
-                          style: GoogleFonts.outfit(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF1A1A1A),
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.sort_rounded, color: Colors.grey[800]),
-                      onPressed: _showSortOptions,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  itemCount: _categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (context, index) {
-                    final category = _categories[index];
-                    final isSelected = category == _selectedCategory;
-                    return GestureDetector(
-                      onTap: () => _onCategorySelected(category),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: isSelected ? _brandColor : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: isSelected 
-                              ? [BoxShadow(color: _brandColor.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]
-                              : [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)],
-                        ),
-                        child: Text(
-                          category,
-                          style: GoogleFonts.outfit(
-                            color: isSelected ? Colors.white : Colors.black87,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            fontSize: 14,
-                          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Internal Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4, height: 24,
+                        decoration: BoxDecoration(color: AppTheme.primaryColor, borderRadius: BorderRadius.circular(2)),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Menü',
+                        style: GoogleFonts.outfit(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF1A1A1A),
+                          letterSpacing: -0.5,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.sort_rounded, color: Colors.grey[800]),
+                    onPressed: _showSortOptions,
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            
+            // Categories List
+            SizedBox(
+              height: 40,
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                scrollDirection: Axis.horizontal,
+                physics: const BouncingScrollPhysics(),
+                itemCount: _categories.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, index) {
+                  final category = _categories[index];
+                  final isSelected = category == _selectedCategory;
+                  return GestureDetector(
+                    onTap: () => _onCategorySelected(category),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppTheme.primaryColor : const Color(0xFFF5F5F7),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: isSelected 
+                            ? [BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]
+                            : [],
+                      ),
+                      child: Text(
+                        category,
+                        style: GoogleFonts.outfit(
+                          color: isSelected ? Colors.white : Colors.black87,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 24),
+            
+            // Products Grid (Shrunk wrapped so it fits inside the column)
+            if (_products.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 20.0, bottom: 40.0),
+                child: Center(
+                  child: Text(
+                    'Bu kategoride ürün bulunamadı.',
+                    style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
+                  ),
+                ),
+              )
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: _products.length,
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.80,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                ),
+                itemBuilder: (context, index) {
+                  final product = _products[index];
+                  return _buildCreativeGridCard(product);
+                },
+              ),
+          ],
         ),
       ),
     );
@@ -433,7 +496,7 @@ class _MenuScreenState extends State<MenuScreen> {
     final imageUrl = _getImageUrl(product['imageUrl']);
     
     return Container(
-      width: 200,
+      width: 160,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -451,9 +514,9 @@ class _MenuScreenState extends State<MenuScreen> {
                   ? Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_,__,___) => Container(color: Colors.grey[200]),
+                      errorBuilder: (_,__,___) => Container(color: AppTheme.cardBackground),
                     )
-                  : Container(color: _brandLight),
+                  : Container(color: AppTheme.cardBackground),
             ),
             Positioned.fill(
               child: Container(
@@ -468,7 +531,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,7 +541,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: _brandColor,
+                          color: AppTheme.primaryColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -504,7 +567,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     product['name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18, height: 1.1),
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16, height: 1.1),
                   ),
                 ],
               ),
@@ -529,38 +592,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildProductGrid() {
-    return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      sliver: _products.isEmpty 
-      ? SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 50.0),
-            child: Text(
-              'Bu kategoride ürün bulunamadı.',
-              style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
-            ),
-          ),
-        ),
-      )
-      : SliverGrid(
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.65, // Increased height ratio (Height = width / 0.65) to fix overflow
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-        ),
-        delegate: SliverChildBuilderDelegate(
-          (context, index) {
-            final product = _products[index];
-            return _buildCreativeGridCard(product);
-          },
-          childCount: _products.length,
-        ),
-      ),
-    );
-  }
 
   Widget _buildCreativeGridCard(dynamic product) {
     final imageUrl = _getImageUrl(product['imageUrl']);
@@ -568,7 +599,7 @@ class _MenuScreenState extends State<MenuScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20), // Figma standard
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 15, offset: const Offset(0, 5)),
         ],
@@ -578,102 +609,77 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           // Image Area
           Expanded(
-            flex: 55, // 55% Image
+            flex: 60,
             child: Stack(
               children: [
                 Positioned.fill(
                   child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     child: imageUrl.isNotEmpty
                         ? Image.network(
                             imageUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (_,__,___) => Container(color: Colors.grey[100]),
+                            errorBuilder: (_,__,___) => Container(color: const Color(0xFFF5F5F5)),
                           )
-                        : Container(color: Colors.grey[50], child: Icon(Icons.fastfood_rounded, color: Colors.grey[300], size: 40)),
+                        : Container(color: const Color(0xFFF5F5F5), child: Icon(Icons.fastfood_rounded, color: Colors.grey[300], size: 40)),
                   ),
                 ),
                 Positioned(
                   bottom: 8, left: 8,
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor,
+                      borderRadius: BorderRadius.circular(20), // Pill shape
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.stars_rounded, color: Colors.white, size: 14),
+                        const SizedBox(width: 4),
+                        Text(
+                          (((product['price'] as num) - (product['discount'] ?? 0)).toInt()).toString(),
+                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
                         ),
-                        child: Row(
-                          children: [
-                            Text(
-                              '₺${((product['price'] as num) - (product['discount'] ?? 0)).toStringAsFixed(0)}',
-                              style: GoogleFonts.outfit(fontWeight: FontWeight.w800, color: _brandColor, fontSize: 14),
-                            ),
-                            if ((product['discount'] ?? 0) > 0) ...[
-                              const SizedBox(width: 6),
-                              Text(
-                                '₺${(product['price'] as num).toStringAsFixed(0)}',
-                                style: GoogleFonts.outfit(
-                                  fontSize: 11,
-                                  color: Colors.red.shade400,
-                                  decoration: TextDecoration.lineThrough,
-                                  decorationColor: Colors.red.shade400,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if ((product['discount'] ?? 0) > 0)
-                  Positioned(
-                    top: 10, left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.redAccent,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        '%${product['price'] != 0 ? ((product['discount'] / product['price']) * 100).toInt() : 0} İNDİRİM',
-                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                      ),
+                      ],
                     ),
                   ),
+                ),
               ],
             ),
           ),
           
           // Info Area
           Expanded(
-            flex: 45, // 45% Text - More space
+            flex: 40,
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.start, // Start aligning to avoid space between issues
                 children: [
                   Text(
                     product['name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: const Color(0xFF2D2D2D), height: 1.1),
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.w600, 
+                      fontSize: 14, 
+                      color: AppTheme.lightTextPrimary, 
+                      height: 1.1,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  if (product['description'] != null && product['description'].isNotEmpty)
-                    Expanded( // Use expanded to fill remaining space but respect limit
-                      child: Text(
-                        product['description'],
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    )
-                  else
-                    const Spacer(), // Push content up if no desc
+                  Text(
+                    product['description'] ?? '',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.outfit(
+                      fontSize: 12, 
+                      color: AppTheme.lightTextSecondary,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -681,27 +687,5 @@ class _MenuScreenState extends State<MenuScreen> {
         ],
       ),
     );
-  }
-}
-
-class _StickyFilterDelegate extends SliverPersistentHeaderDelegate {
-  final Widget child;
-
-  _StickyFilterDelegate({required this.child});
-
-  @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return child;
-  }
-
-  @override
-  double get maxExtent => 140.0; // Adjusted for header + list
-
-  @override
-  double get minExtent => 140.0;
-
-  @override
-  bool shouldRebuild(covariant _StickyFilterDelegate oldDelegate) {
-    return true; // Rebuild when styles change (selection)
   }
 }

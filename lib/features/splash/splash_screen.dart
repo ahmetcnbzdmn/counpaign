@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/services/storage_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -41,10 +44,26 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _controller.forward();
 
     // Navigate after animation completes
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
         if (mounted) {
-           context.go('/home'); 
+           final auth = context.read<AuthProvider>();
+           // Wait for initial session load if not done
+           if (!auth.isInitialized) {
+              // Usually it's fast enough, but fallback to home or login based on state
+              // The GoRouter redirect hook in main.dart handles deep guard usually
+           }
+           if (auth.isAuthenticated) {
+             context.go('/home'); 
+           } else {
+             final storage = StorageService();
+             final hasSeenIntro = await storage.hasSeenIntro();
+             if (hasSeenIntro) {
+               context.go('/login');
+             } else {
+               context.go('/intro');
+             }
+           }
         }
       }
     });
@@ -59,7 +78,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: const Color(0xFFEBEBEB),
       body: Stack(
         children: [
           // Background Decor: Full Pattern of Small Cups (Optimized)
@@ -69,8 +88,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               builder: (context, child) {
                 return CustomPaint(
                   painter: _CupPatternPainter(
-                    // "Kırmızı bi tık daha açık olsun" - Using a lighter, softer red
-                    color: const Color(0xFFFF5252), 
+                    // Lighter brown to match the new theme subtlety
+                    color: const Color(0xFF76410B).withValues(alpha: 0.1), 
                     animationValue: _controller.value, 
                   ),
                   size: Size.infinite,
@@ -91,7 +110,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFFEE2C2C).withValues(alpha: 0.2), 
+                          color: const Color(0xFF76410B).withValues(alpha: 0.2), 
                           blurRadius: 30,
                           offset: const Offset(0, 10),
                         )

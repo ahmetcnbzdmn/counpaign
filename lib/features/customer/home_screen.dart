@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../core/providers/auth_provider.dart';
+import 'gift_selection_screen.dart';
+import '../../core/providers/auth_provider.dart' as app;
 import 'package:go_router/go_router.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/services/api_service.dart';
+import '../../core/models/campaign_model.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
 import '../../core/providers/business_provider.dart';
 import '../../core/providers/campaign_provider.dart';
@@ -12,6 +15,9 @@ import '../../core/providers/language_provider.dart';
 
 
 import '../../features/customer/widgets/wallet_card.dart';
+import '../../core/theme/app_theme.dart';
+import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/backgrounds/organic_wave_background.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,8 +28,23 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PageController _pageController = PageController(viewportFraction: 0.93);
+  final PageController _campaignPageController = PageController(viewportFraction: 0.86);
   int _currentIndex = 0;
+  int _currentCampaignIndex = 0;
+
+  // Review state
+  List<dynamic> _pendingReviews = [];
+  int _selectedRating = 0;
+  bool _isSubmittingReview = false;
+  bool _pendingReviewsLoaded = false;
   
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _campaignPageController.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -31,31 +52,259 @@ class _HomeScreenState extends State<HomeScreen> {
     // Fetch data using the provider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
+      
+      // Load pending reviews immediately
+      _loadPendingReviews();
+
       final bp = context.read<BusinessProvider>();
       final cp = context.read<CampaignProvider>();
-      final api = context.read<ApiService>();
+      final auth = context.read<app.AuthProvider>();
 
-      await bp.fetchMyFirms();
-      // Fetch global data for counts
-      bp.fetchExploreFirms();
-      cp.fetchAllCampaigns();
+      // If auth not initialized yet, wait for it shortly
+      if (!auth.isInitialized) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) _loadPendingReviews(); // Try again if auth just loaded
+      }
 
-      if (mounted) {
-        final firms = bp.myFirms;
-        for (var firm in firms) {
-          cp.fetchCampaigns(firm['id']);
+      try {
+        await bp.fetchMyFirms();
+        // Fetch global data for counts
+        bp.fetchExploreFirms();
+        cp.fetchAllCampaigns();
+
+        if (mounted) {
+          final firms = bp.myFirms;
+          for (var firm in firms) {
+            cp.fetchCampaigns(firm['id']);
+          }
         }
-        // Fetch reviews to check for pending ones
-        api.getReviews();
+      } catch (e) {
+        debugPrint('Home data fetch error: $e');
       }
     });
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  Future<void> _loadPendingReviews() async {
+    try {
+      final api = context.read<ApiService>();
+      final data = await api.getPendingReviews();
+      if (mounted) {
+        setState(() {
+          _pendingReviews = data;
+          _pendingReviewsLoaded = true;
+          _selectedRating = 0;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _pendingReviewsLoaded = true;
+        });
+      }
+    }
   }
+
+  Future<void> _submitReview(dynamic review, int rating, {String comment = ''}) async {
+    if (_isSubmittingReview) return;
+    setState(() {
+      _isSubmittingReview = true;
+      _selectedRating = rating;
+    });
+
+    try {
+      final api = context.read<ApiService>();
+      final transactionId = review['_id'];
+      final businessId = review['business'] is Map
+          ? review['business']['_id']
+          : review['business'];
+      await api.submitReview(transactionId, businessId, rating, comment);
+
+      if (mounted) {
+        setState(() {
+          _pendingReviews.removeAt(0);
+          _selectedRating = 0;
+          _isSubmittingReview = false;
+        });
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmittingReview = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Değerlendirme gönderilemedi.')),
+        );
+      }
+    }
+  }
+
+  void _showRatingDialog(dynamic review, int rating) {
+    if (_isSubmittingReview) return;
+    
+    final TextEditingController noteController = TextEditingController();
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+    final isTr = lang.locale.languageCode == 'tr';
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFFF5F5F7),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(
+            isTr ? 'Değerlendirme' : 'Rating',
+            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
+            textAlign: TextAlign.center,
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return Icon(
+                    Icons.star_rounded,
+                    color: index < rating ? const Color(0xFFE68A01) : const Color(0xFF6D6D6D).withValues(alpha: 0.4),
+                    size: 40,
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: noteController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: isTr ? 'İsteğe bağlı bir not ekleyin...' : 'Add an optional note...',
+                  hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFDADADA)),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFDADADA)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF77410C)),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                ),
+                style: GoogleFonts.outfit(fontSize: 14),
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                isTr ? 'Vazgeç' : 'Cancel',
+                style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF77410C),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                _submitReview(review, rating, comment: noteController.text.trim());
+              },
+              child: Text(
+                isTr ? 'Kaydet' : 'Save',
+                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showSuccessDialog() {
+    final lang = context.read<LanguageProvider>();
+    final isTr = lang.locale.languageCode == 'tr';
+    
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        elevation: 10,
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Checkmark Circle
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9C06A).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Color(0xFFF9C06A),
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                isTr ? 'Teşekkürler!' : 'Thank You!',
+                style: GoogleFonts.outfit(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF131313),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                isTr 
+                  ? 'Değerlendirmeniz başarıyla\nkaydedildi.' 
+                  : 'Your rating has been saved\nsuccessfully.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(
+                  fontSize: 15,
+                  color: Colors.grey[600],
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 32),
+              // OK Button
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF131313),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    isTr ? 'Tamam' : 'OK',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+
   
   
   // Helper to get firms from provider and map them
@@ -84,6 +333,8 @@ class _HomeScreenState extends State<HomeScreen> {
       'neighborhood': e['neighborhood'],
       'logo': e['logo'],
       'image': e['image'],
+      'reviewScore': e['reviewScore'],
+      'reviewCount': e['reviewCount'],
     }).toList();
 
     if (mapped.isEmpty) {
@@ -104,11 +355,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Color _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFFEE2C2C);
+    if (hex == null || hex.isEmpty) return const Color(0xFFF9C06A);
     try {
       return Color(int.parse(hex.replaceAll('#', '0xFF')));
     } catch (_) {
-      return const Color(0xFFEE2C2C);
+      return const Color(0xFFF9C06A);
     }
   }
 
@@ -134,7 +385,7 @@ class _HomeScreenState extends State<HomeScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        color: const Color(0xFFEE2C2C), // Updated to Red
+        color: const Color(0xFFF9C06A), // Match Premium Theme
       ),
       child: Stack(
         children: [
@@ -162,7 +413,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     shape: BoxShape.circle,
                     color: Colors.white, // White circle
                   ),
-                  child: const Icon(Icons.add_rounded, color: Color(0xFFEE2C2C), size: 40), // Red Icon
+                  child: const Icon(Icons.add_rounded, color: Color(0xFF76410B), size: 40), // Premium Brown Icon
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -190,165 +441,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPendingReviewRow(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: context.read<ApiService>().getPendingReviews(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-
-        // [LOGIC] Check if there's a recent transaction (last 24h) WITHOUT a review
-        // For simplicity in this UI demo, we show the card if the user has transactions but few reviews
-        // A more robust logic would involve matching transactionIds.
-        
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-          child: _buildBentoCard(
-            context,
-            color: const Color(0xFFFF9800), // Warning Orange
-            title: Provider.of<LanguageProvider>(context).translate('pending_review_title'),
-            subtitle: Provider.of<LanguageProvider>(context).translate('pending_review_subtitle'),
-            icon: Icons.rate_review_rounded,
-            isHorizontal: true,
-            onTap: () => context.push('/my-reviews'),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showEmptyCampaignDialog(BuildContext context, String firmName) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: Theme.of(context).cardColor,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEE2C2C).withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.domain_disabled_rounded, color: Color(0xFFEE2C2C), size: 40),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Aktif Kampanya Bulunamadı',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).textTheme.bodyLarge?.color,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$firmName işletmesinin henüz aktif bir kampanyası bulunmamaktadır. Tarama yapamazsınız.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.outfit(
-                  fontSize: 14,
-                  color: Theme.of(context).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEE2C2C),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    'Tamam',
-                    style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildAnimatedScanButton(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Main Button (Gradient Circle)
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: const LinearGradient(
-              colors: [Color(0xFFFF4444), Color(0xFFEE2C2C)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFFEE2C2C).withValues(alpha: 0.5),
-                blurRadius: 16,
-                spreadRadius: 2,
-                offset: const Offset(0, 6),
-              ),
-              // Inner highlight for 3D feel
-              BoxShadow(
-                color: Colors.white.withValues(alpha: 0.2),
-                blurRadius: 10,
-                offset: const Offset(-4, -4),
-              ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 36),
-          ),
-        ),
-        const SizedBox(height: 8),
-        // Floating Label Text (Clean)
-        Text(
-          Provider.of<LanguageProvider>(context).translate('scan_qr'),
-          style: GoogleFonts.outfit(
-            color: Colors.black87,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-            shadows: [
-              Shadow(
-                color: Colors.white.withValues(alpha: 0.8),
-                blurRadius: 4,
-              )
-            ]
-          ),
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    // Dynamic Colors
-    final Color bgColor = theme.scaffoldBackgroundColor;
-    final Color textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const Color primaryBrand = Color(0xFFEE2C2C);
-    
     // Watch providers for counts
-    final campaignCount = context.watch<CampaignProvider>().allCampaigns.length;
     final businessProvider = context.watch<BusinessProvider>();
-    final firmCount = businessProvider.exploreFirms.length;
     final myFirmsCount = businessProvider.myFirms.length;
 
     // [AUTO RE-SYNC] Force jump to 0 when first cafe is added to avoid offset mismatch
@@ -357,48 +453,13 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     return Scaffold(
-      backgroundColor: bgColor,
-      floatingActionButtonLocation: const CustomBottomFabLocation(offsetY: 10),
-      floatingActionButton: GestureDetector(
-        onTap: () {
-          final firms = _getFirmBalances(context, listen: false);
-          // If current index is within firm range, pass firm context
-          if (_currentIndex < firms.length && firms[_currentIndex]['id'] != null) {
-            final firm = firms[_currentIndex];
-            final firmId = firm['id'];
-            
-            final allCampaigns = context.read<CampaignProvider>().allCampaigns;
-            
-            // 1. Get campaigns for this business
-            final firmCampaigns = allCampaigns.where((c) => c.businessId == firmId).toList();
-
-            // Check: If firm has 0 campaigns -> Show Empty Dialog
-            if (firmCampaigns.isEmpty) {
-              _showEmptyCampaignDialog(context, firm['name'] ?? 'İşletme');
-              return;
-            }
-            
-            context.push('/customer-scanner', extra: {
-              'expectedBusinessId': firmId,
-              'expectedBusinessName': firm['name'],
-              'expectedBusinessColor': firm['color'],
-              'currentStamps': firm['stamps'] ?? 0,
-              'targetStamps': firm['stampsTarget'] ?? 6,
-              'currentGifts': firm['giftsCount'] ?? 0,
-              'currentPoints': firm['points'] ?? '0',
-            });
-          } else {
-            // No firm selected (on "Add" card or empty wallet) — generic scan
-            context.push('/customer-scanner');
-          }
-        },
-        child: _buildAnimatedScanButton(context),
-      ),
-      bottomNavigationBar: null, // Removed as requested for a cleaner UI
-      body: SafeArea(
-        bottom: false, // Let content flow behind navbar
-        child: RefreshIndicator(
-          color: primaryBrand,
+      backgroundColor: Colors.transparent,
+      bottomNavigationBar: null, 
+      body: OrganicWaveBackground(
+        child: SafeArea(
+          bottom: false, 
+          child: RefreshIndicator(
+          color: AppTheme.primaryColor,
           onRefresh: () async {
              final biz = context.read<BusinessProvider>();
              final camp = context.read<CampaignProvider>();
@@ -406,11 +467,12 @@ class _HomeScreenState extends State<HomeScreen> {
                biz.fetchMyFirms(),
                biz.fetchExploreFirms(),
                camp.fetchAllCampaigns(),
+               _loadPendingReviews(),
              ]);
           },
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(), // Ensure it's always scrollable for refresh
-            padding: const EdgeInsets.only(top: 10, bottom: 100), // Increased bottom padding for floating button
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.only(top: 10, bottom: 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -418,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20),
                   child: RepaintBoundary(
-                    child: HomeHeader(), // Extracted const widget to prevent rebuilds
+                    child: HomeHeader(),
                   ),
                 ),
                  
@@ -428,245 +490,904 @@ class _HomeScreenState extends State<HomeScreen> {
                 Consumer<BusinessProvider>(
                   builder: (context, provider, child) {
                     if (provider.isLoading && provider.myFirms.isEmpty) {
-                      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: primaryBrand)));
+                      return Center(child: Padding(padding: const EdgeInsets.all(20), child: CircularProgressIndicator(color: AppTheme.primaryColor)));
                     }
                     return NotificationListener<ScrollNotification>(
-                      onNotification: (notification) {
-                        // Stop horizontal scroll notifications from bubbling up
-                        // and potentially confusing RefreshIndicator or SingleChildScrollView
-                        return true; 
-                      },
+                      onNotification: (notification) => true,
                       child: _buildBalanceCarousel(context),
                     ); 
                   },
                 ),
 
-                const SizedBox(height: 20),
-
-                // [3] EXTERNAL ACTIONS (Kafe Ekle & QR Tara - Unified Card)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Consumer<BusinessProvider>(
-                    builder: (context, provider, child) {
-                      final firms = _getFirmBalances(context);
-                      
-                      // [SYNC FIX] If we went from 0 cafes to 1, or list changed, ensure we are synced
-                      final String syncKey = firms.isEmpty ? 'empty' : '${firms.length}_${firms[0]['id']}';
-                      
-                      return AnimatedBuilder(
-                        key: ValueKey('action_bar_$syncKey'),
-                        animation: _pageController,
-                        builder: (context, child) {
-                          double page = 0.0;
-                          if (_pageController.hasClients && _pageController.page != null) {
-                            page = _pageController.page!;
-                          } else {
-                            page = _currentIndex.toDouble();
-                          }
-                          
-                          final int activeIndex = page.round();
-
-                          // [FIX] Hide actions if we are on the "Add Cafe" card (extra card at the end)
-                          if (activeIndex >= firms.length) {
-                            return const SizedBox.shrink();
-                          }
-
-                          // [FIX] Hide actions if "Cüzdan Boş" (Empty Wallet placeholder)
-                          final lang = context.read<LanguageProvider>();
-                          if (firms[activeIndex]['name'] == lang.translate('wallet_empty')) {
-                            return const SizedBox.shrink();
-                          }
-
-                          final currentColor = (firms.isNotEmpty && activeIndex < firms.length) 
-                              ? firms[activeIndex]['color'] as Color 
-                              : primaryBrand;
-                              
-                          return Container(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [currentColor, currentColor.withValues(alpha: 0.9)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: currentColor.withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                )
-                              ]
-                            ),
-                            child: Row(
-                              children: [
-                                // Menu Button (Placeholder)
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      // Navigate to MenuScreen
-                                      final firm = firms[activeIndex];
-                                      context.push(
-                                        '/menu', 
-                                        extra: {
-                                          'businessId': firm['id'], 
-                                          'businessName': firm['name'],
-                                          'businessColor': firm['color'],
-                                          'businessImage': firm['image'] ?? firm['logo']
-                                        }
-                                      ).then((_) {
-                                          // Refresh data if needed (Menu doesn't change wallet state usually)
-                                      });
-                                    },
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          Provider.of<LanguageProvider>(context).translate('menu'), 
-                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                
-                                // Divider
-                                Container(
-                                  width: 1,
-                                  height: 40,
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                ),
-                                
-                                    // Fırsatlar (Deals) Button
-                                Expanded(
-                                  child: GestureDetector(
-                                    onTap: () {
-                                      final firms = _getFirmBalances(context, listen: false);
-                                      final lang = context.read<LanguageProvider>();
-                                      if (firms.isEmpty || firms[activeIndex]['name'] == lang.translate('wallet_empty')) return;
-                                      
-                                      final firmId = firms[activeIndex]['id'];
-                                      final firmName = firms[activeIndex]['name'];
-                                      
-                                      // Navigate to filtered campaigns page ("Ayrı bir sayfa olarak açsın")
-                                      context.push('/business-campaigns', extra: {
-                                        'firmId': firmId,
-                                        'firmName': firmName,
-                                      });
-                                    },
-                                    behavior: HitTestBehavior.opaque,
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Icon(Icons.local_offer_rounded, color: Colors.white, size: 28),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          Provider.of<LanguageProvider>(context).translate('deals'), 
-                                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    }
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-                
-                // [NEW] PENDING REVIEW CARD
-                _buildPendingReviewRow(context),
-
-                // [4] "BENTO" GRID Area (Revised Layout)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                    Provider.of<LanguageProvider>(context).translate('explore'), 
-                    style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)
-                  ),
-                ),
                 const SizedBox(height: 16),
-                 
-                // Row: Two Square Cards
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    height: 160,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildBentoCard(
-                            context,
-                            color: const Color(0xFF009688), // Teal (Matches Orange)
-                            title: Provider.of<LanguageProvider>(context).translate('deals'),
-                            subtitle: "$campaignCount ${Provider.of<LanguageProvider>(context).translate('active_campaigns')}",
-                            icon: Icons.local_offer_rounded,
-                            onTap: () => context.go('/campaigns'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildBentoCard(
-                            context,
-                            color: const Color(0xFFEE2C2C), // Red (Brand)
-                            title: Provider.of<LanguageProvider>(context).translate('explore_cafes'),
-                            subtitle: "$firmCount ${Provider.of<LanguageProvider>(context).translate('venues')}",
-                            icon: Icons.explore_rounded,
-                            onTap: () => context.push('/explore-cafes'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                 
-                const SizedBox(height: 180), // Bottom padding (clears FAB + BottomAppBar)
+                
+                // [3] ORDERS / FEEDBACK BANNER
+                _buildSiparislerimBanner(context),
+
+                // [4] ACTIVE CAMPAIGNS CAROUSEL
+                _buildActiveCampaignsCarousel(context),
+
+                const SizedBox(height: 24),
+
+                // [5] DISCOVER GRID
+                _buildDiscoverGrid(context),
+
+                const SizedBox(height: 120),
               ],
             ),
+          ),
+        ),
+      ),
+      ),
+    );
+  }
+
+  Widget _buildSiparislerimBanner(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+    final isTr = lang.locale.languageCode == 'tr';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header (Figma: "Siparişlerim" #434343 w600 14px)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isTr ? 'Siparişlerim' : 'My Orders',
+                style: GoogleFonts.outfit(
+                  color: AppTheme.sectionTitle,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.push('/order-history'),
+                child: Text(
+                  isTr ? 'Tümünü gör' : 'View all',
+                  style: GoogleFonts.outfit(
+                    color: Colors.black,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18), // Figma gap=18
+          
+          // Banner Card — pending reviews from state
+          Consumer<BusinessProvider>(
+            builder: (context, bp, _) {
+              if (!_pendingReviewsLoaded) {
+                return Container(
+                  height: 154,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Center(child: CircularProgressIndicator(color: AppTheme.primaryColor)),
+                );
+              }
+
+              if (_pendingReviews.isEmpty) {
+                // Determine if they are a completely new user or just finished reviews
+                if (bp.myFirms.isEmpty) {
+                   return _buildBannerState1(context, isTr);
+                }
+                return _buildBannerNoReviews(context, isTr);
+              }
+
+              final review = _pendingReviews.first;
+              return _buildBannerState2(context, review, isTr);
+            },
+          ),
+          const SizedBox(height: 24), // Figma gap=24
+        ],
+      ),
+    );
+  }
+
+
+  /// State 1: New user — "İlk kahveni birlikte seçelim!" (Figma 1.png)
+  Widget _buildBannerState1(BuildContext context, bool isTr) {
+    return GestureDetector(
+      onTap: () => context.push('/explore-cafes'),
+      child: Center(
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.92,
+          height: 145,
+          padding: const EdgeInsets.only(left: 16, right: 23),
+          decoration: ShapeDecoration(
+            color: const Color(0xFFF9C06A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          child: Stack(
+            children: [
+              // Background Watermark Logo Pattern
+              Positioned(
+                left: 140,
+                right: 5,
+                top: 0,
+                bottom: 0,
+                child: SvgPicture.asset(
+                  'assets/images/union.svg',
+                  height: 115, // Slightly shrunk
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerRight,
+                ),
+              ),
+              // Right side coffee splashing image
+              Positioned(
+                right: 0,
+                top: 0,
+                bottom: 0,
+                child: Image.asset(
+                  'assets/images/siparis_banner_coffee.png',
+                  width: 220,
+                  fit: BoxFit.contain,
+                  alignment: Alignment.centerRight,
+                ),
+              ),
+              // Left text column
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isTr ? 'Henüz siparişin yok.' : 'No orders yet.',
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF7F6041),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        height: 0.75,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: 130, // Adjusted for Turkish text wrap
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: isTr ? 'İlk kahveni\n' : 'Let\'s pick\n',
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF111111),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                                height: 1.27,
+                              ),
+                            ),
+                            TextSpan(
+                              text: isTr ? 'birlikte\n' : 'your first\n',
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFFC06000),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                                height: 1.27,
+                              ),
+                            ),
+                            TextSpan(
+                              text: isTr ? 'seçelim!' : 'coffee!',
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF111111),
+                                fontSize: 22,
+                                fontWeight: FontWeight.w500,
+                                height: 1.27,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  // ... (Header, Balance, QuickActions same)
 
-  // Header, Balance, QuickActions code remains... need to ensure they are not deleted if I use replace_file correctly
-  // Wait, I need to match the closing brace of build and class.
-  // The replace_file_content tool works by replacing a block.
-  // I should be careful. Let's just replace the Grid part.
-  
-  // Actually, I need to update _buildBentoCard signature to accept isHorizontal too.
-  // Let's do it in two steps or a big chunk if I can match text.
-  
-  // Let's replace the whole Grid section in build() first.
+  Widget _buildBannerNoReviews(BuildContext context, bool isTr) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.92,
+      constraints: const BoxConstraints(minHeight: 164),
+      decoration: ShapeDecoration(
+        color: const Color(0xFFF9C06A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shadows: const [
+          BoxShadow(color: Color(0x3F000000), blurRadius: 4, offset: Offset(0, 4), spreadRadius: 0)
+        ],
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Coffee Image
+          Positioned(
+            right: -40,
+            top: -15,
+            child: Container(
+              width: 224,
+              height: 180,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/images/pngwing_coffee.png"),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 16, left: 18, right: 174, bottom: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isTr ? 'Değerlendirilecek' : 'No pending',
+                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
+                ),
+                Text(
+                  isTr ? 'ziyaretiniz bulunmuyor.' : 'visits to review.',
+                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isTr ? 'Yine bekleriz!' : 'See you again!',
+                  style: GoogleFonts.outfit(color: const Color(0xFF7F6041), fontSize: 12, fontWeight: FontWeight.w500, height: 1.1),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateTime(String? isoString) {
+    if (isoString == null) return '';
+    try {
+      final dt = DateTime.parse(isoString).toLocal();
+      final day = dt.day.toString().padLeft(2, '0');
+      final month = dt.month.toString().padLeft(2, '0');
+      final year = dt.year;
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final min = dt.minute.toString().padLeft(2, '0');
+      return '$day.$month.$year | $hour:$min';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// State 2: After purchase — "Ziyaretin nasıldı?" (Figma 2.png)
+  Widget _buildBannerState2(BuildContext context, dynamic review, bool isTr) {
+    final business = review['business'] is Map ? review['business'] : {};
+    final firmName = business['companyName'] ?? (review['businessName'] ?? '');
+    final dateTimeStr = _formatDateTime(review['createdAt']);
+    final dateParts = dateTimeStr.split(' | ');
+    final date = dateParts.isNotEmpty ? dateParts[0] : '';
+    final time = dateParts.length > 1 ? dateParts[1] : '';
+    
+    final String? logoUrl = resolveImageUrl(business['logo'] ?? business['image'] ?? business['logoUrl']);
+
+    return GestureDetector(
+      onTap: () => context.push('/my-reviews'),
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.92,
+        constraints: const BoxConstraints(minHeight: 164),
+        decoration: ShapeDecoration(
+          color: const Color(0xFFF9C06A),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shadows: const [
+            BoxShadow(color: Color(0x3F000000), blurRadius: 4, offset: Offset(0, 4), spreadRadius: 0)
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Coffee Image (Relative Positioned to match screenshot)
+            Positioned(
+              right: -40,
+              top: -15,
+              child: Container(
+                width: 224,
+                height: 180,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/images/pngwing_coffee.png"),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ),
+            // Content
+            Padding(
+              padding: const EdgeInsets.only(top: 16, left: 18, right: 174, bottom: 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Titles
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isTr ? 'Ziyaretin nasıldı?' : 'How was your visit?',
+                        style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isTr ? 'Deneyimini puanla!' : 'Rate your experience!',
+                        style: GoogleFonts.outfit(color: const Color(0xFF7F6041), fontSize: 12, fontWeight: FontWeight.w500, height: 1.1),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Rating Section
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(5, (i) {
+                          final starIndex = i + 1;
+                          final isFilled = (_isSubmittingReview && _selectedRating >= starIndex);
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 12),
+                            child: GestureDetector(
+                              onTap: () => _showRatingDialog(review, starIndex),
+                              child: Icon(
+                                Icons.star_rounded,
+                                color: isFilled ? const Color(0xFFE68A01) : const Color(0xFF6D6D6D).withValues(alpha: 0.4),
+                                size: 22.83,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      const SizedBox(height: 12),
+                      // Date & Time
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            date,
+                            style: GoogleFonts.outfit(color: const Color(0xFF3D3D3D), fontSize: 10, fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(width: 4),
+                          Container(width: 1, height: 10, color: const Color(0xFF3D3D3D)),
+                          const SizedBox(width: 4),
+                          Text(
+                            time,
+                            style: GoogleFonts.outfit(color: const Color(0xFF3D3D3D), fontSize: 10, fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Business Row
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (logoUrl != null && logoUrl.isNotEmpty)
+                            Container(
+                              width: 16,
+                              height: 16,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
+                              ),
+                            )
+                          else
+                            Image.asset('assets/images/app_logo.png', width: 16, height: 16, errorBuilder: (_, __, ___) => const SizedBox(width: 16, height: 16)),
+                          const SizedBox(width: 6),
+                          SizedBox(
+                            width: 113,
+                            child: Text(
+                              firmName,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(color: const Color(0xFF131313), fontSize: 14, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (_isSubmittingReview)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
+                  child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
 
-  // Header replaced by standalone widget class below
-  // Widget _buildHeader(BuildContext context) { ... } deleted
+
+
+  Widget _buildActiveCampaignsCarousel(BuildContext context) {
+    final campaigns = context.watch<CampaignProvider>().allCampaigns;
+    final lang = context.watch<LanguageProvider>();
+    final isTr = lang.locale.languageCode == 'tr';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24), // Push down to avoid overlap with coffee splash
+        // Section Header (Figma: #434343 w600 14px)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isTr ? 'Aktif Kampanyalar' : 'Active Campaigns', 
+                style: GoogleFonts.outfit(
+                  color: AppTheme.sectionTitle, // #434343
+                  fontSize: 14, // Figma: 14px
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => context.push('/campaigns'),
+                child: Text(
+                  isTr ? 'Tümünü gör' : 'View All', 
+                  style: GoogleFonts.outfit(
+                    color: Colors.black, // Figma: #000000
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12), // Figma gap=12
+        SizedBox(
+          height: 184, // Increased height to prevent bottom shadow clipping
+          child: campaigns.isEmpty 
+            ? Center(child: Text(isTr ? 'Hiç kampanya yok' : 'No campaigns', style: GoogleFonts.outfit(color: AppTheme.bodyText)))
+            : PageView.builder(
+                controller: _campaignPageController,
+                itemCount: campaigns.length,
+                onPageChanged: (index) => setState(() => _currentCampaignIndex = index),
+                itemBuilder: (context, index) {
+                  final c = campaigns[index];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    child: _buildCampaignCard(c, isTr),
+                  );
+                },
+              ),
+        ),
+        // Dots (Dynamic generation based on campaigns count)
+        if (campaigns.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                campaigns.length,
+                (i) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: _currentCampaignIndex == i ? 19 : 11,
+                  height: 9,
+                  margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                  decoration: BoxDecoration(
+                    color: _currentCampaignIndex == i ? AppTheme.activeDot : AppTheme.inactiveDot,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Single Campaign Card (Figma: white bg, r=16, image left 164x164, text right)
+  Widget _buildCampaignCard(CampaignModel campaign, bool isTr) {
+    final imageUrl = resolveImageUrl(campaign.headerImage);
+    final logoUrl = resolveImageUrl(campaign.businessLogo);
+    final businessName = campaign.businessName.isNotEmpty ? campaign.businessName : "Counpaign";
+
+    return GestureDetector(
+      onTap: () => context.push('/campaign-detail', extra: campaign),
+      child: Container(
+        width: double.infinity,
+        margin: EdgeInsets.zero, // Padding handled by PageView itemBuilder
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x3F000000),
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            // Left: Image Container
+            Container(
+              width: 164,
+              height: 164,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: imageUrl != null
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                  )
+                : _buildPlaceholder(),
+            ),
+            const SizedBox(width: 6),
+            // Right: Content
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Business Name Row
+                    Row(
+                      children: [
+                        if (logoUrl != null)
+                          Container(
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: NetworkImage(logoUrl),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          )
+                        else
+                          const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF131313)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            businessName,
+                            style: GoogleFonts.outfit(
+                              color: const Color(0xFF131313),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Title
+                    Text(
+                      campaign.title,
+                      style: GoogleFonts.outfit(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    // Description
+                    Text(
+                      campaign.shortDescription,
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF4F4A4A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        height: 1.3,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 16),
+                    // Button
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF9C06A),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFF4B75B), width: 1),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x3F000000),
+                            blurRadius: 4,
+                            offset: Offset(0, 4),
+                          )
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          isTr ? 'Detayları Gör' : 'View Details',
+                          style: GoogleFonts.outfit(
+                            color: const Color(0xFF76410B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Colors.grey[200],
+      child: const Icon(Icons.image_outlined, color: Colors.grey, size: 40),
+    );
+  }
+
+  Widget _buildDiscoverGrid(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
+    final isTr = lang.locale.languageCode == 'tr';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Figma: "Keşfet" #434343 w600 14px
+          Text(
+            isTr ? 'Keşfet' : 'Discover', 
+            style: GoogleFonts.outfit(
+              color: AppTheme.sectionTitle, 
+              fontSize: 14, 
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 18), // Figma gap=18
+          Row(
+            children: [
+              // Tile 1: "Bölgendeki Kafeler" (Figma: 172x172 r=16 gradient #FFFDF7→#F9E6CC, border #76410B/0.5)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => context.push('/explore-cafes'),
+                  child: Container(
+                    height: 172,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Color(0xFFFFFDF7),
+                          Color(0xFFF9E6CC),
+                        ],
+                      ),
+                      border: Border.all(color: AppTheme.deepBrown, width: 0.5),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        // Background coffee shop image with gradient overlay
+                        Positioned.fill(
+                          child: Image.asset(
+                            'assets/images/coffee_shop_bg.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
+                        ),
+                        // Dark gradient overlay on the image (Figma: 166.7deg, rgba(0,0,0,0.706) → transparent)
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.black.withOpacity(0.706),
+                                  Colors.transparent,
+                                ],
+                                stops: const [0.0, 0.73],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Accent bar (Figma: 63x10, left=16, top=55, #E2A13E/0.87)
+                        Positioned(
+                          left: 16, top: 55,
+                          child: Container(
+                            width: 63, height: 10,
+                            color: const Color(0xDDE2A13E), // rgba(226,161,62,0.87)
+                          ),
+                        ),
+                        // Title text (Figma: left=20, top=16, "Bölgendeki" Regular + "Kafeler" SemiBold #F3F3F3 20px)
+                        Positioned(
+                          left: 20, top: 16,
+                          child: Text.rich(
+                            TextSpan(children: [
+                              TextSpan(
+                                text: isTr ? 'Bölgendeki\n' : 'Local\n',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFFF3F3F3),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.3,
+                                ),
+                              ),
+                              TextSpan(
+                                text: isTr ? 'Kafeler' : 'Cafes',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFFF3F3F3),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  height: 1.3,
+                                ),
+                              ),
+                            ]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Tile 2: "Diğer Kampanyalar" (Figma: 173x172 r=16 #FFE5BE, border #76410B/0.5)
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => context.go('/campaigns'),
+                  child: Container(
+                    height: 172,
+                    decoration: BoxDecoration(
+                      color: const Color(0xA0FFE5BE), // rgba(255,229,190,0.63)
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppTheme.deepBrown, width: 0.5),
+                      boxShadow: const [
+                        BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 4)),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      children: [
+                        // Background watermark "Kampanyalar" text (Figma: 4 lines, Bold 22px, positioned from top=56)
+                        ...List.generate(4, (i) => Positioned(
+                          left: 18, top: 56.0 + (i * 24),
+                          child: Text(
+                            'Kampanyalar',
+                            style: GoogleFonts.outfit(
+                              color: AppTheme.deepBrown.withValues(alpha: 0.15),
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        )),
+                        // Accent bar (Figma: 131x10, left=12, top=46, #F9C06A)
+                        Positioned(
+                          left: 12, top: 46,
+                          child: Container(
+                            width: 131, height: 10,
+                            color: const Color(0xFFF9C06A),
+                          ),
+                        ),
+                        // Title (Figma: "Diğer" Regular 16px + "Kampanyalar" Bold 22px, color #77410C)
+                        Positioned(
+                          left: 18, top: 10,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isTr ? 'Diğer' : 'Other',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF77410C),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                isTr ? 'Kampanyalar' : 'Campaigns',
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF1E1D1D),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Hand holding coffee (Figma: left=57, top=60, 112x112)
+                        Positioned(
+                          left: 57, top: 60,
+                          child: Image.asset(
+                            'assets/images/hand_coffee.png',
+                            width: 112, height: 112,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildBalanceCarousel(BuildContext context) {
     final firms = _getFirmBalances(context);
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+
+    // [BUG FIX] If no cafes are added, skip the empty wallet "coffee cup" rotation completely 
+    // and just show the "Add Cafe" card flatly.
+    final isEmptyWallet = firms.isEmpty || firms.first['name'] == lang.translate('wallet_empty');
+
+    if (isEmptyWallet) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        child: GestureDetector(
+          onTap: () async {
+            await context.push('/add-firm');
+            if (context.mounted) {
+              context.read<BusinessProvider>().fetchMyFirms();
+            }
+          },
+          child: SizedBox(
+            height: 180, // Reasonable height for a static "Add Cafe" card
+            child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),
+          ),
+        ),
+      );
+    }
+
     final totalItems = firms.length + 1;
 
     return Column(
       children: [
         SizedBox(
-          height: 240,
+          height: 340,
           child: PageView.builder(
             controller: _pageController,
             itemCount: totalItems,
             padEnds: true,
             onPageChanged: (index) {
               setState(() => _currentIndex = index);
+              context.read<BusinessProvider>().setHomeSelectedFirmIndex(index);
             },
             itemBuilder: (context, index) {
               return AnimatedBuilder(
@@ -718,25 +1439,12 @@ class _HomeScreenState extends State<HomeScreen> {
             (i) => AnimatedContainer(
               duration: const Duration(milliseconds: 350),
               curve: Curves.easeOut,
-              margin: const EdgeInsets.symmetric(horizontal: 3),
-              width: _currentIndex == i ? 24 : 8,
-              height: 8,
+              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+              width: _currentIndex == i ? 19 : 11,
+              height: 9,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4),
-                color: _currentIndex == i
-                    ? (i < firms.length 
-                        ? (firms[i]['color'] as Color)
-                        : Colors.grey)
-                    : Colors.grey.withValues(alpha: 0.25),
-                boxShadow: _currentIndex == i ? [
-                  BoxShadow(
-                    color: (i < firms.length 
-                        ? (firms[i]['color'] as Color)
-                        : Colors.grey).withValues(alpha: 0.4),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ] : [],
+                borderRadius: BorderRadius.circular(10),
+                color: _currentIndex == i ? AppTheme.activeDot : AppTheme.inactiveDot,
               ),
             ),
           ),
@@ -760,198 +1468,65 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final firm = firms[index];
 
-    final user = context.read<AuthProvider>().currentUser;
-    final cardHolder = user?.name ?? 'MÜŞTERİ';
-
     return WalletCard(
       firm: firm,
-      cardHolderName: cardHolder,
-      onTap: () async {
+      onScanTap: () async {
         final lang = context.read<LanguageProvider>();
         if (firm['name'] == lang.translate('wallet_empty')) return;
-        
-        await context.push('/business-detail', extra: {
-          'id': firm['id'],
-          'name': firm['name'],
-          'points': firm['points'],
-          'stamps': firm['stamps'],
-          'stampsTarget': firm['stampsTarget'],
-          'giftsCount': firm['giftsCount'],
-          'value': firm['value'],
-          'color': firm['color'],
-          'icon': firm['icon'], 
-          'city': firm['city'],
-          'district': firm['district'],
-          'neighborhood': firm['neighborhood'],
-          'logo': firm['logo'],
-          'image': firm['image'],
-        });
-        
-        if (context.mounted) {
-          context.read<BusinessProvider>().fetchMyFirms();
+        final firmId = firm['id'];
+        final allCampaigns = context.read<CampaignProvider>().allCampaigns;
+        final firmCampaigns = allCampaigns.where((c) => c.businessId == firmId).toList();
+
+        if (firmCampaigns.isEmpty) {
+          showNoCampaignsDialog(context, firm['name'] ?? 'İşletme');
+          return;
         }
+        
+        context.push('/customer-scanner', extra: {
+          'expectedBusinessId': firmId,
+          'expectedBusinessName': firm['name'],
+          'expectedBusinessColor': firm['color'],
+          'expectedBusinessLogo': firm['logo'] ?? firm['image'] ?? firm['logoUrl'],
+          'currentStamps': firm['stamps'] ?? 0,
+          'targetStamps': firm['stampsTarget'] ?? 8,
+          'currentGifts': firm['giftsCount'] ?? 0,
+          'currentPoints': firm['points'] ?? '0',
+        });
+      },
+      onSpendTap: () {
+        final double points = double.tryParse((firm['points'] ?? '0').toString()) ?? 0.0;
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => GiftSelectionScreen(
+              businessId: firm['id'] ?? '',
+              businessName: firm['name'] ?? '',
+              currentPoints: points,
+              currentGifts: firm['giftsCount'] ?? 0,
+              logoUrl: firm['logo'] ?? firm['image'] ?? firm['logoUrl'],
+              reviewScore: (firm['reviewScore'] ?? 0.0).toDouble(),
+              reviewCount: firm['reviewCount'] ?? 0,
+            ),
+          ),
+        );
       },
     );
   }
-
-
-
-
-  
-
-
-
-
-
-  Widget _buildBentoCard(BuildContext context, { 
-    required Color color, 
-    required String title, 
-    required String subtitle, 
-    required IconData icon, 
-    bool isHorizontal = false,
-    VoidCallback? onTap,
-  }) {
-    // Premium Design: Gradient + Background Icon + Shadow
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-           borderRadius: BorderRadius.circular(24),
-           gradient: LinearGradient(
-             colors: [color, color.withValues(alpha: 0.8)],
-             begin: Alignment.topLeft,
-             end: Alignment.bottomRight,
-           ),
-           boxShadow: [
-             BoxShadow(
-               color: color.withValues(alpha: 0.35),
-               blurRadius: 15,
-               offset: const Offset(0, 8),
-             )
-           ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
-              // Background Giant Icon
-              Positioned(
-                right: -20,
-                bottom: -20,
-                child: Transform.rotate(
-                  angle: -0.2, // Slight tilt
-                  child: Icon(
-                    icon,
-                    size: 100,
-                    color: Colors.white.withValues(alpha: 0.15),
-                  ),
-                ),
-              ),
-              
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: isHorizontal 
-                  ? Row( // HORIZONTAL LAYOUT
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              subtitle, 
-                              style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.8), fontSize: 13, fontWeight: FontWeight.w500)
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              title, 
-                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)
-                            ),
-                          ],
-                        ),
-                        // Icon Circle
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 28),
-                        ),
-                      ],
-                    )
-                  : Column( // VERTICAL LAYOUT
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Icon Circle
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2), // Frosted glass effect
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 24),
-                        ),
-                        const SizedBox(height: 8),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: GoogleFonts.outfit(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              style: GoogleFonts.outfit(
-                                color: Colors.white.withValues(alpha: 0.85),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-
-
 }
+
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryBrand = Color(0xFFEE2C2C);
-    
     // User Data from Provider
-    // Watched here, so only this widget rebuilds on user change, NOT on parent setState
-    final user = context.watch<AuthProvider>().currentUser;
+    final user = context.watch<app.AuthProvider>().currentUser;
     final name = user?.fullName ?? "Misafir";
     
     // Dynamic Greeting Logic
     final hour = DateTime.now().hour;
-    final lang = context.watch<LanguageProvider>(); // Watch language for refresh
+    final lang = context.watch<LanguageProvider>(); 
     String greetingKey;
     if (hour >= 6 && hour < 12) {
       greetingKey = 'good_morning';
@@ -966,9 +1541,9 @@ class HomeHeader extends StatelessWidget {
 
     // Prepare Profile Image
     ImageProvider? imageProvider;
-    if (user?.profileImage != null) {
+    if (user?.profileImage != null && user!.profileImage!.isNotEmpty) {
       try {
-        imageProvider = MemoryImage(base64Decode(user!.profileImage!));
+        imageProvider = MemoryImage(base64Decode(user.profileImage!));
       } catch (e) {
         imageProvider = const AssetImage('assets/images/default_profile.png');
       }
@@ -978,39 +1553,124 @@ class HomeHeader extends StatelessWidget {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        // Greeting: "Günaydın, Ceyda"
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(greeting, style: TextStyle(color: textColor.withValues(alpha: 0.6), fontSize: 14)),
-              Text(name, 
-                style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
+          child: FittedBox(
+            alignment: Alignment.centerLeft,
+            fit: BoxFit.scaleDown,
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '$greeting ', // Removed extra comma, greeting has it
+                    style: GoogleFonts.outfit(
+                      color: Colors.black,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      height: 1.1,
+                    ),
+                  ),
+                  TextSpan(
+                    text: name,
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFFEA9514),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-        GestureDetector(
-          onTap: () => context.push('/settings'),
-          child: Container(
-            width: 50,
-            height: 50,
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: primaryBrand, width: 2),
+        
+        const SizedBox(width: 12), // Added gap to prevent name from hitting buttons
+        
+        // Actions: Notifications & Profile
+        Row(
+          children: [
+            // Notifications Button
+            GestureDetector(
+              onTap: () => context.push('/notifications'),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: ShapeDecoration(
+                  color: Colors.white.withValues(alpha: 0.40),
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(
+                      width: 1,
+                      color: Color(0xFFDADADA),
+                    ),
+                    borderRadius: BorderRadius.circular(44),
+                  ),
+                  shadows: const [
+                    BoxShadow(
+                      color: Color(0x3F7F7F7F),
+                      blurRadius: 4,
+                      offset: Offset(0, 4),
+                      spreadRadius: 0,
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.notifications_none_rounded, 
+                  color: AppTheme.deepBrown,
+                  size: 22,
+                ),
+              ),
             ),
-            child: CircleAvatar(
-              backgroundColor: cardColor,
-              backgroundImage: imageProvider,
+            const SizedBox(width: 16),
+            
+            // Profile Button
+            GestureDetector(
+              onTap: () => context.push('/settings'),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: ShapeDecoration(
+                  color: Colors.white.withValues(alpha: 0.40),
+                  shape: RoundedRectangleBorder(
+                    side: const BorderSide(
+                      width: 1.31,
+                      color: Color(0xFFDADADA),
+                    ),
+                    borderRadius: BorderRadius.circular(57.75),
+                  ),
+                  shadows: const [
+                    BoxShadow(
+                      color: Color(0x3F7F7F7F),
+                      blurRadius: 5.25,
+                      offset: Offset(0, 5.25),
+                      spreadRadius: 0,
+                    )
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(57.75),
+                  child: imageProvider != null
+                    ? CircleAvatar(
+                        backgroundColor: Colors.transparent,
+                        backgroundImage: imageProvider,
+                      )
+                    : const Icon(
+                        Icons.person_outline_rounded,
+                        color: AppTheme.deepBrown,
+                        size: 22,
+                      ),
+                ),
+              ),
             ),
-          ),
-        )
+          ],
+        ),
       ],
     );
   }
 }
+
 
 class _Rotating3DCup extends StatefulWidget {
   final double size;

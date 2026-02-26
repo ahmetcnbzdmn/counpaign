@@ -9,6 +9,7 @@ import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/theme/app_theme.dart';
 
 class CampaignsScreen extends StatefulWidget {
   final String? firmId;
@@ -59,7 +60,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const primaryBrand = Color(0xFFEE2C2C);
+    final primaryBrand = AppTheme.primaryColor;
     
     final lang = context.watch<LanguageProvider>();
 
@@ -71,28 +72,27 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
           children: [
             // [1] Header Area
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              padding: const EdgeInsets.only(top: 16, right: 20, left: 8),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   Row(
-                     children: [
-                       IconButton(
-                         icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-                         onPressed: () {
-                           if (context.canPop()) {
-                             context.pop();
-                           } else {
-                             context.go('/home');
-                           }
-                         },
-                       ),
-                       Text(
-                         _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : lang.translate('deals'), 
-                         style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)
-                       ),
-                     ],
-                   ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                    color: textColor,
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/home');
+                      }
+                    },
+                  ),
+                  Expanded(
+                    child: Text(
+                      _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : lang.translate('deals'), 
+                      style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -239,7 +239,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       // Fallback dummy if not found
                       biz ??= {'companyName': widget.firmName ?? '...', 'cardColor': '#EE2C2C'};
                       
-                      return _buildCampaignCard(context, campaign, biz['companyName'] ?? (widget.firmName ?? '...'), _parseHexColor(biz['cardColor']));
+                      return _buildCampaignCard(context, campaign, biz);
                     },
                   );
                 },
@@ -261,12 +261,15 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     }
   }
 
-  Widget _buildCampaignCard(BuildContext context, CampaignModel campaign, String brandName, Color brandColor) {
+  Widget _buildCampaignCard(BuildContext context, CampaignModel campaign, dynamic biz) {
+    final brandName = biz['companyName'] ?? (widget.firmName ?? '...');
+    final brandColor = _parseHexColor(biz['cardColor']);
+    
     final lang = context.read<LanguageProvider>();
     return GestureDetector(
       onTap: () => context.push('/campaign-detail', extra: campaign),
       child: Container(
-        height: 280,
+        height: 190,
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(32),
@@ -313,9 +316,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
   
               // [Top Tags]
               Positioned(
-                top: 16,
-                left: 16,
-                right: 16,
+                top: 12,
+                left: 12,
+                right: 12,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -325,12 +328,32 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.95),
                         borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.storefront_rounded, color: brandColor, size: 16),
-                          const SizedBox(width: 6),
+                          if (resolveImageUrl(biz['logo'] ?? biz['image']) != null)
+                             Container(
+                               width: 20, height: 20,
+                               margin: const EdgeInsets.only(right: 6),
+                               decoration: BoxDecoration(
+                                 color: Colors.white,
+                                 shape: BoxShape.circle,
+                                 border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                                 image: DecorationImage(
+                                   image: NetworkImage(resolveImageUrl(biz['logo'] ?? biz['image'])!),
+                                   fit: BoxFit.cover,
+                                 )
+                               ),
+                             )
+                          else
+                             Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 16),
+                          
+                          if (resolveImageUrl(biz['logo'] ?? biz['image']) == null) const SizedBox(width: 6),
+                          
                           Flexible(
                             child: Text(
                               brandName,
@@ -346,10 +369,10 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEE2C2C),
+                        color: AppTheme.primaryColor,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: const Color(0xFFEE2C2C).withValues(alpha: 0.4), blurRadius: 10),
+                          BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 10),
                         ]
                       ),
                       child: Text(
@@ -369,7 +392,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 left: 0,
                 right: 0,
                 child: Padding(
-                  padding: const EdgeInsets.all(20.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -379,7 +402,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                           children: [
                             AutoText(
                               campaign.title,
-                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, height: 1.1),
+                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.1),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -397,13 +420,13 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       
                       // Action Button (Small)
                       Container(
-                        width: 48,
-                        height: 48,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.black),
+                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.black, size: 20),
                       )
                     ],
                   ),

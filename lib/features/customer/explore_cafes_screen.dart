@@ -6,6 +6,8 @@ import '../../core/providers/business_provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
+import '../../core/utils/ui_utils.dart';
+import '../../core/theme/app_theme.dart';
 
 class ExploreCafesScreen extends StatefulWidget {
   const ExploreCafesScreen({super.key});
@@ -251,15 +253,26 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Brand Icon Container
+                // Brand Logo Container
                 Container(
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                    ],
                   ),
-                  child: Icon(icon, color: color, size: 30),
+                  clipBehavior: Clip.antiAlias,
+                  child: resolveImageUrl(business['logo'] ?? business['image']) != null
+                      ? Image.network(
+                          resolveImageUrl(business['logo'] ?? business['image'])!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
+                        )
+                      : Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
                 ),
                 const SizedBox(width: 16),
                 
@@ -364,13 +377,26 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Circle Brand Logo
               Container(
-                padding: const EdgeInsets.all(8),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
+                  color: Colors.white,
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
+                  ],
                 ),
-                child: Icon(icon, color: color, size: 20),
+                clipBehavior: Clip.antiAlias,
+                child: resolveImageUrl(firm['logo'] ?? firm['image']) != null
+                    ? Image.network(
+                        resolveImageUrl(firm['logo'] ?? firm['image'])!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
+                      )
+                    : Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

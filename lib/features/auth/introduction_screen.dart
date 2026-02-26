@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lottie/lottie.dart';
+import '../../core/services/storage_service.dart';
 
 class IntroductionScreen extends StatefulWidget {
   const IntroductionScreen({super.key});
@@ -34,10 +36,12 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const primaryColor = Color(0xFFEE2C2C);
+    const primaryColor = Color(0xFF76410B);
+    const bgColor = Color(0xFFEBEBEB);
+    final textColor = const Color(0xFF131313);
     
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       body: Stack(
         children: [
           // Background Decor (Subtle Gradient)
@@ -49,7 +53,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                   end: Alignment.bottomCenter,
                   colors: [
                     primaryColor.withValues(alpha: 0.05),
-                    theme.scaffoldBackgroundColor,
+                    bgColor,
                   ],
                 ),
               ),
@@ -104,7 +108,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                               style: GoogleFonts.outfit(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
-                                color: theme.textTheme.bodyLarge?.color,
+                                color: textColor,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -113,7 +117,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                               textAlign: TextAlign.center,
                               style: GoogleFonts.outfit(
                                 fontSize: 16,
-                                color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.7),
+                                color: textColor.withValues(alpha: 0.7),
                                 height: 1.5,
                               ),
                             ),
@@ -152,7 +156,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                       _buildButton(
                         context,
                         text: 'Giriş Yap',
-                        onPressed: () => context.push('/login', extra: {'pageIndex': 0}),
+                        onPressed: () async {
+                          await StorageService().setHasSeenIntro(true);
+                          if (context.mounted) context.push('/login', extra: {'pageIndex': 0});
+                        },
                         isPrimary: true,
                         primaryColor: primaryColor,
                       ),
@@ -160,7 +167,10 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                       _buildButton(
                         context,
                         text: 'Yeni Hesap Oluştur',
-                        onPressed: () => context.push('/login', extra: {'pageIndex': 1}),
+                        onPressed: () async {
+                          await StorageService().setHasSeenIntro(true);
+                          if (context.mounted) context.push('/login', extra: {'pageIndex': 1});
+                        },
                         isPrimary: false,
                         primaryColor: primaryColor,
                       ),
@@ -186,18 +196,59 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   }) {
     final theme = Theme.of(context);
     
+    if (isPrimary) {
+      return SizedBox(
+        width: double.infinity,
+        height: 60,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFA96307), Color(0xFF371E04)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x3F7F7F7F),
+                blurRadius: 4,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ElevatedButton(
+            onPressed: onPressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            ),
+            child: Text(
+              text,
+              style: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+    
     return SizedBox(
       width: double.infinity,
       height: 60,
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: isPrimary ? primaryColor : theme.cardColor,
-          foregroundColor: isPrimary ? Colors.white : theme.textTheme.bodyLarge?.color,
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF131313),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: isPrimary ? BorderSide.none : BorderSide(color: theme.dividerColor),
+            side: BorderSide(color: const Color(0xFF131313).withValues(alpha: 0.1)),
           ),
         ),
         child: Text(

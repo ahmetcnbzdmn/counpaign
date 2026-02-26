@@ -69,11 +69,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final textColor = isDark ? Colors.white : const Color(0xFF1E2329);
-    final cardColor = isDark ? const Color(0xFF1E2329) : const Color(0xFFE5E7EB);
+    final textColor = const Color(0xFF131313);
+    final cardColor = Colors.white;
+    const primaryBrand = Color(0xFF76410B);
+    final bgColor = const Color(0xFFEBEBEB);
     
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -90,20 +92,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 const SizedBox(height: 10),
                 // Header with Logo
                 Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                       shape: BoxShape.circle,
-                       color: theme.primaryColor.withValues(alpha: 0.1),
+                    child: Container(
+                      height: 100,
+                      width: 100,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/images/app_logo.png', // Since they recently changed to app_logo in another task
+                          fit: BoxFit.cover,
+                          errorBuilder: (c, o, s) => Image.asset(
+                            'assets/images/splash_logo.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (c, o, s) => Icon(Icons.lock_reset_rounded, size: 60, color: primaryBrand),
+                          ),
+                        ),
+                      ),
                     ),
-                    child: Image.asset(
-                      'assets/images/splash_logo.png',
-                      height: 80,
-                      width: 80,
-                      fit: BoxFit.contain,
-                      errorBuilder: (c, o, s) => Icon(Icons.lock_reset_rounded, size: 60, color: theme.primaryColor),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 32),
                 
@@ -144,7 +158,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                      controller: _emailController,
                      keyboardType: TextInputType.emailAddress,
                      style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-                     cursorColor: theme.primaryColor,
+                     cursorColor: primaryBrand,
                      decoration: InputDecoration(
                        hintText: 'E-posta Adresi',
                        hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
@@ -161,19 +175,36 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                  SizedBox(
                    width: double.infinity,
                    height: 56,
-                   child: ElevatedButton(
-                     onPressed: _isLoading ? null : _resetPassword,
-                     style: ElevatedButton.styleFrom(
-                       backgroundColor: theme.primaryColor,
-                       foregroundColor: Colors.white,
-                       elevation: 2,
-                       shadowColor: theme.primaryColor.withValues(alpha: 0.4),
-                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                   child: Container(
+                     decoration: BoxDecoration(
+                       gradient: const LinearGradient(
+                         begin: Alignment.topLeft,
+                         end: Alignment.bottomRight,
+                         colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                       ),
+                       borderRadius: BorderRadius.circular(16),
+                       boxShadow: const [
+                         BoxShadow(
+                           color: Color(0x3F7F7F7F),
+                           blurRadius: 4,
+                           offset: Offset(0, 4),
+                         ),
+                       ],
                      ),
-                     child: _isLoading 
-                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                       : const Text('GÖNDER'),
+                     child: ElevatedButton(
+                       onPressed: _isLoading ? null : _resetPassword,
+                       style: ElevatedButton.styleFrom(
+                         backgroundColor: Colors.transparent,
+                         shadowColor: Colors.transparent,
+                         foregroundColor: Colors.white,
+                         elevation: 0,
+                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                       ),
+                       child: _isLoading 
+                         ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                         : const Text('GÖNDER'),
+                     ),
                    ),
                  ),
                  const SizedBox(height: 40), // Bottom spacing for scrolls
