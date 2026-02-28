@@ -58,6 +58,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
            } else {
              final storage = StorageService();
              final hasSeenIntro = await storage.hasSeenIntro();
+             if (!mounted) return;
              if (hasSeenIntro) {
                context.go('/login');
              } else {

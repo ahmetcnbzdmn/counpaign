@@ -182,6 +182,42 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> sendResetSms(String phoneNumber) async {
+    _setLoading(true);
+    try {
+      await _authService.sendResetSms(phoneNumber);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> verifyResetCode(String phoneNumber, String code) async {
+    _setLoading(true);
+    try {
+      await _authService.verifyResetCode(phoneNumber, code);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> resetPassword(String password) async {
+    _setLoading(true);
+    try {
+      await _authService.resetPassword(password);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    _setLoading(true);
+    try {
+      await _authService.changePassword(oldPassword, newPassword);
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();

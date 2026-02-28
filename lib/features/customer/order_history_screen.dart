@@ -82,7 +82,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFEBEBEB);
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
     final Color textColor = isDark ? Colors.white : const Color(0xFF131313);
-    const activeColor = Color(0xFF76410B); // Brand Brown
+    const activeColor = Color(0xFFF9C06A); // Changed from 0xFF76410B to Yellow/Gold theme
 
     final lang = context.watch<LanguageProvider>();
     final filteredTransactions = _getFilteredTransactions();
@@ -111,7 +111,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                         padding: const EdgeInsets.only(right: 8),
                         child: ChoiceChip(
                           label: Text(lang.translate(filterKey), style: GoogleFonts.outfit(
-                            color: isSelected ? Colors.white : textColor,
+                            color: isSelected ? const Color(0xFF131313) : textColor, // Use dark text when selected for yellow bg
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           )),
                           selected: isSelected,
@@ -188,38 +188,38 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                if (isEntitlementText || isZeroPoints) {
                                   title = lang.translate('hediye_hakki_kullanimi');
                                   icon = Icons.coffee_rounded; 
-                                  amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
+                                  amountWidgets.add(Text("-1 ${lang.translate('unit_gift')}", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
                                } else {
                                   final giftName = description.replaceAll('Hediye Alımı: ', '');
                                   title = "${lang.translate('hediye_alimi')}: $giftName";
                                   icon = Icons.card_giftcard_rounded;
-                                  if (pts != null) amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
+                                  amountWidgets.add(Text("${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
                                }
                             } else if (type == 'STAMP') {
                                title = lang.translate('stamp_earned'); 
                                icon = Icons.local_cafe_rounded;
                                if (value != null && value > 0) {
-                                  amountWidgets.add(Text("+$value Damga", style: GoogleFonts.outfit(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 15)));
+                                  amountWidgets.add(Text("+$value ${lang.translate('unit_stamp')}", style: GoogleFonts.outfit(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 15)));
                                }
                                if (pts != null && pts != 0) {
-                                  amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)));
+                                  amountWidgets.add(Text("+${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13)));
                                }
                             } else if (type == 'POINT') {
                                if (pts != null && pts < 0) {
-                                  title = "Puan Harcama";
+                                  title = lang.translate('point_spending');
                                   icon = Icons.shopping_bag_outlined;
-                                  amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
+                                  amountWidgets.add(Text("${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: const Color(0xFF76410B), fontWeight: FontWeight.bold, fontSize: 15)));
                                } else {
                                   title = lang.translate('point_earned');
                                   icon = Icons.stars_rounded;
                                   if (pts != null && pts > 0) {
-                                     amountWidgets.add(Text("+${pts.toInt()} Puan", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15)));
+                                     amountWidgets.add(Text("+${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 15)));
                                   }
                                }
                             } else if (type == 'GIFT_REDEEM') {
                                title = lang.translate('gift_redeemed');
                                icon = Icons.card_giftcard_rounded;
-                               amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
+                               amountWidgets.add(Text("-1 ${lang.translate('unit_gift')}", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 15)));
                             }
         
                             final colorHex = business['cardColor'] ?? '#333333';
@@ -250,7 +250,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       child: (logoUrl == null || logoUrl.isEmpty) 
                                          ? Padding(
                                              padding: const EdgeInsets.all(8.0),
-                                             child: Image.asset('assets/images/app_logo.png', fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(icon, color: color)),
+                                             child: Image.asset('assets/images/splash_logo.png', fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(icon, color: color)),
                                            )
                                          : null,
                                     ),

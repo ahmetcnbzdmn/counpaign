@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 import '../../core/services/storage_service.dart';
 
 class IntroductionScreen extends StatefulWidget {
@@ -35,10 +34,9 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     const primaryColor = Color(0xFF76410B);
     const bgColor = Color(0xFFEBEBEB);
-    final textColor = const Color(0xFF131313);
+    const textColor = Color(0xFF131313);
     
     return Scaffold(
       backgroundColor: bgColor,
@@ -194,7 +192,6 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     required bool isPrimary,
     required Color primaryColor,
   }) {
-    final theme = Theme.of(context);
     
     if (isPrimary) {
       return SizedBox(

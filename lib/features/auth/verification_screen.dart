@@ -100,9 +100,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = const Color(0xFF131313);
+    const textColor = Color(0xFF131313);
     const primaryColor = Color(0xFF76410B);
     const bgColor = Color(0xFFEBEBEB);
 
@@ -149,7 +147,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: textColor),
+        leading: const BackButton(color: textColor),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -166,7 +164,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   shape: BoxShape.circle,
                   color: primaryColor.withValues(alpha: 0.1),
                 ),
-                child: Icon(Icons.mark_email_unread_rounded, size: 48, color: primaryColor),
+                child: const Icon(Icons.mark_email_unread_rounded, size: 48, color: primaryColor),
               ),
               
               const SizedBox(height: 32),
@@ -190,7 +188,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   children: [
                     TextSpan(
                       text: widget.phoneNumber,
-                      style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
                     ),
                     const TextSpan(text: ' numarasına gönderilen 6 haneli kodu giriniz.'),
                   ],

@@ -43,9 +43,30 @@ class AuthService {
       
       final user = userCredential.user;
       if (user != null) {
-        final token = await user.getIdToken();
-        if (token != null) {
-          await _storageService.saveToken(token);
+        // 3. Obtain Permanent Backend Token (365 days)
+        try {
+          final backendResponse = await _apiService.client.post('/auth/login', data: {
+            'phoneNumber': phoneNumber,
+            'password': password
+          });
+          
+          final backendToken = backendResponse.data['token'];
+          final refreshToken = backendResponse.data['refreshToken'];
+
+          if (backendToken != null) {
+            await _storageService.saveToken(backendToken);
+            if (refreshToken != null) {
+              await _storageService.saveRefreshToken(refreshToken);
+            }
+            debugPrint("✅ Obtained 365d Backend Token for user: $phoneNumber");
+          }
+        } catch (backendErr) {
+          debugPrint("Backend Token Sync Error: $backendErr. Falling back to Firebase token.");
+          // Fallback: use Firebase token if backend login fails for some reason
+          final token = await user.getIdToken();
+          if (token != null) {
+            await _storageService.saveToken(token);
+          }
         }
       }
       
@@ -205,6 +226,71 @@ class AuthService {
     } catch (e) {
       if (e is DioException) {
          debugPrint("SMS Verify Error: ${e.response?.data}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> sendResetSms(String phoneNumber) async {
+    try {
+      await _apiService.client.post('/auth/send-reset-sms', data: {
+        'phoneNumber': phoneNumber,
+      });
+    } catch (e) {
+      if (e is DioException) {
+         debugPrint("Reset SMS Send Error: ${e.response?.data}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<String> verifyResetCode(String phoneNumber, String code) async {
+    try {
+      final response = await _apiService.client.post('/auth/verify-reset-code', data: {
+        'phoneNumber': phoneNumber,
+        'code': code,
+      });
+      
+      final resetToken = response.data['resetToken'];
+      if (resetToken != null) {
+        // Temporarily save reset token to enable the /reset-password call
+        await _storageService.saveToken(resetToken);
+        return resetToken;
+      }
+      throw Exception("Reset token missing");
+    } catch (e) {
+      if (e is DioException) {
+         debugPrint("Reset Code Verify Error: ${e.response?.data}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> resetPassword(String newPassword) async {
+    try {
+      await _apiService.client.post('/auth/reset-password', data: {
+        'password': newPassword,
+      });
+      
+      // Clear the temporary reset token after use
+      await logout();
+    } catch (e) {
+      if (e is DioException) {
+         debugPrint("Password Reset Error: ${e.response?.data}");
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    try {
+      await _apiService.client.post('/auth/change-password', data: {
+        'oldPassword': oldPassword,
+        'newPassword': newPassword,
+      });
+    } catch (e) {
+      if (e is DioException) {
+        debugPrint("Change Password Error: ${e.response?.data}");
       }
       rethrow;
     }

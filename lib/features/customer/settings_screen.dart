@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:dio/dio.dart';
-import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/language_provider.dart';
@@ -28,14 +26,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
     final auth = context.watch<AuthProvider>();
     final user = auth.currentUser;
     
-    final theme = Theme.of(context);
-    final bgColor = const Color(0xFFEBEBEB);
-    final cardColor = Colors.white;
-    final textColor = const Color(0xFF131313);
+    const bgColor = Color(0xFFEBEBEB);
+    const cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
     const primaryBrand = Color(0xFF76410B);
 
     // Initial Loading or No User
@@ -73,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
                             onPressed: () {
                               if (context.canPop()) {
                                 context.pop();
@@ -114,21 +110,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     // Edit Button
                     Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                        ),
+                        color: const Color(0xFFF9C06A), // Main yellow theme
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: ElevatedButton.icon(
                         onPressed: () => context.push('/edit-profile'),
-                        icon: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
-                        label: Text(context.watch<LanguageProvider>().translate('edit_profile'), style: const TextStyle(color: Colors.white)),
+                        icon: const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF131313)), // Dark icon
+                        label: Text(context.watch<LanguageProvider>().translate('edit_profile'), style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.bold)), // Dark bold text
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          foregroundColor: Colors.white,
+                          foregroundColor: const Color(0xFF131313),
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -159,7 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                          
                          _buildSectionHeader(lang.translate('other'), textColor),
                          const SizedBox(height: 12),
-                         _buildSettingsTile(icon: Icons.shield_outlined, title: "Gizlilik ve Güvenlik", textColor: textColor, cardColor: cardColor, onTap: () => context.push('/privacy-security')),
+                         _buildSettingsTile(icon: Icons.shield_outlined, title: lang.translate('privacy_policy'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/privacy-security')),
                          _buildSettingsTile(icon: Icons.help_outline_rounded, title: lang.translate('help_support'), textColor: textColor, cardColor: cardColor, onTap: () {}),
                          
                          // Removed notification settings and rate app items as requested
@@ -230,104 +222,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
   }
 
-  void _showDeleteAccountDialog(BuildContext context, AuthProvider auth, Color cardColor, Color textColor, Color primaryBrand) {
-    _passwordController.clear();
-    bool isDeleting = false;
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            title: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
-                const SizedBox(width: 8),
-                Text(
-                  "Hesabı Sil", 
-                  style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20)
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Hesabınızı silmek geri alınamaz bir işlemdir. Tüm puanlarınız, hediye geçmişiniz ve kişisel verileriniz kalıcı olarak silinecektir.\n\nİşlemi onaylamak için lütfen mevcut şifrenizi giriniz:",
-                  style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  style: GoogleFonts.outfit(color: textColor, fontSize: 16),
-                  decoration: InputDecoration(
-                    hintText: "Şifreniz",
-                    hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4)),
-                    filled: true,
-                    fillColor: textColor.withValues(alpha: 0.05),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            actions: [
-              TextButton(
-                onPressed: isDeleting ? null : () => Navigator.pop(dialogContext),
-                child: Text("İPTAL", style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.bold)),
-              ),
-              ElevatedButton(
-                onPressed: isDeleting ? null : () async {
-                  if (_passwordController.text.isEmpty) {
-                    showCustomPopup(context, message: "Şifre girmelisiniz.", type: PopupType.error);
-                    return;
-                  }
-                  
-                  setState(() => isDeleting = true);
-                  try {
-                    await auth.deleteAccount(_passwordController.text);
-                    if (context.mounted) {
-                       Navigator.pop(dialogContext); // Close dialog
-                       showCustomPopup(context, message: "Hesabınız başarıyla silindi.", type: PopupType.success);
-                       // auth_provider handles unsetting the user, the router should auto direct to login since user is null.
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                       setState(() => isDeleting = false);
-                       String errMsg = e.toString();
-                       if (e is DioException) {
-                          errMsg = e.response?.data['error'] ?? "Silme işlemi başarısız.";
-                       }
-                       showCustomPopup(context, message: errMsg, type: PopupType.error);
-                    }
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: isDeleting 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text("SİL", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-              ),
-            ],
-          );
-        }
-      ),
-    );
-  }
 
   Widget _buildSectionHeader(String title, Color textColor) {
     return Align(

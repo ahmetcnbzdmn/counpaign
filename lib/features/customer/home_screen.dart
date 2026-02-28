@@ -17,6 +17,7 @@ import '../../core/providers/language_provider.dart';
 import '../../features/customer/widgets/wallet_card.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/auto_text.dart';
 import '../../core/widgets/backgrounds/organic_wave_background.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -142,7 +143,6 @@ class _HomeScreenState extends State<HomeScreen> {
     
     final TextEditingController noteController = TextEditingController();
     final lang = Provider.of<LanguageProvider>(context, listen: false);
-    final isTr = lang.locale.languageCode == 'tr';
 
     showDialog(
       context: context,
@@ -151,7 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
           backgroundColor: const Color(0xFFF5F5F7),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           title: Text(
-            isTr ? 'Değerlendirme' : 'Rating',
+            lang.translate('rating'),
             style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
             textAlign: TextAlign.center,
           ),
@@ -173,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 controller: noteController,
                 maxLines: 3,
                 decoration: InputDecoration(
-                  hintText: isTr ? 'İsteğe bağlı bir not ekleyin...' : 'Add an optional note...',
+                  hintText: lang.translate('optional_note_hint'),
                   hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -199,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                isTr ? 'Vazgeç' : 'Cancel',
+                lang.translate('cancel'),
                 style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600, fontSize: 16),
               ),
             ),
@@ -214,7 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 _submitReview(review, rating, comment: noteController.text.trim());
               },
               child: Text(
-                isTr ? 'Kaydet' : 'Save',
+                lang.translate('save'),
                 style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
               ),
             ),
@@ -226,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showSuccessDialog() {
     final lang = context.read<LanguageProvider>();
-    final isTr = lang.locale.languageCode == 'tr';
+    final isTr = lang.locale.languageCode == "tr";
     
     showDialog(
       context: context,
@@ -256,7 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 24),
               Text(
-                isTr ? 'Teşekkürler!' : 'Thank You!',
+                lang.translate('thank_you'),
                 style: GoogleFonts.outfit(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
@@ -266,7 +266,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               Text(
                 isTr 
-                  ? 'Değerlendirmeniz başarıyla\nkaydedildi.' 
+                  ? lang.translate('review_saved_toast') 
                   : 'Your rating has been saved\nsuccessfully.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
@@ -289,7 +289,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    isTr ? 'Tamam' : 'OK',
+                    lang.translate('ok'),
                     style: GoogleFonts.outfit(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -490,7 +490,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Consumer<BusinessProvider>(
                   builder: (context, provider, child) {
                     if (provider.isLoading && provider.myFirms.isEmpty) {
-                      return Center(child: Padding(padding: const EdgeInsets.all(20), child: CircularProgressIndicator(color: AppTheme.primaryColor)));
+                      return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(color: AppTheme.primaryColor)));
                     }
                     return NotificationListener<ScrollNotification>(
                       onNotification: (notification) => true,
@@ -536,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isTr ? 'Siparişlerim' : 'My Orders',
+                lang.translate('siparislerim'),
                 style: GoogleFonts.outfit(
                   color: AppTheme.sectionTitle,
                   fontSize: 14,
@@ -546,7 +546,7 @@ class _HomeScreenState extends State<HomeScreen> {
               GestureDetector(
                 onTap: () => context.push('/order-history'),
                 child: Text(
-                  isTr ? 'Tümünü gör' : 'View all',
+                  lang.translate('view_all'),
                   style: GoogleFonts.outfit(
                     color: Colors.black,
                     fontSize: 14,
@@ -593,6 +593,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// State 1: New user — "İlk kahveni birlikte seçelim!" (Figma 1.png)
   Widget _buildBannerState1(BuildContext context, bool isTr) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     return GestureDetector(
       onTap: () => context.push('/explore-cafes'),
       child: Center(
@@ -642,7 +643,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      isTr ? 'Henüz siparişin yok.' : 'No orders yet.',
+                      lang.translate('no_orders_yet'),
                       style: GoogleFonts.outfit(
                         color: const Color(0xFF7F6041),
                         fontSize: 12,
@@ -657,7 +658,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         TextSpan(
                           children: [
                             TextSpan(
-                              text: isTr ? 'İlk kahveni\n' : 'Let\'s pick\n',
+                              text: lang.translate('let_pick_1'),
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFF111111),
                                 fontSize: 22,
@@ -666,7 +667,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             TextSpan(
-                              text: isTr ? 'birlikte\n' : 'your first\n',
+                              text: lang.translate('let_pick_2'),
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFFC06000),
                                 fontSize: 22,
@@ -675,7 +676,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             TextSpan(
-                              text: isTr ? 'seçelim!' : 'coffee!',
+                              text: lang.translate('let_pick_3'),
                               style: GoogleFonts.outfit(
                                 color: const Color(0xFF111111),
                                 fontSize: 22,
@@ -699,6 +700,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildBannerNoReviews(BuildContext context, bool isTr) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     return Container(
       width: MediaQuery.of(context).size.width * 0.92,
       constraints: const BoxConstraints(minHeight: 164),
@@ -735,17 +737,17 @@ class _HomeScreenState extends State<HomeScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isTr ? 'Değerlendirilecek' : 'No pending',
-                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
+                  lang.translate('no_pending_1'),
+                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700, height: 1.1), // Increased font weight
                 ),
                 Text(
-                  isTr ? 'ziyaretiniz bulunmuyor.' : 'visits to review.',
-                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
+                  lang.translate('no_pending_2'),
+                  style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w700, height: 1.1), // Increased font weight
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  isTr ? 'Yine bekleriz!' : 'See you again!',
-                  style: GoogleFonts.outfit(color: const Color(0xFF7F6041), fontSize: 12, fontWeight: FontWeight.w500, height: 1.1),
+                  lang.translate('see_you_again'),
+                  style: GoogleFonts.outfit(color: const Color(0xFF7F6041), fontSize: 14, fontWeight: FontWeight.w500, height: 1.1), // Increased font size
                 ),
               ],
             ),
@@ -772,6 +774,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// State 2: After purchase — "Ziyaretin nasıldı?" (Figma 2.png)
   Widget _buildBannerState2(BuildContext context, dynamic review, bool isTr) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     final business = review['business'] is Map ? review['business'] : {};
     final firmName = business['companyName'] ?? (review['businessName'] ?? '');
     final dateTimeStr = _formatDateTime(review['createdAt']);
@@ -824,12 +827,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        isTr ? 'Ziyaretin nasıldı?' : 'How was your visit?',
+                        lang.translate('how_was_visit'),
                         style: GoogleFonts.outfit(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w500, height: 1.1),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        isTr ? 'Deneyimini puanla!' : 'Rate your experience!',
+                        lang.translate('rate_experience_title'),
                         style: GoogleFonts.outfit(color: const Color(0xFF7F6041), fontSize: 12, fontWeight: FontWeight.w500, height: 1.1),
                       ),
                     ],
@@ -891,7 +894,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             )
                           else
-                            Image.asset('assets/images/app_logo.png', width: 16, height: 16, errorBuilder: (_, __, ___) => const SizedBox(width: 16, height: 16)),
+                            Image.asset('assets/images/splash_logo.png', width: 16, height: 16, errorBuilder: (_, __, ___) => const SizedBox(width: 16, height: 16)),
                           const SizedBox(width: 6),
                           SizedBox(
                             width: 113,
@@ -925,8 +928,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildActiveCampaignsCarousel(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     final campaigns = context.watch<CampaignProvider>().allCampaigns;
-    final lang = context.watch<LanguageProvider>();
     final isTr = lang.locale.languageCode == 'tr';
 
     return Column(
@@ -940,7 +943,7 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                isTr ? 'Aktif Kampanyalar' : 'Active Campaigns', 
+                lang.translate('active_campaigns_header'), 
                 style: GoogleFonts.outfit(
                   color: AppTheme.sectionTitle, // #434343
                   fontSize: 14, // Figma: 14px
@@ -965,7 +968,7 @@ class _HomeScreenState extends State<HomeScreen> {
         SizedBox(
           height: 184, // Increased height to prevent bottom shadow clipping
           child: campaigns.isEmpty 
-            ? Center(child: Text(isTr ? 'Hiç kampanya yok' : 'No campaigns', style: GoogleFonts.outfit(color: AppTheme.bodyText)))
+            ? Center(child: Text(lang.translate('no_notifications'), style: GoogleFonts.outfit(color: AppTheme.bodyText)))
             : PageView.builder(
                 controller: _campaignPageController,
                 itemCount: campaigns.length,
@@ -1006,6 +1009,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   /// Single Campaign Card (Figma: white bg, r=16, image left 164x164, text right)
   Widget _buildCampaignCard(CampaignModel campaign, bool isTr) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     final imageUrl = resolveImageUrl(campaign.headerImage);
     final logoUrl = resolveImageUrl(campaign.businessLogo);
     final businessName = campaign.businessName.isNotEmpty ? campaign.businessName : "Counpaign";
@@ -1054,41 +1058,41 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Business Name Row
-                    Row(
-                      children: [
-                        if (logoUrl != null)
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              image: DecorationImage(
-                                image: NetworkImage(logoUrl),
-                                fit: BoxFit.cover,
+                      // Business Name Row
+                      Row(
+                        children: [
+                          if (logoUrl != null)
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                image: DecorationImage(
+                                  image: NetworkImage(logoUrl),
+                                  fit: BoxFit.cover,
+                                ),
                               ),
+                            )
+                          else
+                            const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF131313)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              businessName,
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF131313),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700, // Made bold as requested
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          )
-                        else
-                          const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF131313)),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            businessName,
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF131313),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
                     const SizedBox(height: 12),
                     // Title
-                    Text(
+                    AutoText(
                       campaign.title,
                       style: GoogleFonts.outfit(
                         color: Colors.black,
@@ -1100,7 +1104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 4),
                     // Description
-                    Text(
+                    AutoText(
                       campaign.shortDescription,
                       style: GoogleFonts.outfit(
                         color: const Color(0xFF4F4A4A),
@@ -1119,7 +1123,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFFF9C06A),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFFF4B75B), width: 1),
+                        border: Border.all(color: const Color(0xFF76410B).withValues(alpha: 0.05), width: 1),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x3F000000),
@@ -1130,7 +1134,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          isTr ? 'Detayları Gör' : 'View Details',
+                          lang.translate('view_details'),
                           style: GoogleFonts.outfit(
                             color: const Color(0xFF76410B),
                             fontSize: 12,
@@ -1167,7 +1171,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           // Figma: "Keşfet" #434343 w600 14px
           Text(
-            isTr ? 'Keşfet' : 'Discover', 
+            lang.translate('discover'), 
             style: GoogleFonts.outfit(
               color: AppTheme.sectionTitle, 
               fontSize: 14, 
@@ -1214,7 +1218,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                                 colors: [
-                                  Colors.black.withOpacity(0.706),
+                                  Colors.black.withValues(alpha: 0.706),
                                   Colors.transparent,
                                 ],
                                 stops: const [0.0, 0.73],
@@ -1236,7 +1240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text.rich(
                             TextSpan(children: [
                               TextSpan(
-                                text: isTr ? 'Bölgendeki\n' : 'Local\n',
+                                text: lang.translate('in_your_area'),
                                 style: GoogleFonts.outfit(
                                   color: const Color(0xFFF3F3F3),
                                   fontSize: 20,
@@ -1272,8 +1276,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: const Color(0xA0FFE5BE), // rgba(255,229,190,0.63)
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppTheme.deepBrown, width: 0.5),
-                      boxShadow: const [
-                        BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 4)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
                       ],
                     ),
                     clipBehavior: Clip.antiAlias,
@@ -1350,8 +1354,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildBalanceCarousel(BuildContext context) {
-    final firms = _getFirmBalances(context);
     final lang = Provider.of<LanguageProvider>(context, listen: false);
+    final firms = _getFirmBalances(context);
 
     // [BUG FIX] If no cafes are added, skip the empty wallet "coffee cup" rotation completely 
     // and just show the "Add Cafe" card flatly.
@@ -1454,6 +1458,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCardItem(BuildContext context, int index, List<Map<String, dynamic>> firms) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
     if (index == firms.length) {
       return GestureDetector(
         onTap: () async {
@@ -1471,7 +1476,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return WalletCard(
       firm: firm,
       onScanTap: () async {
-        final lang = context.read<LanguageProvider>();
         if (firm['name'] == lang.translate('wallet_empty')) return;
         final firmId = firm['id'];
         final allCampaigns = context.read<CampaignProvider>().allCampaigns;
@@ -1520,13 +1524,13 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final lang = context.watch<LanguageProvider>();
     // User Data from Provider
     final user = context.watch<app.AuthProvider>().currentUser;
     final name = user?.fullName ?? "Misafir";
     
     // Dynamic Greeting Logic
-    final hour = DateTime.now().hour;
-    final lang = context.watch<LanguageProvider>(); 
+    final hour = DateTime.now().hour; 
     String greetingKey;
     if (hour >= 6 && hour < 12) {
       greetingKey = 'good_morning';
@@ -1596,8 +1600,8 @@ class HomeHeader extends StatelessWidget {
             GestureDetector(
               onTap: () => context.push('/notifications'),
               child: Container(
-                width: 42,
-                height: 42,
+                width: 32,
+                height: 32,
                 decoration: ShapeDecoration(
                   color: Colors.white.withValues(alpha: 0.40),
                   shape: RoundedRectangleBorder(
@@ -1619,7 +1623,7 @@ class HomeHeader extends StatelessWidget {
                 child: const Icon(
                   Icons.notifications_none_rounded, 
                   color: AppTheme.deepBrown,
-                  size: 22,
+                  size: 20,
                 ),
               ),
             ),
@@ -1651,16 +1655,10 @@ class HomeHeader extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(57.75),
-                  child: imageProvider != null
-                    ? CircleAvatar(
-                        backgroundColor: Colors.transparent,
-                        backgroundImage: imageProvider,
-                      )
-                    : const Icon(
-                        Icons.person_outline_rounded,
-                        color: AppTheme.deepBrown,
-                        size: 22,
-                      ),
+                  child: CircleAvatar(
+                    backgroundColor: Colors.transparent,
+                    backgroundImage: imageProvider,
+                  ),
                 ),
               ),
             ),

@@ -38,7 +38,6 @@ class GiftSelectionScreen extends StatefulWidget {
 
 class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
   bool _isLoading = true;
   List<dynamic> _gifts = [];
   String? _redeemingGiftId; 
@@ -51,10 +50,6 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
-    
-    _animation = Tween<double>(begin: 0, end: 10).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
     
     _fetchGifts();
   }
@@ -69,10 +64,10 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     try {
       final api = context.read<ApiService>();
       final gifts = await api.getBusinessGifts(widget.businessId);
-      final lang = Provider.of<LanguageProvider>(context, listen: false);
+      if (!mounted) return;
       setState(() {
         _gifts = gifts;
-        _selectedCategory = lang.locale.languageCode == 'tr' ? 'Tümü' : 'All';
+        _selectedCategory = 'cat_all';
         _isLoading = false;
       });
     } catch (e) {
@@ -158,75 +153,11 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     }
   }
 
-  Future<void> _redeemGiftEntitlement() async {
-    final lang = Provider.of<LanguageProvider>(context, listen: false);
-    final api = context.read<ApiService>();
-
-    // 1. Confirm Entitlement Usage
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(lang.translate('redeem_entitlement_title'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text(
-          lang.translate('gift_entitlement_confirm'),
-          style: GoogleFonts.outfit(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(lang.translate('cancel'), style: GoogleFonts.outfit(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEE2C2C)),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(lang.translate('confirm'), style: GoogleFonts.outfit(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    // 2. Prepare Redemption & Open Scanner
-    try {
-      await api.prepareRedemption(widget.businessId, "", type: 'GIFT_ENTITLEMENT');
-
-      // 3. Open QR Scanner to scan business's static QR
-      if (mounted) {
-        final result = await Navigator.of(context).push<bool>(
-          MaterialPageRoute(
-            builder: (context) => CustomerScannerScreen(
-              extra: {
-                'expectedBusinessId': widget.businessId,
-                'expectedBusinessName': widget.businessName,
-                'expectedBusinessLogo': widget.logoUrl,
-              },
-            ),
-          ),
-        );
-
-        // If scanner returned true (success), go home
-        if (result == true && mounted) {
-          context.go('/home');
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        showCustomPopup(
-          context,
-          message: lang.translate('gift_error_msg'),
-          type: PopupType.error,
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context);
-    final bool isTr = lang.locale.languageCode == 'tr';
+    // Removed unused isTr local variable
+    // final isTr = lang.locale.languageCode == "tr";
 
     return Scaffold(
       backgroundColor: const Color(0xFFEBEBEB),
@@ -276,7 +207,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
               'assets/images/union.svg',
               height: 320,
               colorFilter: ColorFilter.mode(
-                Colors.black.withOpacity(0.015),
+                Colors.black.withValues(alpha: 0.015),
                 BlendMode.srcIn,
               ),
             ),
@@ -287,20 +218,20 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(context),
-                _buildCafeInfoCard(isTr),
+                _buildCafeInfoCard(), // Removed unused isTr parameter
                 
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     children: [
                       const SizedBox(height: 20),
-                      _buildPointsCard(isTr),
+                      _buildPointsCard(), // Removed unused isTr parameter
                       const SizedBox(height: 32),
-                      _buildMenuTitle(isTr),
+                      _buildMenuTitle(), // Removed unused isTr parameter
                       const SizedBox(height: 16),
-                      _buildCategoryFilters(isTr),
+                      _buildCategoryFilters(), // Removed unused isTr parameter
                       const SizedBox(height: 24),
-                      _buildProductGrid(lang, isTr),
+                      _buildProductGrid(lang), // Removed unused isTr parameter
                       const SizedBox(height: 40),
                     ],
                   ),
@@ -320,17 +251,17 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: () => context.pop(),
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
-                ],
-              ),
-              child: const Icon(Icons.arrow_back_ios_new, size: 20, color: Colors.black),
+            onTap: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/home');
+              }
+            },
+            child: SvgPicture.asset(
+              'assets/figma/back_button.svg',
+              width: 33,
+              height: 33,
             ),
           ),
           Row(
@@ -342,11 +273,11 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.4),
+                    color: Colors.white.withValues(alpha: 0.4), // Fixed withValues to withOpacity
                     shape: BoxShape.circle,
                     border: Border.all(color: const Color(0xFFDADADA)),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 4)),
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 4)),
                     ],
                   ),
                   child: const Icon(Icons.notifications_none_rounded, color: Colors.black, size: 24),
@@ -374,11 +305,11 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                       width: 42,
                       height: 42,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.4),
+                        color: Colors.amber.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                         border: Border.all(color: const Color(0xFFDADADA)),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 4)),
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 4)),
                         ],
                       ),
                       child: ClipRRect(
@@ -401,7 +332,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     );
   }
 
-  Widget _buildCafeInfoCard(bool isTr) {
+  Widget _buildCafeInfoCard() { // Removed unused isTr parameter
     final String? resolvedLogo = resolveImageUrl(widget.logoUrl);
     
     return Container(
@@ -484,7 +415,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    isTr ? '(${widget.reviewCount ?? 0} değerlendirme)' : '(${widget.reviewCount ?? 0} reviews)',
+                                    '(${widget.reviewCount ?? 0} ${context.read<LanguageProvider>().translate('reviews_count')})',
                                     style: GoogleFonts.outfit(
                                       color: const Color(0xFF4A4A4A),
                                       fontSize: 10,
@@ -508,12 +439,11 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     );
   }
 
-  Widget _buildPointsCard(bool isTr) {
-    final title = isTr ? 'Hesabındaki puan' : 'Points in account';
+  Widget _buildPointsCard() { // Removed unused isTr parameter
+    final lang = context.read<LanguageProvider>();
+    final title = lang.translate('points_in_account');
     final pointsText = widget.currentPoints.toInt().toString();
-    final noteText = isTr
-        ? 'Puanlar, kazanıldıktan 6 ay sonra kaybolur.'
-        : 'Points expire after 6 months.';
+    final noteText = lang.translate('points_expire_note');
 
     return CustomerPointsCard(
       title: title,
@@ -522,19 +452,22 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     );
   }
 
-  Widget _buildMenuTitle(bool isTr) {
+  Widget _buildMenuTitle() { // Removed unused isTr parameter
     return Text(
-      isTr ? 'Puan Menüsü' : 'Points Menu',
+      context.read<LanguageProvider>().translate('points_menu_title'),
       style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF434343)),
     );
   }
 
-  Widget _buildCategoryFilters(bool isTr) {
-    final List<String> categories = [isTr ? 'Tümü' : 'All'];
+  Widget _buildCategoryFilters() { // Removed unused isTr parameter
+    final lang = context.watch<LanguageProvider>();
+    // 'cat_all' is the sentinel key; other categories come from DB (Turkish)
+    // We display them through AutoText so they auto-translate
+    final List<String> dbCategories = [];
     for (var gift in _gifts) {
       final cat = gift['category'];
-      if (cat != null && cat.toString().trim().isNotEmpty && !categories.contains(cat)) {
-        categories.add(cat);
+      if (cat != null && cat.toString().trim().isNotEmpty && !dbCategories.contains(cat)) {
+        dbCategories.add(cat);
       }
     }
 
@@ -542,13 +475,13 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
       height: 32,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: categories.length,
+        itemCount: dbCategories.length + 1, // +1 for 'All'
         separatorBuilder: (_, __) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          final category = categories[index];
-          final isSelected = _selectedCategory == category;
+          final String categoryKey = index == 0 ? 'cat_all' : dbCategories[index - 1];
+          final isSelected = _selectedCategory == categoryKey;
           return GestureDetector(
-            onTap: () => setState(() => _selectedCategory = category),
+            onTap: () => setState(() => _selectedCategory = categoryKey),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
@@ -567,14 +500,24 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                     ),
                   if (isSelected)
                     const SizedBox(width: 4),
-                  Text(
-                    category,
-                    style: GoogleFonts.outfit(
-                      color: isSelected ? const Color(0xFF77410C) : const Color(0xFF757575),
-                      fontSize: 14,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    ),
-                  ),
+                  // For 'cat_all' use translate(); for DB categories use AutoText for auto-translation
+                  index == 0
+                    ? Text(
+                        lang.translate('cat_all'),
+                        style: GoogleFonts.outfit(
+                          color: isSelected ? const Color(0xFF77410C) : const Color(0xFF757575),
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      )
+                    : AutoText(
+                        categoryKey,
+                        style: GoogleFonts.outfit(
+                          color: isSelected ? const Color(0xFF77410C) : const Color(0xFF757575),
+                          fontSize: 14,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                        ),
+                      ),
                 ],
               ),
             ),
@@ -584,13 +527,13 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     );
   }
 
-  Widget _buildProductGrid(LanguageProvider lang, bool isTr) {
+  Widget _buildProductGrid(LanguageProvider lang) { // Removed unused isTr parameter
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFFD32F2F)));
     }
 
-    final allText = isTr ? 'Tümü' : 'All';
-    final filteredGifts = _selectedCategory == allText 
+    // 'cat_all' is the sentinel key; filter by actual DB value
+    final filteredGifts = _selectedCategory == 'cat_all'
         ? _gifts 
         : _gifts.where((g) => g['category'] == _selectedCategory).toList();
     
@@ -638,7 +581,7 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
               ),
@@ -682,14 +625,14 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    AutoText(
                       gift['title'],
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black),
                     ),
                     const SizedBox(height: 2),
-                    Text(
+                    AutoText(
                       (gift['description'] != null && gift['description'].toString().trim().isNotEmpty)
                           ? gift['description']
                           : 'Özel hediye seçeneği',
@@ -744,7 +687,7 @@ class _HillClipper extends CustomClipper<Path> {
     path.lineTo(0, size.height * 0.4);
     
     final centerX = size.width * 0.5;
-    final centerY = size.height;
+    // Removed unused centerY local variable
     
     // Very soft curve ascending to a broad peak
     path.cubicTo(

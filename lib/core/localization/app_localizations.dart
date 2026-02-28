@@ -248,6 +248,89 @@ class AppLocalizations {
       'kod_iptal_edildi': 'İşletme tarafından iptal edildi', 
       'hediye_alimi': 'Hediye Alımı',
       'hediye_hakki_kullanimi': 'Hediye Hakkı Kullanımı',
+
+      // Section Headers
+      'menu_header': 'Menü',
+      'active_campaigns_header': 'Aktif Kampanyalar',
+      'view_all': 'Tümünü gör',
+      'menu_preparing': 'Menü Hazırlanıyor...',
+      'view_details': 'Detayları Gör',
+
+      // Sort
+      'sort_title': 'Sıralama',
+      'sort_default': 'Varsayılan',
+      'sort_price_asc': 'Fiyat: Artan',
+      'sort_price_desc': 'Fiyat: Azalan',
+
+      // Menu Categories
+      'cat_all': 'Tümü',
+      'cat_deals': 'Fırsatlar',
+      'cat_hot_coffee': 'Sıcak Kahveler',
+      'cat_cold_coffee': 'Soğuk Kahveler',
+      'cat_hot_drinks': 'Sıcak İçecekler',
+      'cat_cold_drinks': 'Soğuk İçecekler',
+      'cat_desserts': 'Tatlılar',
+
+      // Business Detail — category display
+      'popular_section': 'Popüler',
+
+      // Gift / Spend Points screen
+      'points_in_account': 'Hesabındaki puan',
+      'points_expire_note': 'Puanlar, Kazanıldıktan 6 ay\nsonra kaybolur',
+      'points_menu_title': 'Puan Menüsü',
+      'gift_all_cat': 'Tümü',
+
+      // Order History unit labels
+      'unit_stamp': 'Damga',
+      'unit_point': 'Puan',
+      'unit_gift': 'Hediye',
+      'point_spending': 'Puan Harcama',
+
+
+
+      // UI & Popups
+      'qr_okut': 'QR Okut',
+      'puan_harca': 'Puan Harca',
+      'siparislerim': 'Siparişlerim',
+      'hediye_icecek': 'Hediye İçecek',
+      'stamp_label': 'Damga',
+      'point_label': 'Puan',
+      'reviews_count': 'değerlendirme',
+      'account_deleted_msg': 'Hesabınız başarıyla silindi.',
+      'delete_failed_msg': 'Silme işlemi başarısız.',
+      'action_failed': 'İşlem başarısız',
+      'no_products_in_cat': 'Bu kategoride ürün bulunamadı.',
+      'review_saved_toast': 'Değerlendirmeniz başarıyla\nkaydedildi.',
+      'no_campaigns_popup': 'Bu işletmede aktif kampanya bulunamadı.',
+      'password_required': 'Şifre girmelisiniz.',
+      'no_active_campaigns_title': 'Aktif Kampanya Bulunamadı',
+      'no_active_campaigns_desc': '{firmName} işletmesinin henüz aktif bir kampanyası bulunmamaktadır.',
+      'thank_you': 'Teşekkürler!',
+      'rating': 'Değerlendirme',
+      'optional_note_hint': 'İsteğe bağlı bir not ekleyin...',
+      'save': 'Kaydet',
+      'let_pick_1': 'İlk kahveni\n',
+      'let_pick_2': 'birlikte\n',
+      'let_pick_3': 'seçelim!',
+      'no_pending_1': 'Değerlendirilecek',
+      'no_pending_2': 'ziyaretiniz bulunmuyor.',
+      'see_you_again': 'Yine bekleriz!',
+      'how_was_visit': 'Ziyaretin nasıldı?',
+      'rate_experience_title': 'Deneyimini puanla!',
+      'discover': 'Keşfet',
+      'in_your_area': 'Bölgendeki\n',
+      'delete_account_title': 'Hesabı Sil',
+      'delete_account_desc': 'Hesabınızı silmek geri alınamaz bir işlemdir. Tüm puanlarınız, hediye geçmişiniz ve kişisel verileriniz kalıcı olarak silinecektir.\n\nİşlemi onaylamak için lütfen mevcut şifrenizi giriniz:',
+      'change_password': 'Şifre Değiştir',
+      'privacy_policy': 'Gizlilik Güvenlik',
+      'popular_products': 'Öne Çıkanlar',
+      'confirm_delete_btn': 'SİL',
+      'cancel_btn': 'İPTAL',
+      'crop_image': 'Fotoğrafı Kırp',
+      'done': 'Bitti',
+      'current_password': 'Mevcut Şifre',
+      'new_password': 'Yeni Şifre',
+      'update': 'GÜNCELLE',
     },
 
     'en': {
@@ -502,6 +585,89 @@ class AppLocalizations {
       'kod_iptal_edildi': 'Cancelled by business', 
       'hediye_alimi': 'Gift Redemption', 
       'hediye_hakki_kullanimi': 'Free Gift Entitlement Used', 
+
+      // Section Headers
+      'menu_header': 'Menu',
+      'active_campaigns_header': 'Active Campaigns',
+      'view_all': 'View all',
+      'menu_preparing': 'Menu is Being Prepared...',
+      'view_details': 'View Details',
+
+      // Sort
+      'sort_title': 'Sort',
+      'sort_default': 'Default',
+      'sort_price_asc': 'Price: Low to High',
+      'sort_price_desc': 'Price: High to Low',
+
+      // Menu Categories
+      'cat_all': 'All',
+      'cat_deals': 'Deals',
+      'cat_hot_coffee': 'Hot Coffees',
+      'cat_cold_coffee': 'Cold Coffees',
+      'cat_hot_drinks': 'Hot Drinks',
+      'cat_cold_drinks': 'Cold Drinks',
+      'cat_desserts': 'Desserts',
+
+      // Business Detail — category display
+      'popular_section': 'Popular',
+
+      // Gift / Spend Points screen
+      'points_in_account': 'Points in account',
+      'points_expire_note': 'Points expire after 6 months.',
+      'points_menu_title': 'Points Menu',
+      'gift_all_cat': 'All',
+
+      // Order History unit labels
+      'unit_stamp': 'Stamp',
+      'unit_point': 'Points',
+      'unit_gift': 'Gift',
+      'point_spending': 'Points Spent',
+
+
+      // UI & Popups
+      'qr_okut': 'Scan QR',
+      'puan_harca': 'Spend Points',
+      'siparislerim': 'My Orders',
+      'hediye_icecek': 'Free Drink',
+      'stamp_label': 'Stamp',
+      'point_label': 'Points',
+      'reviews_count': 'reviews',
+      'account_deleted_msg': 'Your account has been deleted.',
+      'delete_failed_msg': 'Delete operation failed.',
+      'action_failed': 'Action failed',
+      'no_products_in_cat': 'No products in this category.',
+      'review_saved_toast': 'Your review has been saved.',
+      'no_campaigns_popup': 'No active campaigns found for this business.',
+      'password_required': 'Password is required.',
+      'no_active_campaigns_title': 'No Active Campaigns Found',
+      'no_active_campaigns_desc': '{firmName} does not have any active campaigns yet.',
+      'thank_you': 'Thank You!',
+      'rating': 'Rating',
+      'optional_note_hint': 'Add an optional note...',
+      'save': 'Save',
+      'let_pick_1': "Let's pick\n",
+      'let_pick_2': 'your first\n',
+      'let_pick_3': 'coffee!',
+      'no_pending_1': 'No pending',
+      'no_pending_2': 'visits to review.',
+      'see_you_again': 'See you again!',
+      'how_was_visit': 'How was your visit?',
+      'rate_experience_title': 'Rate your experience!',
+      'discover': 'Discover',
+      'in_your_area': 'Local\n',
+      'delete_account_title': 'Delete Account',
+      'delete_account_desc': 'Deleting your account is permanent. All your points, gift history, and personal data will be permanently removed.\n\nPlease enter your current password to confirm:',
+      'change_password': 'Change Password',
+      'privacy_policy': 'Privacy Security',
+      'popular_products': 'Featured Products',
+      'confirm_delete_btn': 'DELETE',
+      'cancel_btn': 'CANCEL',
+      'crop_image': 'Crop Image',
+      'done': 'Done',
+      'phone_length_error': 'Must be 10 digits (without leading 0)',
+      'current_password': 'Current Password',
+      'new_password': 'New Password',
+      'update': 'UPDATE',
     },
   };
 

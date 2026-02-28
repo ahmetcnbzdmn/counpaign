@@ -45,8 +45,17 @@ class LanguageProvider extends ChangeNotifier {
   /// Translates text from TR to EN if locale is EN.
   /// Returns a Future so UI must handle async state.
   Future<String> translateAuto(String text) async {
-    // 1. If Turkish (Source) or Empty -> Return Original
-    if (_locale.languageCode == 'tr' || text.trim().isEmpty) {
+    final String sourceText = text.trim();
+
+    // 1. HANDLE SPECIFIC MAPPINGS (e.g. "sweets") - Map regardless of mode
+    if (sourceText.toLowerCase() == 'sweets') {
+      final result = _locale.languageCode == 'tr' ? 'Tatlılar' : 'Desserts';
+      _translationCache[text] = result;
+      return result;
+    }
+
+    // 2. If Turkish (Source) or Empty -> Return Original
+    if (_locale.languageCode == 'tr' || sourceText.isEmpty) {
       return text;
     }
     
@@ -57,8 +66,16 @@ class LanguageProvider extends ChangeNotifier {
     
     // 3. Perform Network Translation (Google Translate)
     try {
-      final translation = await _translator.translate(text, from: 'tr', to: 'en');
-      final result = translation.text;
+      final translation = await _translator.translate(sourceText, from: 'tr', to: 'en');
+      String result = translation.text;
+      
+      // Normalize: Capitalize first letter of each word
+      if (result.isNotEmpty) {
+        result = result.split(' ').map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        }).join(' ');
+      }
       
       // Cache it
       _translationCache[text] = result;

@@ -50,10 +50,10 @@ class AppTheme {
       onSurface: lightTextPrimary,
     ),
     textTheme: GoogleFonts.outfitTextTheme().copyWith(
-      bodyLarge: TextStyle(color: lightTextPrimary, fontSize: 16, fontWeight: FontWeight.w500),
-      bodyMedium: TextStyle(color: lightTextPrimary, fontSize: 14, fontWeight: FontWeight.w400),
-      titleLarge: TextStyle(color: lightTextPrimary, fontSize: 20, fontWeight: FontWeight.w600),
-      labelMedium: TextStyle(color: lightTextSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+      bodyLarge: const TextStyle(color: lightTextPrimary, fontSize: 16, fontWeight: FontWeight.w500),
+      bodyMedium: const TextStyle(color: lightTextPrimary, fontSize: 14, fontWeight: FontWeight.w400),
+      titleLarge: const TextStyle(color: lightTextPrimary, fontSize: 20, fontWeight: FontWeight.w600),
+      labelMedium: const TextStyle(color: lightTextSecondary, fontSize: 12, fontWeight: FontWeight.w500),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: lightBackground,

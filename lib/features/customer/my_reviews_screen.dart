@@ -83,8 +83,8 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
-    final textColor = const Color(0xFF131313);
-    final activeColor = AppTheme.primaryColor;
+    const textColor = Color(0xFF131313);
+    const activeColor = AppTheme.primaryColor;
 
     String resolveLogoUrl(String? path) {
       if (path == null || path.isEmpty) return '';
@@ -102,7 +102,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
         appBar: AppBar(
           title: Text(lang.translate('my_reviews'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
           backgroundColor: bgColor,
-          iconTheme: IconThemeData(color: textColor),
+          iconTheme: const IconThemeData(color: textColor),
           elevation: 0,
           centerTitle: true,
           bottom: TabBar(

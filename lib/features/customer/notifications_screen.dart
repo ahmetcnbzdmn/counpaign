@@ -63,8 +63,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       debugPrint("Mark Read Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('İşlem başarısız'),
+          SnackBar(
+            content: Text(context.read<LanguageProvider>().translate('action_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -94,8 +94,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       debugPrint("Delete Error: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Silme işlemi başarısız'),
+          SnackBar(
+            content: Text(context.read<LanguageProvider>().translate('action_failed')),
             backgroundColor: Colors.red,
           ),
         );
@@ -115,10 +115,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = const Color(0xFFEBEBEB);
-    final cardColor = Colors.white;
-    final textColor = const Color(0xFF131313);
+    const bgColor = Color(0xFFEBEBEB);
+    const cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
     const primaryBrand = Color(0xFF76410B);
     
     final lang = context.watch<LanguageProvider>();

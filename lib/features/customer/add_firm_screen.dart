@@ -239,6 +239,13 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         'giftsCount': myFirmData?['giftsCount'] ?? 0,
         'points': myFirmData?['points'] ?? '0',
         'icon': myFirmData?['cardIcon'] ?? firmData['cardIcon'],
+        'logo': myFirmData?['logo'] ?? firmData['logo'],
+        'image': myFirmData?['image'] ?? firmData['image'],
+        'city': myFirmData?['city'] ?? firmData['city'],
+        'district': myFirmData?['district'] ?? firmData['district'],
+        'neighborhood': myFirmData?['neighborhood'] ?? firmData['neighborhood'],
+        'reviewScore': myFirmData?['reviewScore'] ?? firmData['reviewScore'] ?? 0.0,
+        'reviewCount': myFirmData?['reviewCount'] ?? firmData['reviewCount'] ?? 0,
       });
     } else {
       _toggleFirm(id);

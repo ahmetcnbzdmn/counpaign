@@ -3,11 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/language_provider.dart';
-import '../../core/theme/app_theme.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
@@ -18,15 +16,22 @@ class PrivacySecurityScreen extends StatefulWidget {
 
 class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   final _passwordController = TextEditingController();
+  final _oldPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmNewPasswordController = TextEditingController();
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _oldPasswordController.dispose();
+    _newPasswordController.dispose();
+    _confirmNewPasswordController.dispose();
     super.dispose();
   }
 
   void _showDeleteAccountDialog(BuildContext context, AuthProvider auth, Color cardColor, Color textColor, Color primaryBrand) {
     _passwordController.clear();
+    final lang = context.read<LanguageProvider>();
     bool isDeleting = false;
 
     showDialog(
@@ -42,7 +47,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
                 const SizedBox(width: 8),
                 Text(
-                  "Hesabı Sil", 
+                  lang.translate('delete_account_title'), 
                   style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20)
                 ),
               ],
@@ -52,7 +57,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Hesabınızı silmek geri alınamaz bir işlemdir. Tüm puanlarınız, hediye geçmişiniz ve kişisel verileriniz kalıcı olarak silinecektir.\n\nİşlemi onaylamak için lütfen mevcut şifrenizi giriniz:",
+                  lang.translate('delete_account_desc'),
                   style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 14),
                 ),
                 const SizedBox(height: 16),
@@ -61,7 +66,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   obscureText: true, // Hides input
                   style: GoogleFonts.outfit(color: textColor, fontSize: 16),
                   decoration: InputDecoration(
-                    hintText: "Şifreniz",
+                    hintText: lang.translate('your_password'),
                     hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4)),
                     filled: true,
                     fillColor: textColor.withValues(alpha: 0.05),
@@ -78,12 +83,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             actions: [
               TextButton(
                 onPressed: isDeleting ? null : () => Navigator.pop(dialogContext),
-                child: Text("İPTAL", style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.bold)),
+                child: Text(lang.translate('cancel').toUpperCase(), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.bold)),
               ),
               ElevatedButton(
                 onPressed: isDeleting ? null : () async {
                   if (_passwordController.text.isEmpty) {
-                    showCustomPopup(context, message: "Şifre girmelisiniz.", type: PopupType.error);
+                    showCustomPopup(context, message: lang.translate('password_required'), type: PopupType.error);
                     return;
                   }
                   
@@ -92,14 +97,14 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     await auth.deleteAccount(_passwordController.text);
                     if (context.mounted) {
                        Navigator.pop(dialogContext); // Close dialog
-                       showCustomPopup(context, message: "Hesabınız başarıyla silindi.", type: PopupType.success);
+                       showCustomPopup(context, message: lang.translate('account_deleted_msg'), type: PopupType.success);
                     }
                   } catch (e) {
                     if (context.mounted) {
                        setState(() => isDeleting = false);
                        String errMsg = e.toString();
                        if (e is DioException) {
-                          errMsg = e.response?.data['error'] ?? "Silme işlemi başarısız.";
+                          errMsg = e.response?.data['error'] ?? lang.translate('delete_failed_msg');
                        }
                        showCustomPopup(context, message: errMsg, type: PopupType.error);
                     }
@@ -114,7 +119,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 ),
                 child: isDeleting 
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : Text("SİL", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                  : Text(lang.translate('confirm_delete_btn'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               ),
             ],
           );
@@ -175,7 +180,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         title: Text(
-          "Gizlilik ve Güvenlik", 
+          lang.translate('privacy_policy'), 
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)
         ),
         backgroundColor: bgColor,
@@ -191,17 +196,17 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             // Change Password
             _buildTile(
               icon: Icons.vpn_key_rounded, 
-              title: "Şifre Değiştir", 
+              title: lang.translate('change_password'), 
               textColor: textColor, 
               cardColor: cardColor, 
-              showArrow: false,
-              onTap: null,
+              showArrow: true,
+              onTap: () => context.push('/change-password'),
             ),
-            
+            const SizedBox(height: 16),
             // Privacy Policy
             _buildTile(
               icon: Icons.description_outlined, 
-              title: "Gizlilik Sözleşmesi", 
+              title: lang.translate('privacy_policy'), 
               textColor: textColor, 
               cardColor: cardColor, 
               showArrow: false,
@@ -213,7 +218,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
             // Delete Account
             _buildTile(
               icon: Icons.delete_forever_rounded, 
-              title: "Hesabı Sil", 
+              title: lang.translate('delete_account_title'), 
               titleColor: const Color.fromARGB(255, 175, 41, 41),
               iconColor: const Color.fromARGB(255, 175, 41, 41),
               textColor: textColor,

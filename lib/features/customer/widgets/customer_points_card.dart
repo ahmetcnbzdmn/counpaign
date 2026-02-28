@@ -83,14 +83,14 @@ class CustomerPointsCard extends StatelessWidget {
           const SizedBox(width: 8), // gap-[8px] between text and images
           // RightSection: Overlapping stars
           SizedBox(
-            width: 140, 
+            width: 120, // Increased to give the stars all the space they need without clipping
             height: 130,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Background coin (back) - Shifted significantly left and up
+                // Background coin (back) - Shifted inward (leftward from the right edge)
                 Positioned(
-                  right: 45,
+                  right: 40, // Pushed significantly further left ("1 cm sola")
                   top: -5,
                   child: SizedBox(
                     width: 110,
@@ -101,7 +101,7 @@ class CustomerPointsCard extends StatelessWidget {
                         child: Container(
                           width: 105.766,
                           height: 103.563,
-                          padding: const EdgeInsets.all(24),
+                          padding: const EdgeInsets.all(16), // Reduced padding for larger star
                           decoration: ShapeDecoration(
                             color: const Color(0xFFF9C06A),
                             shape: RoundedRectangleBorder(
@@ -115,8 +115,8 @@ class CustomerPointsCard extends StatelessWidget {
                         child: Center(
                           child: SvgPicture.asset(
                             'assets/images/vector2.svg',
-                            width: 48,
-                            height: 48,
+                            width: 58, // Greatly increased size
+                            height: 58, // Greatly increased size
                             colorFilter: const ColorFilter.mode(
                               Colors.white,
                               BlendMode.srcIn,
@@ -129,14 +129,14 @@ class CustomerPointsCard extends StatelessWidget {
                   ),
                 ),
               ),
-                // Foreground coin (front) - Positioned to stay inside
+                // Foreground coin (front) - Positioned to stay inside securely
                 Positioned(
-                  right: -25, // Use right alignment for better containment
+                  right: -10, // Safely within the new 120 width boundary to prevent right edge clipping
                   bottom: -15,
                   child: Container(
                     width: 99.766,
                     height: 97.688,
-                    padding: const EdgeInsets.all(22),
+                    padding: const EdgeInsets.all(16), // Reduced padding for larger star
                     decoration: ShapeDecoration(
                       color: const Color(0xFFF9C06A),
                       shape: RoundedRectangleBorder(
@@ -150,8 +150,8 @@ class CustomerPointsCard extends StatelessWidget {
                     child: Center(
                       child: SvgPicture.asset(
                         'assets/images/vector2.svg',
-                        width: 40, // Absolute size for perfect fit
-                        height: 40,
+                        width: 50, // Greatly increased size
+                        height: 50, // Greatly increased size
                         colorFilter: const ColorFilter.mode(
                           Colors.white,
                           BlendMode.srcIn,

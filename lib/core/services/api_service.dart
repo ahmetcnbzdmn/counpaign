@@ -11,90 +11,88 @@ class ApiService {
   bool _isRefreshing = false;
   final List<Completer<bool>> _requestQueue = [];
 
-  ApiService(this._storageService)
+    ApiService(this._storageService)
       : _dio = Dio(BaseOptions(
           baseUrl: ApiConfig.baseUrl,
-          connectTimeout: const Duration(seconds: 60),
-          receiveTimeout: const Duration(seconds: 60),
+          connectTimeout: const Duration(seconds: 15), // Reduced to fail faster and retry
+          receiveTimeout: const Duration(seconds: 15),
           headers: {'Content-Type': 'application/json'},
         )) {
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await _storageService.getToken();
-        if (token != null && token.isNotEmpty) {
-          options.headers.addAll({'Authorization': 'Bearer $token'});
-        }
-        return handler.next(options);
-      },
-      onError: (DioException e, handler) async {
-        // Handle global errors (e.g. 401 Unauthorized)
-        if (e.response?.statusCode == 401) {
-          if (_isRefreshing) {
-            // If already refreshing, wait for it to finish
-            final completer = Completer<bool>();
-            _requestQueue.add(completer);
-            final success = await completer.future;
-            if (success) {
-              final newToken = await _storageService.getToken();
-              final options = e.requestOptions;
-              options.headers['Authorization'] = 'Bearer $newToken';
-              final retryResponse = await _dio.fetch(options);
-              return handler.resolve(retryResponse);
-            } else {
-              return handler.next(e);
-            }
+    
+    // Add Interceptors
+    _dio.interceptors.addAll([
+      // 1. Authorization Interceptor
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await _storageService.getToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers.addAll({'Authorization': 'Bearer $token'});
           }
-
-          _isRefreshing = true;
-
-          final refreshToken = await _storageService.getRefreshToken();
-          
-          if (refreshToken != null) {
-            try {
-              // Create a new Dio instance to avoid interceptor loop
-              final refreshDio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
-              final refreshResponse = await refreshDio.post(
-                '/auth/refresh-token',
-                data: {'refreshToken': refreshToken},
-              );
-
-              if (refreshResponse.statusCode == 200) {
-                final newToken = refreshResponse.data['token'];
-                await _storageService.saveToken(newToken);
-
-                // Notify all queued requests that refresh was successful
-                for (var completer in _requestQueue) {
-                  completer.complete(true);
-                }
-                _requestQueue.clear();
-                _isRefreshing = false;
-
-                // Retry original request with new token
+          return handler.next(options);
+        },
+        onError: (DioException e, handler) async {
+          // Handle 401 Unauthorized
+          if (e.response?.statusCode == 401) {
+            if (_isRefreshing) {
+              final completer = Completer<bool>();
+              _requestQueue.add(completer);
+              final success = await completer.future;
+              if (success) {
+                final newToken = await _storageService.getToken();
                 final options = e.requestOptions;
-                options.headers.addAll({'Authorization': 'Bearer $newToken'});
-                
-                // Create a generic response using the resolved token
+                options.headers['Authorization'] = 'Bearer $newToken';
                 final retryResponse = await _dio.fetch(options);
                 return handler.resolve(retryResponse);
               }
-            } catch (refreshErr) {
-              debugPrint('Token refresh failed: $refreshErr');
-              // Token refresh failed, continue to trigger unauthorized
+              return handler.next(e);
             }
-          }
 
-          // Refresh failed completely
-          for (var completer in _requestQueue) {
-            completer.complete(false);
-          }
-          _requestQueue.clear();
-          _isRefreshing = false;
+            _isRefreshing = true;
+            final refreshToken = await _storageService.getRefreshToken();
+            
+            if (refreshToken != null) {
+              try {
+                final refreshDio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+                final refreshResponse = await refreshDio.post(
+                  '/auth/refresh-token',
+                  data: {'refreshToken': refreshToken},
+                );
 
-          onUnauthorized?.call();
-        }
-        return handler.next(e);
-      },
-    ));
+                if (refreshResponse.statusCode == 200) {
+                  final newToken = refreshResponse.data['token'];
+                  await _storageService.saveToken(newToken);
+
+                  for (var completer in _requestQueue) {
+                    completer.complete(true);
+                  }
+                  _requestQueue.clear();
+                  _isRefreshing = false;
+
+                  final options = e.requestOptions;
+                  options.headers['Authorization'] = 'Bearer $newToken';
+                  final retryResponse = await _dio.fetch(options);
+                  return handler.resolve(retryResponse);
+                }
+              } catch (refreshErr) {
+                debugPrint('Token refresh failed: $refreshErr');
+              }
+            }
+
+            // Global fallback
+            for (var completer in _requestQueue) {
+              completer.complete(false);
+            }
+            _requestQueue.clear();
+            _isRefreshing = false;
+            onUnauthorized?.call();
+          }
+          return handler.next(e);
+        },
+      ),
+      
+      // 2. Retry Interceptor for connection errors
+      _RetryInterceptor(_dio),
+    ]);
   }
 
   // Callback to handle 401 errors (e.g. trigger logout)
@@ -308,5 +306,47 @@ class ApiService {
   Future<void> deleteNotification(String notificationId) async {
     // Soft delete - marks as deleted but keeps in DB for admin panel
     await _dio.put('/notifications/$notificationId/soft-delete');
+  }
+}
+
+// Simple Retry Logic for transient connection errors
+class _RetryInterceptor extends Interceptor {
+  final Dio dio;
+  final int maxRetries = 3;
+  final int retryDelayMs = 2000;
+
+  _RetryInterceptor(this.dio);
+
+  @override
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
+    final options = err.requestOptions;
+    
+    // Check if it's a connection/timeout error and we have retries left
+    final extra = options.extra;
+    final int retryCount = (extra['retry_count'] ?? 0) as int;
+
+    final bool shouldRetry = (err.type == DioExceptionType.connectionError || 
+                        err.type == DioExceptionType.connectionTimeout ||
+                        err.type == DioExceptionType.unknown) &&
+                       retryCount < maxRetries;
+
+    if (shouldRetry) {
+      debugPrint("♻️ Retrying request (${retryCount + 1}/$maxRetries): ${options.path}");
+      
+      await Future.delayed(Duration(milliseconds: retryDelayMs));
+      
+      options.extra['retry_count'] = retryCount + 1;
+      
+      try {
+        final response = await dio.fetch(options);
+        return handler.resolve(response);
+      } catch (e) {
+        // If the retry itself fails, the onError will be called again recursively
+        // until maxRetries is reached.
+        return; 
+      }
+    }
+    
+    return handler.next(err);
   }
 }

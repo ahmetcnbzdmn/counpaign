@@ -142,7 +142,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                    const SizedBox(height: 16),
-                   CircularProgressIndicator(color: AppTheme.primaryColor),
+                   const CircularProgressIndicator(color: AppTheme.primaryColor),
                    const SizedBox(height: 24),
                    Text(
                      Provider.of<LanguageProvider>(context, listen: false).translate('waiting_approval'),
@@ -167,7 +167,6 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       bool isConfirmed = false;
       bool isCancelled = false;
       int attempts = 0;
-      Map<String, dynamic>? finalResult;
       
       // Use pollToken from static QR response if available...
       final pollingToken = result['pollToken'] ?? token;
@@ -181,7 +180,6 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
             
             if (statusResult['status'] == 'used') {
                isConfirmed = true;
-               finalResult = statusResult;
                break;
             } else if (statusResult['status'] == 'cancelled') {
                isConfirmed = false;
@@ -237,7 +235,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
           try {
              errorMessage = e.toString().split("NO_CAMPAIGN:")[1].trim();
           } catch (_) {
-             errorMessage = "Bu işletmenin aktif bir kampanyası bulunmamaktadır.";
+             errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('no_active_campaigns_popup');
           }
       } else if (e.toString().contains("404") || e.toString().contains("Invalid or expired")) {
          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('expired_qr_error');
@@ -417,8 +415,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                                  child: Image.network(
                                    resolveImageUrl(_expectedBusinessLogo)!,
                                    fit: BoxFit.cover,
-                                   errorBuilder: (_, __, ___) => Icon(Icons.local_cafe, color: Colors.white, size: 24),
-                                 ),
+                                    errorBuilder: (_, __, ___) => const Icon(Icons.local_cafe, color: Colors.white, size: 24),
+                               ),
                                )
                              : const Icon(Icons.local_cafe, color: Colors.white, size: 24),
                          ),
@@ -498,7 +496,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                              ),
                              child: Row(
                                children: [
-                                 const Icon(Icons.sell_outlined, color: Colors.grey, size: 20),
+                                 const Icon(Icons.star_rounded, color: Colors.amber, size: 24),
                                  const SizedBox(width: 8),
                                  Column(
                                    crossAxisAlignment: CrossAxisAlignment.start,

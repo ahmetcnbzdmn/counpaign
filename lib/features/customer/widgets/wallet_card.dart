@@ -24,7 +24,6 @@ class WalletCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final langProvider = context.watch<LanguageProvider>();
-    final bool isTr = langProvider.locale.languageCode == 'tr';
 
     final int stampCount = firm['stamps'] ?? 0;
     final int target = firm['stampsTarget'] ?? 8;
@@ -100,7 +99,7 @@ class WalletCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '$giftsCount ${isTr ? "Hediye İçecek" : "Free Drink"}',
+                                '$giftsCount ${langProvider.translate('hediye_icecek')}',
                                 style: GoogleFonts.outfit(
                                   color: AppTheme.bodyText,
                                   fontSize: 11,
@@ -118,13 +117,13 @@ class WalletCard extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const SizedBox(height: 24), // Space moved down from _buildFirmTag
+                              const SizedBox(height: 64), // Space moved down from _buildFirmTag to align badhes with coffee text
                               // Stats: Damga + Puan
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildDamgaCircle(stampCount, target, isTr),
-                                  _buildPuanCircle(points, isTr),
+                                  _buildDamgaCircle(stampCount, target, langProvider),
+                                  _buildPuanCircle(points, langProvider),
                                 ],
                               ),
                             ],
@@ -171,7 +170,7 @@ class WalletCard extends StatelessWidget {
                                  child: FittedBox(
                                    fit: BoxFit.scaleDown,
                                    child: Text(
-                                     isTr ? 'QR Okut' : 'Scan QR',
+                                     langProvider.translate('qr_okut'),
                                      style: GoogleFonts.outfit(
                                        color: const Color(0xFFFBFBFB),
                                        fontWeight: FontWeight.w600,
@@ -246,7 +245,7 @@ class WalletCard extends StatelessWidget {
                                 child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Text(
-                                    isTr ? 'Puan Harca' : 'Spend Points',
+                                    langProvider.translate('puan_harca'),
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.outfit(
                                       color: const Color(0xFFF99D13),
@@ -273,7 +272,7 @@ class WalletCard extends StatelessWidget {
               right: 0,
               child: ConstrainedBox(
                 constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.65),
-                child: _buildFirmTag(context, firmName, reviewScore, reviewCount, isTr),
+                child: _buildFirmTag(context, firmName, reviewScore, reviewCount, langProvider),
               ),
             ),
           ],
@@ -283,7 +282,7 @@ class WalletCard extends StatelessWidget {
   }
 
   /// Firm header tag
-  Widget _buildFirmTag(BuildContext context, String name, double score, int count, bool isTr) {
+  Widget _buildFirmTag(BuildContext context, String name, double score, int count, LanguageProvider langProvider) {
     // --- Build firm logo from backend ---
     Widget logoWidget;
     final rawLogo = firm['logo'] ?? firm['image'] ?? firm['logoUrl'];
@@ -338,27 +337,27 @@ class WalletCard extends StatelessWidget {
                             maxLines: 1,
                           ),
                         ),
-                        const SizedBox(height: 1),
+                        const SizedBox(height: 8),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: Alignment.centerLeft,
                           child: Row(
                             children: [
-                              const Icon(Icons.star_rounded, color: Color(0xFFF7C35F), size: 12),
-                              const SizedBox(width: 2),
+                              const Icon(Icons.star_rounded, color: Color(0xFFF7C35F), size: 16),
+                              const SizedBox(width: 4),
                               Text(
                                 score.toStringAsFixed(1).replaceAll('.', ','),
                                 style: GoogleFonts.outfit(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFF4A4A4A),
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               Text(
-                                isTr ? '($count değerlendirme)' : '($count reviews)',
+                                "($count ${langProvider.translate('reviews_count')})",
                                 style: GoogleFonts.outfit(
-                                  fontSize: 8,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w400,
                                   color: const Color(0xFF4A4A4A),
                                 ),
@@ -396,7 +395,7 @@ class WalletCard extends StatelessWidget {
   }
 
   /// Damga stat circle with progress indicator
-  Widget _buildDamgaCircle(int stamps, int target, bool isTr) {
+  Widget _buildDamgaCircle(int stamps, int target, LanguageProvider langProvider) {
     final double progress = (target > 0) ? (stamps / target).clamp(0.0, 1.0) : 0.0;
     
     return Column(
@@ -459,7 +458,7 @@ class WalletCard extends StatelessWidget {
             const Icon(Icons.coffee_rounded, color: AppTheme.puanHarcaText, size: 13),
             const SizedBox(width: 3),
             Text(
-              isTr ? 'Damga' : 'Stamp',
+              langProvider.translate('stamp_label'),
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
@@ -473,7 +472,7 @@ class WalletCard extends StatelessWidget {
   }
 
   /// Puan stat circle
-  Widget _buildPuanCircle(String points, bool isTr) {
+  Widget _buildPuanCircle(String points, LanguageProvider langProvider) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -509,7 +508,7 @@ class WalletCard extends StatelessWidget {
             const Icon(Icons.star_rounded, color: AppTheme.puanHarcaText, size: 13),
             const SizedBox(width: 3),
             Text(
-              isTr ? 'Puan' : 'Points',
+              langProvider.translate('point_label'),
               style: GoogleFonts.outfit(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,

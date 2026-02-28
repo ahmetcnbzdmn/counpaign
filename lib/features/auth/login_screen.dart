@@ -8,7 +8,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lottie/lottie.dart';
 
 class LoginScreen extends StatefulWidget {
   final int initialPageIndex;
@@ -219,13 +218,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthProvider>().isLoading;
     // Theme Colors
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    
-    final Color bgColor = const Color(0xFFEBEBEB);
-    final Color cardColor = Colors.white;
-    final Color textColor = const Color(0xFF131313);
-    final Color primaryBrand = const Color(0xFF76410B);
+    const Color bgColor = Color(0xFFEBEBEB);
+    const Color cardColor = Colors.white;
+    const Color textColor = Color(0xFF131313);
+    const Color primaryBrand = Color(0xFF76410B);
     
     return Scaffold(
       backgroundColor: bgColor,
@@ -275,12 +271,12 @@ class _LoginScreenState extends State<LoginScreen> {
                            ),
                            child: ClipOval(
                              child: Image.asset(
-                               'assets/images/app_logo.png',
+                               'assets/images/splash_logo.png',
                                fit: BoxFit.cover,
                                errorBuilder: (c, o, s) => Image.asset(
                                  'assets/images/splash_logo.png',
                                  fit: BoxFit.cover,
-                                 errorBuilder: (context, error, stackTrace) => Icon(
+                                 errorBuilder: (context, error, stackTrace) => const Icon(
                                    Icons.local_cafe_rounded,
                                    size: 40,
                                    color: primaryBrand,
@@ -390,10 +386,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                hint: Text("Cinsiyet", style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
                                isExpanded: true,
                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                               items: [
-                                 DropdownMenuItem(value: 'male', child: Text("Erkek", style: TextStyle(color: textColor))),
-                                 DropdownMenuItem(value: 'female', child: Text("Kadın", style: TextStyle(color: textColor))),
-                                 DropdownMenuItem(value: 'other', child: Text("Diğer", style: TextStyle(color: textColor))),
+                               items: const [
+                                 DropdownMenuItem(value: 'Erkek', child: Text('Erkek')),
+                                 DropdownMenuItem(value: 'Kadın', child: Text('Kadın')),
+                                 DropdownMenuItem(value: 'Diğer', child: Text('Diğer')),
                                ],
                                onChanged: (val) => setState(() => _selectedGender = val),
                              ),
@@ -405,7 +401,7 @@ class _LoginScreenState extends State<LoginScreen> {
                          InkWell(
                            onTap: () => _showCupertinoDatePicker(context),
                            child: Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
                              decoration: BoxDecoration(
                                color: Colors.white,
                                borderRadius: BorderRadius.circular(16),

@@ -28,6 +28,7 @@ import 'features/auth/verification_screen.dart';
 import 'features/customer/campaign_detail_screen.dart';
 import 'features/customer/notifications_screen.dart';
 import 'features/customer/privacy_security_screen.dart';
+import 'features/customer/change_password_screen.dart';
 import 'core/models/campaign_model.dart';
 
 import 'core/services/storage_service.dart';
@@ -282,6 +283,10 @@ class _CounpaignAppState extends State<CounpaignApp> {
         GoRoute(
           path: '/privacy-security',
           builder: (context, state) => const PrivacySecurityScreen(),
+        ),
+        GoRoute(
+          path: '/change-password',
+          builder: (context, state) => const ChangePasswordScreen(),
         ),
         GoRoute(
           path: '/forgot-password',

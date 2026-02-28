@@ -86,9 +86,7 @@ class CampaignModel {
     if (bName.isEmpty) {
       bName = json['businessName'] ?? json['companyName'] ?? '';
     }
-    if (bLogo == null) {
-      bLogo = json['businessLogo'] ?? json['logo'];
-    }
+    bLogo ??= json['businessLogo'] ?? json['logo'];
 
     return CampaignModel(
       id: json['_id'] ?? '',

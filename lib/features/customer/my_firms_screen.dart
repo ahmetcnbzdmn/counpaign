@@ -70,7 +70,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
-    final textColor = const Color(0xFF131313);
+    const textColor = Color(0xFF131313);
 
     final provider = context.watch<BusinessProvider>();
     final firms = provider.myFirms;
@@ -87,7 +87,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
       appBar: AppBar(
         title: Text(Provider.of<LanguageProvider>(context).translate('my_firms_title'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
-        iconTheme: IconThemeData(color: textColor),
+        iconTheme: const IconThemeData(color: textColor),
         elevation: 0,
         centerTitle: true,
       ),

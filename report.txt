@@ -1,0 +1,85 @@
+Analyzing counpaign...
+
+  error - lib/features/auth/forgot_password_screen.dart:165:2 - The named parameter 'Broadway' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'Broadway'. - undefined_named_parameter
+  error - lib/features/auth/forgot_password_screen.dart:207:17 - The element type 'List<DropdownMenuItem<String>>' can't be assigned to the list type 'Widget'. - list_element_type_not_assignable
+  error - lib/features/auth/forgot_password_screen.dart:289:17 - The named parameter 'child' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'child'. - undefined_named_parameter
+  error - lib/features/auth/forgot_password_screen.dart:290:1 - Too many positional arguments: 0 expected, but 1 found. Try removing the extra positional arguments, or specifying the name for named arguments. - extra_positional_arguments_could_be_named
+  error - lib/features/auth/forgot_password_screen.dart:292:18 - The argument type 'bool' can't be assigned to the parameter type 'Widget?'.  - argument_type_not_assignable
+  error - lib/features/auth/forgot_password_screen.dart:293:14 - Expected to find ','. - expected_token
+  error - lib/features/auth/forgot_password_screen.dart:293:14 - The argument for the named parameter 'child' was already specified. Try removing one of the named arguments, or correcting one of the names to reference a different named parameter. - duplicate_named_argument
+  error - lib/features/auth/forgot_password_screen.dart:294:11 - Expected an identifier. - missing_identifier
+  error - lib/features/auth/forgot_password_screen.dart:294:11 - The named parameter '' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name ''. - undefined_named_parameter
+  error - lib/features/customer/gift_selection_screen.dart:39:7 - Missing concrete implementation of 'abstract class State<T extends StatefulWidget> with Diagnosticable.build'. Try implementing the missing method, or make the class abstract. - non_abstract_class_inherits_abstract_member
+  error - lib/features/customer/gift_selection_screen.dart:163:7 - Expected a class member. Try placing this code inside a class member. - expected_class_member
+  error - lib/features/customer/gift_selection_screen.dart:163:10 - Expected an identifier. - missing_identifier
+  error - lib/features/customer/gift_selection_screen.dart:163:18 - Expected to find ')'. - expected_token
+  error - lib/features/customer/gift_selection_screen.dart:164:9 - Undefined name 'currentContext'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:166:7 - 'catch' can't be used as an identifier because it's a keyword. Try renaming this to be an identifier that isn't a keyword. - expected_identifier_but_got_keyword
+  error - lib/features/customer/gift_selection_screen.dart:167:11 - Undefined name 'mounted'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:169:11 - Undefined name 'currentContext'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:170:20 - Undefined name 'lang'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:175:3 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/features/customer/gift_selection_screen.dart:357:50 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:410:33 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:430:38 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:439:41 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:439:68 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:464:18 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:466:24 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:478:7 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:484:18 - Undefined name 'context'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:488:22 - Undefined name '_gifts'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:503:30 - Undefined name '_selectedCategory'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:505:26 - The function 'setState' isn't defined. Try importing the library that defines 'setState', correcting the name to the name of an existing function, or defining a function named 'setState'. - undefined_function
+  error - lib/features/customer/gift_selection_screen.dart:505:41 - Undefined name '_selectedCategory'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:552:9 - Undefined name '_isLoading'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:557:27 - Undefined name '_selectedCategory'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:558:11 - Undefined name '_gifts'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:559:11 - Undefined name '_gifts'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:559:48 - Undefined name '_selectedCategory'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:592:23 - Undefined name 'widget'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:593:25 - Undefined name '_redeemingGiftId'. Try correcting the name to one that is defined, or defining the name. - undefined_identifier
+  error - lib/features/customer/gift_selection_screen.dart:596:50 - The function '_redeemGift' isn't defined. Try importing the library that defines '_redeemGift', correcting the name to the name of an existing function, or defining a function named '_redeemGift'. - undefined_function
+  error - lib/features/customer/gift_selection_screen.dart:701:1 - Expected a method, getter, setter or operator declaration. This appears to be incomplete code. Try removing it or completing it. - expected_executable
+  error - lib/features/customer/home_screen.dart:1662:2 - The named parameter 'Broadway' isn't defined. Try correcting the name to an existing named parameter's name, or defining a named parameter with the name 'Broadway'. - undefined_named_parameter
+  error - lib/features/customer/home_screen.dart:1663:17 - Expected an identifier. - missing_identifier
+warning - lib/features/customer/business_detail_screen.dart:1376:2 - The label 'Broadway' isn't used. Try removing the label, or using it in either a 'break' or 'continue' statement. - unused_label
+warning - lib/features/customer/explore_cafes_screen.dart:211:2 - The label 'Broadway' isn't used. Try removing the label, or using it in either a 'break' or 'continue' statement. - unused_label
+warning - lib/features/customer/gift_selection_screen.dart:39:7 - The declaration '<unnamed>' isn't referenced. Try removing the declaration of '<unnamed>'. - unused_element
+warning - lib/features/customer/gift_selection_screen.dart:43:26 - The value of the field '_animation' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/features/customer/gift_selection_screen.dart:85:16 - The declaration '_redeemGift' isn't referenced. Try removing the declaration of '_redeemGift'. - unused_element
+   info - lib/features/auth/forgot_password_screen.dart:159:78 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/forgot_password_screen.dart:176:78 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/forgot_password_screen.dart:192:78 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/forgot_password_screen.dart:245:51 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/forgot_password_screen.dart:255:90 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/forgot_password_screen.dart:293:14 - The 'child' argument should be last in widget constructor invocations. Try moving the argument to the end of the argument list. - sort_child_properties_last
+   info - lib/features/auth/login_screen.dart:279:80 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:389:39 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal. - prefer_const_literals_to_create_immutables
+   info - lib/features/auth/login_screen.dart:390:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:390:73 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:390:94 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:75 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:96 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:74 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:95 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/verification_screen.dart:150:18 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/verification_screen.dart:191:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/business_detail_screen.dart:894:25 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - lib/features/customer/change_password_screen.dart:155:17 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:404:14 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:414:96 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:420:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:421:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:455:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:456:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/gift_selection_screen.dart:329:45 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/customer/home_screen.dart:1658:19 - The 'child' argument should be last in widget constructor invocations. Try moving the argument to the end of the argument list. - sort_child_properties_last
+   info - lib/features/customer/my_firms_screen.dart:73:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/my_reviews_screen.dart:105:22 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/scanner_screen.dart:418:66 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/settings_screen.dart:72:35 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+
+81 issues found.

@@ -167,7 +167,7 @@ void showNoCampaignsDialog(BuildContext context, String firmName) {
             ),
             const SizedBox(height: 16),
             Text(
-              'Aktif Kampanya Bulunamadı',
+              Provider.of<LanguageProvider>(context, listen: false).translate('no_active_campaigns_title'),
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 18,
@@ -177,7 +177,7 @@ void showNoCampaignsDialog(BuildContext context, String firmName) {
             ),
             const SizedBox(height: 8),
             Text(
-              '$firmName işletmesinin henüz aktif bir kampanyası bulunmamaktadır.',
+              Provider.of<LanguageProvider>(context, listen: false).translate('no_active_campaigns_desc').replaceFirst('{firmName}', firmName),
               textAlign: TextAlign.center,
               style: GoogleFonts.outfit(
                 fontSize: 14,
@@ -196,7 +196,7 @@ void showNoCampaignsDialog(BuildContext context, String firmName) {
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   elevation: 0,
                 ),
-                child: Text('Tamam', style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
+                child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('ok'), style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

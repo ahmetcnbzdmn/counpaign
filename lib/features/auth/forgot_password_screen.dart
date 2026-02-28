@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/providers/auth_provider.dart';
+
+enum ResetStep { phone, otp, newPassword }
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -12,54 +16,99 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _otpController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  
+  ResetStep _currentStep = ResetStep.phone;
   bool _isLoading = false;
 
-  void _resetPassword() async {
-    if (_emailController.text.isEmpty) {
-      showCustomPopup(context, message: 'Lütfen e-posta adresinizi girin.', type: PopupType.error);
-      return;
-    }
-
-    // Email validation regex (basic)
-    if (!RegExp(r'\S+@\S+\.\S+').hasMatch(_emailController.text)) {
-      showCustomPopup(context, message: 'Lütfen geçerli bir e-posta adresi girin.', type: PopupType.error);
+  void _sendSms() async {
+    final phone = _phoneController.text.trim();
+    if (phone.isEmpty || phone.length < 10) {
+      showCustomPopup(context, message: 'Lütfen geçerli bir telefon numarası girin.', type: PopupType.error);
       return;
     }
 
     setState(() => _isLoading = true);
-    
-    // Dismiss keyboard
-    FocusManager.instance.primaryFocus?.unfocus();
-
     try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: _emailController.text.trim());
+      // Normalize phone for backend: 5xx... (backend prepends +90)
+      String normalizedPhone = phone;
+      if (normalizedPhone.startsWith('0')) normalizedPhone = normalizedPhone.substring(1);
+      if (normalizedPhone.startsWith('90')) normalizedPhone = normalizedPhone.substring(2);
+      if (normalizedPhone.startsWith('+90')) normalizedPhone = normalizedPhone.substring(3);
+
+      await context.read<AuthProvider>().sendResetSms(normalizedPhone);
       
       if (mounted) {
-        showCustomPopup(
-          context, 
-          message: 'Sıfırlama bağlantısı e-posta adresinize gönderildi.', 
-          type: PopupType.success
-        );
-        // Clean feedback loop: Allow user to go back to login after short delay or manually
-        Future.delayed(const Duration(seconds: 2), () {
-           if (mounted) context.pop();
-        });
-      }
-    } on FirebaseAuthException catch (e) {
-      String message = 'Bir hata oluştu.';
-      if (e.code == 'user-not-found') {
-        message = 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı.';
-      } else if (e.code == 'invalid-email') {
-        message = 'Geçersiz e-posta adresi.';
-      }
-      if (mounted) {
-        showCustomPopup(context, message: message, type: PopupType.error);
+        showCustomPopup(context, message: 'Doğrulama kodu gönderildi.', type: PopupType.success);
+        setState(() => _currentStep = ResetStep.otp);
       }
     } catch (e) {
+      if (mounted) showCustomPopup(context, message: 'SMS gönderilemedi. Numaranızı kontrol edin.', type: PopupType.error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _verifyOtp() async {
+    final code = _otpController.text.trim();
+    if (code.length != 6) {
+      showCustomPopup(context, message: 'Lütfen 6 haneli kodu girin.', type: PopupType.error);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      String normalizedPhone = _phoneController.text.trim();
+      if (normalizedPhone.startsWith('0')) normalizedPhone = normalizedPhone.substring(1);
+      if (normalizedPhone.startsWith('90')) normalizedPhone = normalizedPhone.substring(2);
+      if (normalizedPhone.startsWith('+90')) normalizedPhone = normalizedPhone.substring(3);
+
+      await context.read<AuthProvider>().verifyResetCode(normalizedPhone, code);
+      
       if (mounted) {
-        showCustomPopup(context, message: 'Bağlantı hatası.', type: PopupType.error);
+        showCustomPopup(context, message: 'Kod doğrulandı. Yeni şifrenizi belirleyin.', type: PopupType.success);
+        setState(() => _currentStep = ResetStep.newPassword);
       }
+    } catch (e) {
+      if (mounted) showCustomPopup(context, message: 'Geçersiz doğrulama kodu.', type: PopupType.error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _resetPassword() async {
+    final pass = _passwordController.text;
+    final confirm = _confirmPasswordController.text;
+
+    if (pass.length < 6) {
+      showCustomPopup(context, message: 'Şifreniz en az 6 karakter olmalıdır.', type: PopupType.error);
+      return;
+    }
+
+    if (pass != confirm) {
+      showCustomPopup(context, message: 'Şifreler uyuşmuyor.', type: PopupType.error);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      await context.read<AuthProvider>().resetPassword(pass);
+      
+      if (mounted) {
+        showCustomPopup(context, message: 'Şifreniz başarıyla güncellendi.', type: PopupType.success);
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) context.go('/'); // Redirect to home/login
+        });
+      }
+    } catch (e) {
+      String errorMsg = 'Yeni şifreniz eski şifrenizle aynı olamaz. Lütfen farklı bir şifre belirleyin.';
+      if (e.toString().contains('aynı olamaz')) {
+        errorMsg = 'Yeni şifreniz eski şifrenizle aynı olamaz.';
+      }
+      if (mounted) showCustomPopup(context, message: errorMsg, type: PopupType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -67,19 +116,22 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final textColor = const Color(0xFF131313);
-    final cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
     const primaryBrand = Color(0xFF76410B);
-    final bgColor = const Color(0xFFEBEBEB);
+    const bgColor = Color(0xFFEBEBEB);
     
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: BackButton(color: textColor),
+        leading: const BackButton(color: textColor),
+        title: Text(
+          _currentStep == ResetStep.phone ? 'Şifremi Unuttum' 
+          : _currentStep == ResetStep.otp ? 'Doğrulama' 
+          : 'Yeni Şifre',
+          style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
       ),
       body: GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
@@ -89,128 +141,155 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 10),
-                // Header with Logo
+                const SizedBox(height: 20),
                 Center(
                     child: Container(
-                      height: 100,
-                      width: 100,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: Image.asset(
-                          'assets/images/app_logo.png', // Since they recently changed to app_logo in another task
-                          fit: BoxFit.cover,
-                          errorBuilder: (c, o, s) => Image.asset(
-                            'assets/images/splash_logo.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (c, o, s) => Icon(Icons.lock_reset_rounded, size: 60, color: primaryBrand),
-                          ),
-                        ),
-                      ),
+                      height: 80,
+                      width: 80,
+                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                      child: const ClipOval(child: Image(image: AssetImage('assets/images/splash_logo.png'), fit: BoxFit.cover)),
                     ),
                 ),
                 const SizedBox(height: 32),
                 
-                Text(
-                  'Şifremi\nUnuttum?',
-                  style: GoogleFonts.outfit(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    height: 1.1,
-                    color: textColor,
+                if (_currentStep == ResetStep.phone) ...[
+                  Text('Telefon Numaranız', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  const SizedBox(height: 8),
+                  Text('Hesabınıza kayıtlı telefon numaranızı girin. Size doğrulama kodu göndereceğiz.', 
+                    style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
+                  const SizedBox(height: 32),
+                    _buildInput(
+                      controller: _phoneController,
+                      hint: '5xx xxx xx xx',
+                      icon: Icons.phone_android_rounded,
+                      type: TextInputType.phone,
+                      formatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                    ),
+                ] else if (_currentStep == ResetStep.otp) ...[
+                  Text('Kodu Girin', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  const SizedBox(height: 8),
+                  Text('${_phoneController.text} numarasına gönderilen 6 haneli kodu girin.', 
+                    style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
+                  const SizedBox(height: 32),
+                  _buildInput(
+                    controller: _otpController,
+                    hint: '000000',
+                    icon: Icons.lock_outline_rounded,
+                    type: TextInputType.number,
+                    formatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Hesabınıza kayıtlı e-posta adresinizi girin. Size şifrenizi sıfırlamanız için bir bağlantı göndereceğiz.',
-                  style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    color: textColor.withValues(alpha: 0.7),
-                    height: 1.5,
+                ] else ...[
+                  Text('Yeni Şifre', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  const SizedBox(height: 8),
+                  Text('Lütfen yeni şifrenizi belirleyin.', 
+                    style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
+                  const SizedBox(height: 32),
+                  _buildInput(
+                    controller: _passwordController,
+                    hint: 'Yeni Şifre',
+                    icon: Icons.vpn_key_outlined,
+                    isPassword: true,
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  _buildInput(
+                    controller: _confirmPasswordController,
+                    hint: 'Şifreyi Onayla',
+                    icon: Icons.check_circle_outline,
+                    isPassword: true,
+                  ),
+                ],
+
                 const SizedBox(height: 40),
-                
-                // Input
-                Container(
-                   decoration: BoxDecoration(
-                     color: cardColor,
-                     borderRadius: BorderRadius.circular(16),
-                     boxShadow: [
-                       BoxShadow(
-                         color: Colors.black.withValues(alpha: 0.05),
-                         blurRadius: 10,
-                         offset: const Offset(0, 4),
-                       )
-                     ]
-                   ),
-                   child: TextField(
-                     controller: _emailController,
-                     keyboardType: TextInputType.emailAddress,
-                     style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
-                     cursorColor: primaryBrand,
-                     decoration: InputDecoration(
-                       hintText: 'E-posta Adresi',
-                       hintStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
-                       prefixIcon: Icon(Icons.mail_outline_rounded, color: textColor.withValues(alpha: 0.5)),
-                       border: InputBorder.none,
-                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                     ),
-                   ),
-                 ),
-                 
-                 const SizedBox(height: 32),
-                 
-                 // Button
-                 SizedBox(
-                   width: double.infinity,
-                   height: 56,
-                   child: Container(
-                     decoration: BoxDecoration(
-                       gradient: const LinearGradient(
-                         begin: Alignment.topLeft,
-                         end: Alignment.bottomRight,
-                         colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                       ),
-                       borderRadius: BorderRadius.circular(16),
-                       boxShadow: const [
-                         BoxShadow(
-                           color: Color(0x3F7F7F7F),
-                           blurRadius: 4,
-                           offset: Offset(0, 4),
-                         ),
-                       ],
-                     ),
-                     child: ElevatedButton(
-                       onPressed: _isLoading ? null : _resetPassword,
-                       style: ElevatedButton.styleFrom(
-                         backgroundColor: Colors.transparent,
-                         shadowColor: Colors.transparent,
-                         foregroundColor: Colors.white,
-                         elevation: 0,
-                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                       ),
-                       child: _isLoading 
-                         ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                         : const Text('GÖNDER'),
-                     ),
-                   ),
-                 ),
-                 const SizedBox(height: 40), // Bottom spacing for scrolls
+                _buildButton(),
+                const SizedBox(height: 20),
+                if (_currentStep != ResetStep.phone)
+                  Center(
+                    child: TextButton(
+                      onPressed: () => setState(() => _currentStep = ResetStep.phone),
+                      child: Text('Geri Dön', style: GoogleFonts.outfit(color: primaryBrand, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInput({
+    required TextEditingController controller,
+    required String hint,
+    IconData? icon, // Changed to nullable IconData
+    Widget? child, // Added child parameter
+    TextInputType type = TextInputType.text,
+    bool isPassword = false,
+    List<TextInputFormatter>? formatters,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.7), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: type,
+        obscureText: isPassword,
+        inputFormatters: formatters,
+        style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          hintText: hint,
+          prefixIcon: child ?? (icon != null ? Icon(icon, color: const Color(0xFF131313).withValues(alpha: 0.5)) : null), // Use child if provided, else icon
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFA96307), Color(0xFF371E04)],
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : () {
+            if (_currentStep == ResetStep.phone) {
+              _sendSms();
+            } else if (_currentStep == ResetStep.otp) {
+              _verifyOtp();
+            } else {
+              _resetPassword();
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+          child: _isLoading 
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+            : Text(_currentStep == ResetStep.phone ? 'KOD GÖNDER' : _currentStep == ResetStep.otp ? 'DOĞRULA' : 'ŞİFREYİ GÜNCELLE'),
         ),
       ),
     );

@@ -69,6 +69,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _cropImage(String path) async {
+    final lang = context.read<LanguageProvider>();
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: path,
       aspectRatioPresets: [
@@ -76,7 +77,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ],
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Fotoğrafı Kırp',
+          toolbarTitle: lang.translate('crop_image'),
           toolbarColor: const Color(0xFFEE2C2C),
           toolbarWidgetColor: Colors.white,
           initAspectRatio: CropAspectRatioPreset.square,
@@ -85,9 +86,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
         ),
         IOSUiSettings(
-          title: 'Fotoğrafı Kırp',
-          doneButtonTitle: 'Bitti',
-          cancelButtonTitle: 'İptal',
+          title: lang.translate('crop_image'),
+          doneButtonTitle: lang.translate('done'),
+          cancelButtonTitle: lang.translate('cancel'),
           aspectRatioLockEnabled: true,
           aspectRatioPickerButtonHidden: true,
           resetButtonHidden: true,
@@ -197,9 +198,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
      }
    }
 
+  @override
   Widget build(BuildContext context) {
-    final textColor = const Color(0xFF131313);
-    final cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
+    const cardColor = Colors.white;
     const primaryBrand = Color(0xFF76410B);
     final lang = context.watch<LanguageProvider>();
 
@@ -247,16 +249,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: GestureDetector(
                         onTap: _pickImage,
                         child: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFFA96307), Color(0xFF371E04)],
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFF9C06A), // Main yellow theme color
+                              shape: BoxShape.circle,
                             ),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                            child: const Icon(Icons.person_rounded, size: 40, color: Color(0xFF76410B)),
                         ),
                       ),
                     ),
@@ -295,7 +292,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 maxLength: 10,
                 validator: (val) {
                   if (val == null || val.isEmpty) return lang.translate('fill_all_fields');
-                  if (val.length != 10) return "10 hane olmalıdır (Başında 0 olmadan)";
+                  if (val.length != 10) return lang.translate('phone_length_error');
                   if (!val.startsWith('5')) return lang.translate('phone_start_5');
                   return null;
                 },
@@ -359,11 +356,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 height: 56,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                    ),
+                    color: const Color(0xFFF9C06A), // Solid bright yellow theme
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(
@@ -378,7 +371,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      foregroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF131313), // Dark text for yellow bg
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -401,14 +394,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
   }) {
-    final textColor = const Color(0xFF131313);
-    final cardColor = Colors.white;
-    final primaryBrand = const Color(0xFF76410B);
+    const textColor = Color(0xFF131313);
+    const cardColor = Colors.white;
+    const primaryBrand = Color(0xFF76410B);
     final lang = context.read<LanguageProvider>();
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: TextStyle(color: textColor),
+      style: const TextStyle(color: textColor),
       validator: (val) => val == null || val.isEmpty ? lang.translate('fill_all_fields') : null,
       decoration: InputDecoration(
         labelText: label,
@@ -418,14 +411,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         fillColor: cardColor,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: primaryBrand)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryBrand)),
       ),
     );
   }
 
   Widget _buildDropdownField(LanguageProvider lang) {
-    final textColor = const Color(0xFF131313);
-    final cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
+    const cardColor = Colors.white;
 
     return Theme(
       data: Theme.of(context).copyWith(
@@ -433,7 +426,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
       child: DropdownButtonFormField<String>(
         initialValue: _selectedGender,
-        style: TextStyle(color: textColor),
+        style: const TextStyle(color: textColor),
         borderRadius: BorderRadius.circular(20), 
         decoration: InputDecoration(
           labelText: lang.translate('gender'),
@@ -459,8 +452,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildDatePickerField(LanguageProvider lang) {
-    final textColor = const Color(0xFF131313);
-    final cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
+    const cardColor = Colors.white;
     
     return AbsorbPointer(
       child: TextFormField(

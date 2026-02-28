@@ -23,13 +23,11 @@ class AutoText extends StatefulWidget {
 }
 
 class _AutoTextState extends State<AutoText> {
-  String? _translatedText;
 
   @override
   void didUpdateWidget(covariant AutoText oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
-      _translatedText = null; // Reset on text change
       _translate();
     }
   }
@@ -50,7 +48,7 @@ class _AutoTextState extends State<AutoText> {
     lang.translateAuto(widget.text).then((result) {
       if (mounted && result != widget.text) {
         setState(() {
-          _translatedText = result;
+          // Trigger rebuild to show cached translation from provider
         });
       }
     });
@@ -71,8 +69,13 @@ class _AutoTextState extends State<AutoText> {
       );
     }
 
-    // Use cached/translated text or fallback to original
-    final display = _translatedText ?? widget.text;
+    // Attempt sync translation from cache
+    final display = lang.translateDynamic(widget.text);
+    
+    // If not translated yet, trigger async translation
+    if (display == widget.text) {
+      _translate();
+    }
 
     return Text(
       display,

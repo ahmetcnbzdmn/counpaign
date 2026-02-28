@@ -208,6 +208,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
   }) {
     final cardColor = Theme.of(context).cardColor;
     final lang = context.read<LanguageProvider>();
+ 
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -228,14 +229,26 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: () async {
+            final provider = context.read<BusinessProvider>();
+            final id = business['_id'] ?? business['id'];
+            
+            // Check if already in wallet to pass real customer data
+            final isInWallet = provider.isFirmInWallet(id);
+            dynamic walletData;
+            if (isInWallet) {
+               walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+            }
+
             final detailData = {
-              'id': business['_id'] ?? business['id'],
+              'id': id,
               'name': business['companyName'],
-              'points': '0',
-              'stamps': 0,
-              'stampsTarget': business['stampsTarget'] ?? 6,
-              'giftsCount': 0,
-              'value': '0.00',
+              'points': isInWallet ? (walletData['points'] ?? '0') : '0',
+              'stamps': isInWallet ? (walletData['stamps'] ?? 0) : 0,
+              'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (business['stampsTarget'] ?? 6),
+              'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
+              'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
+              'reviewScore': business['rating'] ?? business['reviewScore'] ?? 0.0,
+              'reviewCount': business['reviewCount'] ?? 0,
               'color': color,
               'icon': icon,
               'city': business['city'],
@@ -243,7 +256,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               'neighborhood': business['neighborhood'],
               'logo': business['logo'], // Pass logo
               'image': business['image'], // Pass fallback image
-              'isNew': true, 
+              'isNew': !isInWallet, 
             };
             
             context.push('/business-detail', extra: detailData);
@@ -270,9 +283,9 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                       ? Image.network(
                           resolveImageUrl(business['logo'] ?? business['image'])!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
+                          errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
                         )
-                      : Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
+                      : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
                 ),
                 const SizedBox(width: 16),
                 
@@ -334,6 +347,11 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     final id = firm['_id'] ?? firm['id'];
     final isInWallet = provider.isFirmInWallet(id);
     
+    dynamic walletData;
+    if (isInWallet) {
+       walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+    }
+    
     // Only show 'isNew' if NOT in wallet
     final isNew = !isInWallet;
     
@@ -342,11 +360,13 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
          final detailData = {
             'id': id,
             'name': firm['companyName'],
-            'points': '0',
-            'stamps': 0,
-            'stampsTarget': 6, 
-            'giftsCount': 0,
-            'value': '0.00',
+            'points': isInWallet ? (walletData['points'] ?? '0') : '0',
+            'stamps': isInWallet ? (walletData['stamps'] ?? 0) : 0,
+            'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (firm['stampsTarget'] ?? 6), 
+            'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
+            'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
+            'reviewScore': firm['rating'] ?? firm['reviewScore'] ?? 0.0,
+            'reviewCount': firm['reviewCount'] ?? 0,
             'color': color,
             'icon': icon,
             'city': firm['city'],
@@ -394,10 +414,10 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                     ? Image.network(
                         resolveImageUrl(firm['logo'] ?? firm['image'])!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
+                        errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
                       )
-                    : Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
-              ),
+                    : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
+            ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

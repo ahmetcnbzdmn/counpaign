@@ -1,0 +1,54 @@
+Analyzing counpaign...
+
+  error - lib/features/customer/business_detail_screen.dart:962:42 - The final variable 'color' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib/features/customer/business_detail_screen.dart:967:42 - The final variable 'color' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib/features/customer/business_detail_screen.dart:977:39 - The final variable 'title' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+  error - lib/features/customer/business_detail_screen.dart:991:42 - The final variable 'color' can't be read because it's potentially unassigned at this point. Ensure that it is assigned on necessary execution paths. - read_potentially_unassigned_final
+warning - lib/features/customer/business_detail_screen.dart:1376:32 - The value of the local variable 'title' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/business_detail_screen.dart:1377:32 - The value of the local variable 'sign' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/business_detail_screen.dart:1378:31 - The value of the local variable 'color' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/explore_cafes_screen.dart:211:11 - The value of the local variable 'activeColor' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/gift_selection_screen.dart:43:26 - The value of the field '_animation' isn't used. Try removing the field, or using it. - unused_field
+warning - lib/features/customer/gift_selection_screen.dart:161:16 - The declaration '_redeemGiftEntitlement' isn't referenced. Try removing the declaration of '_redeemGiftEntitlement'. - unused_element
+warning - lib/features/customer/home_screen.dart:446:11 - The value of the local variable 'lang' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/home_screen.dart:1659:40 - The operand can't be 'null', so the condition is always 'true'. Remove the condition. - unnecessary_null_comparison
+warning - lib/features/customer/home_screen.dart:1702:11 - The value of the local variable 'lang' isn't used. Try removing the variable or using it. - unused_local_variable
+warning - lib/features/customer/scanner_screen.dart:170:29 - The value of the local variable 'finalResult' isn't used. Try removing the variable or using it. - unused_local_variable
+   info - lib/features/auth/forgot_password_screen.dart:159:78 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/auth/login_screen.dart:279:80 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:389:39 - Use 'const' literals as arguments to constructors of '@immutable' classes. Try adding 'const' before the literal. - prefer_const_literals_to_create_immutables
+   info - lib/features/auth/login_screen.dart:390:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:390:73 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:390:94 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:75 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:391:96 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:34 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:74 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/login_screen.dart:392:95 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/verification_screen.dart:150:18 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/auth/verification_screen.dart:191:30 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/business_detail_screen.dart:893:31 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+   info - lib/features/customer/business_detail_screen.dart:894:25 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/business_detail_screen.dart:895:31 - An uninitialized variable should have an explicit type annotation. Try adding a type annotation. - prefer_typing_uninitialized_variables
+   info - lib/features/customer/business_detail_screen.dart:1376:25 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - lib/features/customer/business_detail_screen.dart:1377:25 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - lib/features/customer/business_detail_screen.dart:1378:25 - Local variables should be final. Try making the variable final. - prefer_final_locals
+   info - lib/features/customer/change_password_screen.dart:155:17 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:404:14 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:414:96 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/edit_profile_screen.dart:420:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:421:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:455:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/edit_profile_screen.dart:456:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/explore_cafes_screen.dart:211:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/gift_selection_screen.dart:200:41 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/features/customer/gift_selection_screen.dart:214:9 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/features/customer/gift_selection_screen.dart:219:11 - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check. Guard a 'State.context' use with a 'mounted' check on the State, and other BuildContext use with a 'mounted' check on the BuildContext. - use_build_context_synchronously
+   info - lib/features/customer/gift_selection_screen.dart:379:45 - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss. Try replacing the use of the deprecated member with the replacement. - deprecated_member_use
+   info - lib/features/customer/my_firms_screen.dart:73:5 - Use 'const' for final variables initialized to a constant value. Try replacing 'final' with 'const'. - prefer_const_declarations
+   info - lib/features/customer/my_reviews_screen.dart:105:22 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/scanner_screen.dart:420:66 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+   info - lib/features/customer/settings_screen.dart:72:35 - Use 'const' with the constructor to improve performance. Try adding the 'const' keyword to the constructor invocation. - prefer_const_constructors
+
+50 issues found.

@@ -56,47 +56,41 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    final primaryBrand = AppTheme.primaryColor;
+    const bgColor = Color(0xFFEBEBEB);
+    const cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
+    const primaryBrand = Color(0xFF76410B);
     
     final lang = context.watch<LanguageProvider>();
 
     return Scaffold(
       backgroundColor: bgColor,
+      appBar: AppBar(
+        backgroundColor: bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
+        ),
+        title: Text(
+          _isFiltered
+            ? (widget.firmName ?? lang.translate('deals'))
+            : lang.translate('deals'),
+          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // [1] Header Area
-            Padding(
-              padding: const EdgeInsets.only(top: 16, right: 20, left: 8),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    color: textColor,
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                  ),
-                  Expanded(
-                    child: Text(
-                      _isFiltered ? "${widget.firmName ?? 'Kafe'} ${lang.translate('deals')}" : lang.translate('deals'), 
-                      style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
             // [Search Bar - Hide if filtered]
             if (!_isFiltered)
             Padding(
@@ -129,7 +123,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 itemCount: 3, // Fixed count 3
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, index) {
-                  final sectionKeys = ['all', 'in_wallet', 'others'];
+                  const sectionKeys = ['all', 'in_wallet', 'others'];
                   final isSelected = _selectedTabIndex == index;
                   return GestureDetector(
                     onTap: () => setState(() => _selectedTabIndex = index),
@@ -137,16 +131,16 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? primaryBrand : cardColor,
+                        color: isSelected ? const Color(0xFFF9C06A) : cardColor,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: isSelected ? primaryBrand : textColor.withValues(alpha: 0.1)),
+                        border: Border.all(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
                       ),
                       child: Text(
                         lang.translate(sectionKeys[index]),
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : textColor.withValues(alpha: 0.6),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
+                        style: GoogleFonts.outfit(
+                          color: isSelected ? const Color(0xFF131313) : textColor.withValues(alpha: 0.6),
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                          fontSize: 14,
                         ),
                       ),
                     ),
@@ -215,7 +209,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.search_off_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
+                          const Icon(Icons.search_off_rounded, size: 80, color: Colors.grey),
                           const SizedBox(height: 16),
                           Text(
                             _isFiltered 
@@ -252,188 +246,170 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     );
   }
 
-  Color _parseHexColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFFEE2C2C);
-    try {
-      return Color(int.parse(hex.replaceAll('#', '0xFF')));
-    } catch (_) {
-      return const Color(0xFFEE2C2C);
-    }
-  }
 
   Widget _buildCampaignCard(BuildContext context, CampaignModel campaign, dynamic biz) {
     final brandName = biz['companyName'] ?? (widget.firmName ?? '...');
-    final brandColor = _parseHexColor(biz['cardColor']);
+    final rawLogo = biz['logo'] ?? biz['image'];
     
     final lang = context.read<LanguageProvider>();
     return GestureDetector(
       onTap: () => context.push('/campaign-detail', extra: campaign),
       child: Container(
-        height: 190,
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10)),
+        height: 142,
+        width: double.infinity,
+        decoration: ShapeDecoration(
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(width: 1, color: Color(0xFFD7D7D7)),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          shadows: const [
+            BoxShadow(
+              color: Color(0x14000000), 
+              blurRadius: 4,
+              offset: Offset(0, 4),
+            ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
-          child: Stack(
-            children: [
-              // [Background Image]
-              Positioned.fill(
-                child: resolveImageUrl(campaign.headerImage) != null 
-                  ? Image.network(
-                      resolveImageUrl(campaign.headerImage)!,
-                      fit: BoxFit.cover,
-                      cacheWidth: 800,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Theme.of(context).cardColor, 
-                        child: const Center(child: Icon(Icons.broken_image, color: Colors.white24))
-                      ),
-                    )
-                  : Container(color: Theme.of(context).cardColor),
-              ),
-              
-              // [Gradient Overlay]
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withValues(alpha: 0.3),
-                        Colors.black.withValues(alpha: 0.9),
-                      ],
-                      stops: const [0.4, 0.6, 1.0],
-                    ),
-                  ),
+        child: Stack(
+          children: [
+            // Left Image
+            Positioned(
+              left: 7,
+              top: 7,
+              child: Container(
+                width: 140,
+                height: 128, 
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(11),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x3F000000), blurRadius: 4, offset: Offset(0, 4))
+                  ],
                 ),
+                child: resolveImageUrl(campaign.headerImage) != null
+                    ? Image.network(
+                        resolveImageUrl(campaign.headerImage)!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white24)),
+                      )
+                    : const SizedBox(),
               ),
-  
-              // [Top Tags]
-              Positioned(
-                top: 12,
-                left: 12,
-                right: 12,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Brand Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+            ),
+            // Right Content
+            Positioned(
+              left: 159, 
+              top: 15,
+              right: 12, 
+              bottom: 12,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Business name and logo
+                      Row(
                         children: [
-                          if (resolveImageUrl(biz['logo'] ?? biz['image']) != null)
-                             Container(
-                               width: 20, height: 20,
-                               margin: const EdgeInsets.only(right: 6),
-                               decoration: BoxDecoration(
-                                 color: Colors.white,
-                                 shape: BoxShape.circle,
-                                 border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                                 image: DecorationImage(
-                                   image: NetworkImage(resolveImageUrl(biz['logo'] ?? biz['image'])!),
-                                   fit: BoxFit.cover,
-                                 )
-                               ),
-                             )
-                          else
-                             Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 16),
-                          
-                          if (resolveImageUrl(biz['logo'] ?? biz['image']) == null) const SizedBox(width: 6),
-                          
-                          Flexible(
-                            child: Text(
+                          Container(
+                            width: 16, 
+                            height: 16, 
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(2),
+                              color: Colors.white,
+                              image: resolveImageUrl(rawLogo) != null ? DecorationImage(
+                                image: NetworkImage(resolveImageUrl(rawLogo)!),
+                                fit: BoxFit.cover,
+                              ) : null,
+                            ),
+                            child: resolveImageUrl(rawLogo) == null 
+                                ? const Icon(Icons.storefront_rounded, color: Colors.white, size: 12) 
+                                : null,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: AutoText(
                               brandName,
-                              style: GoogleFonts.outfit(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13),
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF131313),
+                                fontSize: 12, 
+                                fontWeight: FontWeight.w700, 
+                              ),
+                              maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                    
-                    // Discount/Bundle Badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 10),
-                        ]
+                      const SizedBox(height: 4),
+                      AutoText(
+                        campaign.title,
+                        style: GoogleFonts.outfit(
+                          color: Colors.black,
+                          fontSize: 16, 
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      child: Text(
-                        campaign.discountAmount > 0
-                            ? '₺${campaign.discountAmount.toStringAsFixed(0)} ${lang.translate('discount_label')}'
-                            : campaign.bundleName.isNotEmpty ? campaign.bundleName : lang.translate('campaign_label'),
-                        style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                      const SizedBox(height: 4),
+                      AutoText(
+                        campaign.shortDescription,
+                        style: GoogleFonts.outfit(
+                          color: const Color(0xFF4F4A4A),
+                          fontSize: 11, 
+                          fontWeight: FontWeight.w400,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-  
-              // [Bottom Details]
-              Positioned(
-                bottom: 0,
-                left: 0,
-                right: 0,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    ],
+                  ),
+                  
+                  // Campaign Tag / Discount Amount
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AutoText(
-                              campaign.title,
-                              style: GoogleFonts.outfit(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, height: 1.1),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            AutoText(
-                              campaign.shortDescription,
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.7), fontSize: 14),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                      // The pill badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.3), blurRadius: 4, offset: const Offset(0, 2)),
+                          ]
+                        ),
+                        child: AutoText(
+                          campaign.discountAmount > 0
+                              ? '₺${campaign.discountAmount.toStringAsFixed(0)} ${lang.translate('discount_label')}'
+                              : campaign.bundleName.isNotEmpty ? campaign.bundleName : lang.translate('campaign_label'),
+                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                        ),
+                      ),
+                      
+                      // Small round circle nav button
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF9C06A),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(color: Color(0x33F9C06A), blurRadius: 6, offset: Offset(0, 3)),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      
-                      // Action Button (Small)
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.black, size: 20),
+                        child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF76410B), size: 20),
                       )
                     ],
                   ),
-                ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

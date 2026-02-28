@@ -109,7 +109,7 @@ class CampaignDetailScreen extends StatelessWidget {
               future: context.read<ApiService>().getBusinessById(campaign.businessId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox.shrink();
-                final businessName = snapshot.data!['companyName'] ?? 'İşletme';
+                final businessName = snapshot.data!['companyName'] ?? context.read<LanguageProvider>().translate('business');
                 final color = (snapshot.data!['cardColor'] != null) 
                     ? Color(int.parse(snapshot.data!['cardColor'].replaceAll('#', '0xFF')))
                     : accentColor;

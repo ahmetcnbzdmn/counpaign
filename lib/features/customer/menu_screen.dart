@@ -6,6 +6,8 @@ import 'dart:ui'; // For ImageFilter
 import '../../core/services/api_service.dart';
 import '../../core/config/api_config.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/providers/language_provider.dart';
+import '../../core/widgets/auto_text.dart';
 
 class MenuScreen extends StatefulWidget {
   final String businessId;
@@ -33,17 +35,27 @@ class _MenuScreenState extends State<MenuScreen> {
   List<dynamic> _products = []; // Currently displayed (filtered/sorted)
   List<dynamic> _popularProducts = [];
 
-  // Categories
-  final List<String> _categories = [
-    'Tümü',
-    'Fırsatlar',
-    'Sıcak Kahveler',
-    'Soğuk Kahveler',
-    'Sıcak İçecekler',
-    'Soğuk İçecekler',
-    'Tatlılar'
+  // Categories — stored as localization keys
+  final List<String> _categoryKeys = [
+    'cat_all',
+    'cat_deals',
+    'cat_hot_coffee',
+    'cat_cold_coffee',
+    'cat_hot_drinks',
+    'cat_cold_drinks',
+    'cat_desserts',
   ];
-  String _selectedCategory = 'Tümü';
+  // Map from localization key -> Turkish DB category value (for filtering)
+  final Map<String, String> _categoryTrValues = {
+    'cat_all': 'Tümü',
+    'cat_deals': 'Fırsatlar',
+    'cat_hot_coffee': 'Sıcak Kahveler',
+    'cat_cold_coffee': 'Soğuk Kahveler',
+    'cat_hot_drinks': 'Sıcak İçecekler',
+    'cat_cold_drinks': 'Soğuk İçecekler',
+    'cat_desserts': 'Tatlılar',
+  };
+  String _selectedCategoryKey = 'cat_all'; // key into _categoryKeys
 
   // Sorting
   String _sortOption = 'default'; // default, price_asc, price_desc
@@ -80,8 +92,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
     // Filter by Category and Availability
     temp = temp.where((p) => p['isAvailable'] != false).toList();
-    if (_selectedCategory != 'Tümü') {
-      temp = temp.where((p) => p['category'] == _selectedCategory).toList();
+    final trValue = _categoryTrValues[_selectedCategoryKey] ?? 'Tümü';
+    if (trValue != 'Tümü') {
+      temp = temp.where((p) => p['category'] == trValue).toList();
     }
 
     // Sort - use effective price (price - discount)
@@ -104,14 +117,15 @@ class _MenuScreenState extends State<MenuScreen> {
     });
   }
 
-  void _onCategorySelected(String category) {
+  void _onCategorySelected(String categoryKey) {
     setState(() {
-      _selectedCategory = category;
+      _selectedCategoryKey = categoryKey;
       _applyFilterAndSort();
     });
   }
 
   void _showSortOptions() {
+    final lang = context.read<LanguageProvider>();
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
@@ -121,11 +135,11 @@ class _MenuScreenState extends State<MenuScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Sıralama', style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(lang.translate('sort_title'), style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
               ListTile(
                 leading: const Icon(Icons.sort),
-                title: Text('Varsayılan', style: GoogleFonts.outfit()),
+                title: Text(lang.translate('sort_default'), style: GoogleFonts.outfit()),
                 selected: _sortOption == 'default',
                 selectedColor: AppTheme.primaryColor,
                 onTap: () {
@@ -136,7 +150,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.arrow_upward_rounded),
-                title: Text('Fiyat: Artan', style: GoogleFonts.outfit()),
+                title: Text(lang.translate('sort_price_asc'), style: GoogleFonts.outfit()),
                 selected: _sortOption == 'price_asc',
                 selectedColor: AppTheme.primaryColor,
                 onTap: () {
@@ -147,7 +161,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               ListTile(
                 leading: const Icon(Icons.arrow_downward_rounded),
-                title: Text('Fiyat: Azalan', style: GoogleFonts.outfit()),
+                title: Text(lang.translate('sort_price_desc'), style: GoogleFonts.outfit()),
                 selected: _sortOption == 'price_desc',
                 selectedColor: AppTheme.primaryColor,
                 onTap: () {
@@ -182,7 +196,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 _buildCreativeAppBar(),
                 
                 if (_allProducts.isEmpty)
-                   SliverFillRemaining(
+                 SliverFillRemaining(
                     child: Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -190,7 +204,7 @@ class _MenuScreenState extends State<MenuScreen> {
                           Icon(Icons.restaurant_menu_rounded, size: 80, color: Colors.grey[300]),
                           const SizedBox(height: 16),
                           Text(
-                            'Menü Hazırlanıyor...',
+                            context.read<LanguageProvider>().translate('menu_preparing'),
                             style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                         ],
@@ -198,7 +212,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   )
                 else ...[
-                  if (_popularProducts.isNotEmpty && _selectedCategory == 'Tümü') _buildPopularSection(),
+                  if (_popularProducts.isNotEmpty && _selectedCategoryKey == 'cat_all') _buildPopularSection(),
                   
                   _buildMenuSection(),
                   
@@ -340,7 +354,7 @@ class _MenuScreenState extends State<MenuScreen> {
                   const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
                   const SizedBox(width: 8),
                   Text(
-                    'Öne Çıkanlar',
+                    context.watch<LanguageProvider>().translate('popular_products'),
                     style: GoogleFonts.outfit(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -400,7 +414,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Menü',
+                        context.watch<LanguageProvider>().translate('menu_header'),
                         style: GoogleFonts.outfit(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -426,33 +440,34 @@ class _MenuScreenState extends State<MenuScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
                 physics: const BouncingScrollPhysics(),
-                itemCount: _categories.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                itemBuilder: (context, index) {
-                  final category = _categories[index];
-                  final isSelected = category == _selectedCategory;
-                  return GestureDetector(
-                    onTap: () => _onCategorySelected(category),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppTheme.primaryColor : const Color(0xFFF5F5F7),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: isSelected 
-                            ? [BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]
-                            : [],
-                      ),
-                      child: Text(
-                        category,
-                        style: GoogleFonts.outfit(
-                          color: isSelected ? Colors.white : Colors.black87,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                  );
-                },
+                 itemCount: _categoryKeys.length,
+                 separatorBuilder: (_, __) => const SizedBox(width: 8),
+                 itemBuilder: (context, index) {
+                   final key = _categoryKeys[index];
+                   final isSelected = key == _selectedCategoryKey;
+                   final label = context.watch<LanguageProvider>().translate(key);
+                   return GestureDetector(
+                     onTap: () => _onCategorySelected(key),
+                     child: Container(
+                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                       decoration: BoxDecoration(
+                         color: isSelected ? AppTheme.primaryColor : const Color(0xFFF5F5F7),
+                         borderRadius: BorderRadius.circular(20),
+                         boxShadow: isSelected
+                             ? [BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.4), blurRadius: 8, offset: const Offset(0, 4))]
+                             : const [],
+                       ),
+                       child: Text(
+                         label,
+                         style: GoogleFonts.outfit(
+                           color: isSelected ? Colors.white : Colors.black87,
+                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                           fontSize: 14,
+                         ),
+                       ),
+                     ),
+                   );
+                 },
               ),
             ),
             
@@ -464,7 +479,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 padding: const EdgeInsets.only(top: 20.0, bottom: 40.0),
                 child: Center(
                   child: Text(
-                    'Bu kategoride ürün bulunamadı.',
+                    context.watch<LanguageProvider>().translate('no_products_in_cat'),
                     style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
                   ),
                 ),
@@ -563,7 +578,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  AutoText(
                     product['name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -658,7 +673,7 @@ class _MenuScreenState extends State<MenuScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  AutoText(
                     product['name'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -670,7 +685,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  AutoText(
                     product['description'] ?? '',
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
