@@ -229,11 +229,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 height: 56,
                 child: Container(
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                    ),
+                    color: const Color(0xFFF9C06A),
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: const [
                       BoxShadow(

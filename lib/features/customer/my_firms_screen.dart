@@ -52,6 +52,12 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     _saveOrder(newOrder); 
   }
 
+  String _translateCategory(String category, LanguageProvider lang) {
+    final key = 'cat_${category.toLowerCase()}';
+    final translated = lang.translate(key);
+    return translated == key ? category : translated;
+  }
+
   String _formatAddress(dynamic business) {
     final city = business['city'] ?? '';
     final district = business['district'] ?? '';
@@ -321,7 +327,13 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                         style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
                       ),
                       subtitle: Text(
-                        "${firm['category'] ?? Provider.of<LanguageProvider>(context).translate('general')}${_formatAddress(firm).isNotEmpty ? ' • ${_formatAddress(firm)}' : ''}",
+                        () {
+                          final lang = Provider.of<LanguageProvider>(context, listen: false);
+                          final rawCat = firm['category'] as String? ?? '';
+                          final cat = rawCat.isNotEmpty ? _translateCategory(rawCat, lang) : lang.translate('general');
+                          final addr = _formatAddress(firm);
+                          return addr.isNotEmpty ? '$cat • $addr' : cat;
+                        }(),
                         style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.7)),
                       ),
                       trailing: Icon(Icons.drag_handle_rounded, color: textColor.withValues(alpha: 0.3)),

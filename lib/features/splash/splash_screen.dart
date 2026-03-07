@@ -90,7 +90,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 return CustomPaint(
                   painter: _CupPatternPainter(
                     // Lighter brown to match the new theme subtlety
-                    color: const Color(0xFF76410B).withValues(alpha: 0.1), 
+                    color: const Color(0xFFF9C06A).withValues(alpha: 0.18),
                     animationValue: _controller.value, 
                   ),
                   size: Size.infinite,
@@ -111,7 +111,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF76410B).withValues(alpha: 0.2), 
+                          color: const Color(0xFFF9C06A).withValues(alpha: 0.3),
                           blurRadius: 30,
                           offset: const Offset(0, 10),
                         )

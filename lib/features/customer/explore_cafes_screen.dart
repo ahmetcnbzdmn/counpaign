@@ -7,7 +7,6 @@ import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
-import '../../core/theme/app_theme.dart';
 
 class ExploreCafesScreen extends StatefulWidget {
   const ExploreCafesScreen({super.key});
@@ -26,11 +25,11 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
   }
 
   Color _parseColor(String? hex) {
-    if (hex == null || hex.isEmpty) return const Color(0xFFEE2C2C);
+    if (hex == null || hex.isEmpty) return const Color(0xFFF9C06A);
     try {
       return Color(int.parse(hex.replaceAll('#', '0xFF')));
     } catch (_) {
-      return const Color(0xFFEE2C2C);
+      return const Color(0xFFF9C06A);
     }
   }
 
@@ -48,153 +47,340 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     }
   }
 
+  String _translateCategory(String category, LanguageProvider lang) {
+    final key = 'cat_${category.toLowerCase()}';
+    final translated = lang.translate(key);
+    return translated == key ? category : translated;
+  }
+
   String _formatAddress(dynamic business) {
     final city = business['city'] ?? '';
     final district = business['district'] ?? '';
     final neighborhood = business['neighborhood'] ?? '';
-    
+
     final List<String> parts = [];
     if (neighborhood.isNotEmpty) parts.add(neighborhood);
     if (district.isNotEmpty) parts.add(district);
     if (city.isNotEmpty) parts.add(city);
-    
+
     if (parts.isEmpty) {
       return context.read<LanguageProvider>().translate('no_address');
     }
-    
+
     return parts.join(', ');
+  }
+
+  /// Builds a logo container where the image fills the background (blurred)
+  /// and a sharper centered version sits on top.
+  Widget _buildLogoBox({
+    required String? imageUrl,
+    required IconData fallbackIcon,
+    required double size,
+    double borderRadius = 18,
+  }) {
+    final resolvedUrl = resolveImageUrl(imageUrl);
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9C06A).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: resolvedUrl != null
+          ? Image.network(
+              resolvedUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Icon(fallbackIcon, color: const Color(0xFF76410B), size: size * 0.45),
+            )
+          : Icon(fallbackIcon, color: const Color(0xFF76410B), size: size * 0.45),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bgColor = theme.scaffoldBackgroundColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
-    const Color primaryBrand = Color(0xFFEE2C2C);
-    
+    const bgColor = Color(0xFFEBEBEB);
+    const textColor = Color(0xFF131313);
+    const cardColor = Colors.white;
+    const yellow = Color(0xFFF9C06A);
+    const deepBrown = Color(0xFF76410B);
+
     final lang = context.watch<LanguageProvider>();
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColor,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          lang.translate('explore_cafes'),
-          style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 20),
-        ),
-        centerTitle: true,
-      ),
-      body: Consumer<BusinessProvider>(
-        builder: (context, provider, child) {
-          if (provider.isLoading && provider.exploreFirms.isEmpty) {
-            return const Center(child: CircularProgressIndicator(color: primaryBrand));
-          }
-
-          if (provider.exploreFirms.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.search_off_rounded, size: 80, color: textColor.withValues(alpha: 0.2)),
-                  const SizedBox(height: 16),
-                  Text(
-                    lang.translate('no_cafes_yet'),
-                    style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16),
-                  ),
-                ],
+      body: Column(
+        children: [
+          // ── Fixed Header ──────────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 14, 20, 24),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(36),
+                bottomRight: Radius.circular(36),
               ),
-            );
-          }
-
-          // Filter out firms that are already in wallet
-          final filteredFirms = provider.exploreFirms.where((firm) {
-            final id = firm['_id'] ?? firm['id'];
-            return !provider.isFirmInWallet(id);
-          }).toList();
-
-          // Sort Alphabetically
-          final sortedFirms = List.from(filteredFirms)
-            ..sort((a, b) => (a['companyName'] ?? '').toLowerCase().compareTo((b['companyName'] ?? '').toLowerCase()));
-          
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // 1. Newest Slider (SliverToBoxAdapter)
-              SliverToBoxAdapter(
-                child: FutureBuilder<List<dynamic>>(
-                  future: context.read<ApiService>().getNewestBusinesses(),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-                    final newest = snapshot.data!;
-                    
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x12000000),
+                  blurRadius: 24,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // Back button - left
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: GestureDetector(
+                    onTap: () => context.pop(),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: const BoxDecoration(
+                        color: bgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: textColor,
+                        size: 18,
+                      ),
+                    ),
+                  ),
+                ),
+                // Title + subtitle - centered
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      lang.translate('explore_cafes'),
+                      style: GoogleFonts.outfit(
+                        color: textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                          child: Text(
-                            lang.translate('newly_added'),
-                            style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: yellow,
+                            shape: BoxShape.circle,
                           ),
                         ),
-                        SizedBox(
-                          height: 110,
-                          child: ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            scrollDirection: Axis.horizontal,
-                            itemCount: newest.length,
-                            itemBuilder: (context, index) {
-                               final firm = newest[index];
-                               return _buildNewestCard(context, firm);
-                            },
+                        const SizedBox(width: 6),
+                        Text(
+                          lang.translate('discover_new_places'),
+                          style: GoogleFonts.outfit(
+                            color: textColor.withValues(alpha: 0.38),
+                            fontSize: 13,
                           ),
                         ),
-                        const SizedBox(height: 24),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            "${lang.translate('all_businesses')} (${sortedFirms.length})",
-                            style: GoogleFonts.outfit(color: textColor, fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                       ],
-                    );
-                  },
+                    ),
+                  ],
                 ),
-              ),
+              ],
+            ),
+          ),
 
-              // 2. All Firms List (SliverList)
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final business = sortedFirms[index];
-                      final color = _parseColor(business['cardColor']);
-                      final icon = _parseIcon(business['cardIcon']);
+          // ── Scrollable Content ────────────────────────────────────
+          Expanded(
+            child: Consumer<BusinessProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.exploreFirms.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: yellow,
+                      strokeWidth: 3,
+                    ),
+                  );
+                }
 
-                      return _buildExploreCard(
-                        context,
-                        business: business,
-                        color: color,
-                        icon: icon,
-                        textColor: textColor,
-                      );
-                    },
-                    childCount: sortedFirms.length,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
+                if (provider.exploreFirms.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: yellow.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.search_off_rounded, size: 48, color: yellow),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          lang.translate('no_cafes_yet'),
+                          style: GoogleFonts.outfit(
+                            color: textColor.withValues(alpha: 0.45),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                final filteredFirms = provider.exploreFirms.where((firm) {
+                  final id = firm['_id'] ?? firm['id'];
+                  return !provider.isFirmInWallet(id);
+                }).toList();
+
+                final sortedFirms = List.from(filteredFirms)
+                  ..sort((a, b) => (a['companyName'] ?? '').toLowerCase().compareTo((b['companyName'] ?? '').toLowerCase()));
+
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    // ── Newest Slider ─────────────────────────────
+                    SliverToBoxAdapter(
+                      child: FutureBuilder<List<dynamic>>(
+                        future: context.read<ApiService>().getNewestBusinesses(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+                          final newest = snapshot.data!;
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 28, 24, 4),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: yellow,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      lang.translate('newly_added'),
+                                      style: GoogleFonts.outfit(
+                                        color: textColor,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(38, 2, 24, 16),
+                                child: Text(
+                                  lang.translate('newly_added_subtitle'),
+                                  style: GoogleFonts.outfit(
+                                    color: textColor.withValues(alpha: 0.38),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                height: 155,
+                                child: ListView.builder(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: newest.length,
+                                  itemBuilder: (context, index) => _buildNewestCard(
+                                    context,
+                                    newest[index],
+                                    textColor: textColor,
+                                    yellow: yellow,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 28),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 4,
+                                      height: 20,
+                                      decoration: BoxDecoration(
+                                        color: yellow,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      lang.translate('all_businesses'),
+                                      style: GoogleFonts.outfit(
+                                        color: textColor,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: yellow.withValues(alpha: 0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        '${sortedFirms.length}',
+                                        style: GoogleFonts.outfit(
+                                          color: deepBrown,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+
+                    // ── All Firms List ────────────────────────────
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final business = sortedFirms[index];
+                            final icon = _parseIcon(business['cardIcon']);
+                            return _buildExploreCard(
+                              context,
+                              business: business,
+                              icon: icon,
+                              textColor: textColor,
+                              cardColor: cardColor,
+                              yellow: yellow,
+                              deepBrown: deepBrown,
+                            );
+                          },
+                          childCount: sortedFirms.length,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -202,26 +388,29 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
   Widget _buildExploreCard(
     BuildContext context, {
     required dynamic business,
-    required Color color,
     required IconData icon,
     required Color textColor,
+    required Color cardColor,
+    required Color yellow,
+    required Color deepBrown,
   }) {
-    final cardColor = Theme.of(context).cardColor;
     final lang = context.read<LanguageProvider>();
- 
+    final rating = (business['rating'] ?? business['reviewScore'] ?? 0.0).toDouble();
+    final reviewCount = business['reviewCount'] ?? 0;
+    final rawCategory = business['category'] ?? '';
+    final category = rawCategory.isNotEmpty ? _translateCategory(rawCategory, lang) : '';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      // ... existing card styling
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: textColor.withValues(alpha: 0.05)),
+        border: Border.all(color: yellow, width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: yellow.withValues(alpha: 0.2),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -231,15 +420,13 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
           onTap: () async {
             final provider = context.read<BusinessProvider>();
             final id = business['_id'] ?? business['id'];
-            
-            // Check if already in wallet to pass real customer data
             final isInWallet = provider.isFirmInWallet(id);
             dynamic walletData;
             if (isInWallet) {
-               walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+              walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
             }
 
-            final detailData = {
+            context.push('/business-detail', extra: {
               'id': id,
               'name': business['companyName'],
               'points': isInWallet ? (walletData['points'] ?? '0') : '0',
@@ -247,48 +434,32 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
               'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (business['stampsTarget'] ?? 6),
               'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
               'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
-              'reviewScore': business['rating'] ?? business['reviewScore'] ?? 0.0,
-              'reviewCount': business['reviewCount'] ?? 0,
-              'color': color,
+              'reviewScore': rating,
+              'reviewCount': reviewCount,
+              'color': _parseColor(business['cardColor']),
               'icon': icon,
               'city': business['city'],
               'district': business['district'],
               'neighborhood': business['neighborhood'],
-              'logo': business['logo'], // Pass logo
-              'image': business['image'], // Pass fallback image
-              'isNew': !isInWallet, 
-            };
-            
-            context.push('/business-detail', extra: detailData);
+              'logo': business['logo'],
+              'image': business['image'],
+              'isNew': !isInWallet,
+            });
           },
           borderRadius: BorderRadius.circular(24),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Row(
               children: [
-                // Brand Logo Container
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: resolveImageUrl(business['logo'] ?? business['image']) != null
-                      ? Image.network(
-                          resolveImageUrl(business['logo'] ?? business['image'])!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
-                        )
-                      : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 30),
+                // Logo with blur-bg effect
+                _buildLogoBox(
+                  imageUrl: business['logo'] ?? business['image'],
+                  fallbackIcon: icon,
+                  size: 66,
+                  borderRadius: 18,
                 ),
-                const SizedBox(width: 16),
-                
+                const SizedBox(width: 14),
+
                 // Info
                 Expanded(
                   child: Column(
@@ -298,32 +469,96 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                         business['companyName'] ?? lang.translate('unknown_business'),
                         style: GoogleFonts.outfit(
                           color: textColor,
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatAddress(business),
-                        style: GoogleFonts.outfit(
-                          color: textColor.withValues(alpha: 0.5),
-                          fontSize: 13,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          if (category.isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: yellow.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: AutoText(
+                                category,
+                                style: GoogleFonts.outfit(
+                                  color: deepBrown,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 1,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          if (rating > 0) ...[
+                            const Icon(Icons.star_rounded, size: 13, color: Color(0xFFE68A00)),
+                            const SizedBox(width: 2),
+                            Text(
+                              rating.toStringAsFixed(1),
+                              style: GoogleFonts.outfit(
+                                color: textColor.withValues(alpha: 0.6),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            if (reviewCount > 0)
+                              Text(
+                                ' ($reviewCount)',
+                                style: GoogleFonts.outfit(
+                                  color: textColor.withValues(alpha: 0.35),
+                                  fontSize: 11,
+                                ),
+                              ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          Icon(Icons.location_on_rounded, size: 12, color: textColor.withValues(alpha: 0.3)),
+                          const SizedBox(width: 3),
+                          Expanded(
+                            child: Text(
+                              _formatAddress(business),
+                              style: GoogleFonts.outfit(
+                                color: textColor.withValues(alpha: 0.4),
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-                
-                // Add Icon / Button
+
+                const SizedBox(width: 10),
+
+                // Arrow button
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  width: 38,
+                  height: 38,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
+                    color: yellow,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: yellow.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  child: Icon(Icons.add_rounded, color: color, size: 24),
+                  child: const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
                 ),
               ],
             ),
@@ -333,111 +568,133 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     );
   }
 
-  Widget _buildNewestCard(BuildContext context, dynamic firm) {
-    final theme = Theme.of(context);
-    final cardColor = theme.cardColor;
-    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+  Widget _buildNewestCard(
+    BuildContext context,
+    dynamic firm, {
+    required Color textColor,
+    required Color yellow,
+  }) {
     final lang = context.read<LanguageProvider>();
-    
-    final color = _parseColor(firm['cardColor']);
     final icon = _parseIcon(firm['cardIcon']);
-    
-    // Check if in wallet
+
     final provider = context.read<BusinessProvider>();
     final id = firm['_id'] ?? firm['id'];
     final isInWallet = provider.isFirmInWallet(id);
-    
+
     dynamic walletData;
     if (isInWallet) {
-       walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+      walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
     }
-    
-    // Only show 'isNew' if NOT in wallet
+
     final isNew = !isInWallet;
-    
+
     return GestureDetector(
       onTap: () {
-         final detailData = {
-            'id': id,
-            'name': firm['companyName'],
-            'points': isInWallet ? (walletData['points'] ?? '0') : '0',
-            'stamps': isInWallet ? (walletData['stamps'] ?? 0) : 0,
-            'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (firm['stampsTarget'] ?? 6), 
-            'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
-            'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
-            'reviewScore': firm['rating'] ?? firm['reviewScore'] ?? 0.0,
-            'reviewCount': firm['reviewCount'] ?? 0,
-            'color': color,
-            'icon': icon,
-            'city': firm['city'],
-            'district': firm['district'],
-            'neighborhood': firm['neighborhood'],
-            'isNew': isNew, 
-         };
-         context.push('/business-detail', extra: detailData);
+        context.push('/business-detail', extra: {
+          'id': id,
+          'name': firm['companyName'],
+          'points': isInWallet ? (walletData['points'] ?? '0') : '0',
+          'stamps': isInWallet ? (walletData['stamps'] ?? 0) : 0,
+          'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (firm['stampsTarget'] ?? 6),
+          'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
+          'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
+          'reviewScore': firm['rating'] ?? firm['reviewScore'] ?? 0.0,
+          'reviewCount': firm['reviewCount'] ?? 0,
+          'color': _parseColor(firm['cardColor']),
+          'icon': icon,
+          'city': firm['city'],
+          'district': firm['district'],
+          'neighborhood': firm['neighborhood'],
+          'logo': firm['logo'],
+          'image': firm['image'],
+          'isNew': isNew,
+        });
       },
       child: Container(
-        width: 110,
-        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 140,
+        margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: textColor.withValues(alpha: 0.05)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: yellow, width: 2),
           boxShadow: [
-             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 3)
-            )
-          ]
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Circle Brand Logo
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: resolveImageUrl(firm['logo'] ?? firm['image']) != null
-                    ? Image.network(
-                        resolveImageUrl(firm['logo'] ?? firm['image'])!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
-                      )
-                    : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
+            BoxShadow(
+              color: yellow.withValues(alpha: 0.25),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
-              Column(
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Content
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 14, 12, 14),
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Logo with blur-bg
+                  _buildLogoBox(
+                    imageUrl: firm['logo'] ?? firm['image'],
+                    fallbackIcon: icon,
+                    size: 56,
+                    borderRadius: 14,
+                  ),
+                  const Spacer(),
                   Text(
                     firm['companyName'] ?? '',
-                    style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold, fontSize: 13),
+                    style: GoogleFonts.outfit(
+                      color: textColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: 3),
                   AutoText(
-                    firm['category'] ?? lang.translate('general'),
-                    style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 11),
+                    firm['category'] != null && (firm['category'] as String).isNotEmpty
+                        ? _translateCategory(firm['category'] as String, lang)
+                        : lang.translate('general'),
+                    style: GoogleFonts.outfit(
+                      color: textColor.withValues(alpha: 0.4),
+                      fontSize: 11,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+
+            // "YENİ" badge
+            if (isNew)
+              Positioned(
+                top: 13,
+                right: 10,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: yellow,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    lang.translate('new_badge'),
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

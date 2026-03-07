@@ -492,7 +492,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 itemCount: _products.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
-                  childAspectRatio: 0.80,
+                  childAspectRatio: 0.72,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
                 ),
@@ -669,30 +669,33 @@ class _MenuScreenState extends State<MenuScreen> {
           Expanded(
             flex: 40,
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   AutoText(
                     product['name'] ?? '',
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w600, 
-                      fontSize: 14, 
-                      color: AppTheme.lightTextPrimary, 
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                      color: AppTheme.lightTextPrimary,
                       height: 1.1,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  AutoText(
-                    product['description'] ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
-                      fontSize: 12, 
-                      color: AppTheme.lightTextSecondary,
-                      fontWeight: FontWeight.w400,
+                  const SizedBox(height: 3),
+                  Expanded(
+                    child: AutoText(
+                      product['description'] ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        fontSize: 11,
+                        color: AppTheme.lightTextSecondary,
+                        fontWeight: FontWeight.w400,
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ],

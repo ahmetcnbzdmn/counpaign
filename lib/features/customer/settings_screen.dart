@@ -41,11 +41,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
         backgroundColor: bgColor,
-        body: SingleChildScrollView(
-          child: Column(
-            children: [
-              // [1] Header Area
-              AnimatedContainer(
+        body: Column(
+          children: [
+            // [1] Header Area (Fixed - does not scroll)
+            AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 60, 24, 30),
@@ -85,9 +84,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: primaryBrand, width: 2),
+                            border: Border.all(color: const Color(0xFFF9C06A), width: 2),
                             boxShadow: [
-                              BoxShadow(color: primaryBrand.withValues(alpha: 0.3), blurRadius: 20),
+                              BoxShadow(color: const Color(0xFFF9C06A).withValues(alpha: 0.3), blurRadius: 20),
                             ]
                           ),
                           child: CircleAvatar(
@@ -115,12 +114,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       child: ElevatedButton.icon(
                         onPressed: () => context.push('/edit-profile'),
-                        icon: const Icon(Icons.edit_rounded, size: 16, color: Color(0xFF131313)), // Dark icon
-                        label: Text(context.watch<LanguageProvider>().translate('edit_profile'), style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.bold)), // Dark bold text
+                        icon: const Icon(Icons.edit_rounded, size: 16),
+                        label: Text(
+                          context.watch<LanguageProvider>().translate('edit_profile'),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
-                          foregroundColor: const Color(0xFF131313),
+                          foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -130,15 +132,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 32),
-              
-              // [2] Settings Actions
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Consumer<LanguageProvider>(
-                  builder: (context, lang, child) {
-                    return Column(
+
+            // [2] Settings Actions (Scrollable)
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+                  child: Consumer<LanguageProvider>(
+                    builder: (context, lang, child) {
+                      return Column(
                       children: [
                          _buildSectionHeader(lang.translate('general'), textColor),
                          const SizedBox(height: 12),
@@ -181,9 +183,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                    content: Column(
                                      mainAxisSize: MainAxisSize.min,
                                      children: [
-                                       _buildLanguageOption(context, lang, 'tr', "Türkçe", "🇹🇷", textColor, primaryBrand),
+                                       _buildLanguageOption(context, lang, 'tr', "Türkçe", "🇹🇷", textColor, const Color(0xFFF9C06A)),
                                        const SizedBox(height: 8),
-                                       _buildLanguageOption(context, lang, 'en', "English", "🇬🇧", textColor, primaryBrand),
+                                       _buildLanguageOption(context, lang, 'en', "English", "🇬🇧", textColor, const Color(0xFFF9C06A)),
                                      ],
                                    ),
                                  ),
@@ -212,12 +214,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   
                          const SizedBox(height: 100),
                       ],
-                    );
-                  }
+                      );
+                    }
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
   }

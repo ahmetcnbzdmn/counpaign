@@ -225,6 +225,15 @@ class _LoginScreenState extends State<LoginScreen> {
     
     return Scaffold(
       backgroundColor: bgColor,
+      appBar: _activePageIndex == 1 ? AppBar(
+        backgroundColor: bgColor,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: textColor),
+          onPressed: () => setState(() => _activePageIndex = 0),
+        ),
+      ) : null,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: SafeArea(
@@ -432,7 +441,7 @@ class _LoginScreenState extends State<LoginScreen> {
                            padding: const EdgeInsets.only(left: 4),
                            child: Text(
                              "* Kayıt olduktan sonra doğum tarihini değiştiremezsiniz.",
-                             style: TextStyle(color: primaryBrand.withValues(alpha: 0.8), fontSize: 11, fontStyle: FontStyle.italic),
+                             style: TextStyle(color: const Color(0xFFF9C06A).withValues(alpha: 0.9), fontSize: 11, fontStyle: FontStyle.italic),
                            ),
                          ),
                          const SizedBox(height: 16),
@@ -465,11 +474,7 @@ class _LoginScreenState extends State<LoginScreen> {
                          height: 56,
                          child: Container(
                            decoration: BoxDecoration(
-                             gradient: const LinearGradient(
-                               begin: Alignment.topLeft,
-                               end: Alignment.bottomRight,
-                               colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                             ),
+                             color: const Color(0xFFF9C06A),
                              borderRadius: BorderRadius.circular(16),
                              boxShadow: const [
                                BoxShadow(
@@ -554,7 +559,7 @@ class _LoginScreenState extends State<LoginScreen> {
         obscureText: isPassword,
         keyboardType: keyboardType,
         style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.w500),
-        cursorColor: const Color(0xFF76410B),
+        cursorColor: const Color(0xFFF9C06A),
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(color: const Color(0xFF131313).withValues(alpha: 0.3)),

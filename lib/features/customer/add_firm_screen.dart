@@ -276,20 +276,36 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           // Search Bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: TextField(
-              controller: _searchController,
-              style: GoogleFonts.outfit(color: textColor),
-              decoration: InputDecoration(
-                hintText: lang.translate('search_cafe'),
-                hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),
-                prefixIcon: Icon(Icons.search, color: textColor.withValues(alpha: 0.5)),
-                filled: true,
-                fillColor: cardColor,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3)),
+                ],
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: GoogleFonts.outfit(color: textColor),
+                decoration: InputDecoration(
+                  hintText: lang.translate('search_cafe'),
+                  hintStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.4)),
+                  prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primaryColor, size: 22),
+                  filled: true,
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppTheme.primaryColor.withValues(alpha: 0.15), width: 1),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppTheme.primaryColor, width: 1.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               ),
             ),
           ),
@@ -356,12 +372,15 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                   return GestureDetector(
                     onTap: () => _handleFirmTap(id, firm),
                     child: Container(
-                      width: 110, 
+                      width: 110,
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       decoration: BoxDecoration(
                         color: cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: textColor.withValues(alpha: 0.05)),
+                        border: Border.all(color: isAdded ? AppTheme.primaryColor.withValues(alpha: 0.4) : textColor.withValues(alpha: 0.06)),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 3)),
+                        ],
                       ),
                       child: Stack(
                         children: [
@@ -460,13 +479,17 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                     final colorHex = firm['cardColor'] ?? '#333333';
                     final color = Color(int.parse(colorHex.replaceAll('#', '0xFF')));
                     
-                    return Card(
-                      color: cardColor,
-                      elevation: 0,
+                    return Container(
                       margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
+                      decoration: BoxDecoration(
+                        color: cardColor,
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: textColor.withValues(alpha: 0.05)),
+                        border: Border.all(
+                          color: isAdded ? AppTheme.primaryColor.withValues(alpha: 0.35) : textColor.withValues(alpha: 0.06),
+                        ),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 10, offset: const Offset(0, 3)),
+                        ],
                       ),
                       child: ListTile(
                         contentPadding: const EdgeInsets.all(12),
@@ -474,8 +497,8 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                           width: 50, height: 50,
                           clipBehavior: Clip.antiAlias,
                           decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(14),
                           ),
                           child: (firm['logo'] != null || firm['image'] != null)
                               ? Image.network(
@@ -540,12 +563,15 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
       decoration: BoxDecoration(
         color: enabled ? cardColor : cardColor.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: textColor.withValues(alpha: 0.1)),
+        border: Border.all(color: textColor.withValues(alpha: 0.08)),
+        boxShadow: enabled ? [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 6, offset: const Offset(0, 2)),
+        ] : null,
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<T>(
           value: items.contains(value) ? value : null,
-          hint: Text(hint, style: GoogleFonts.outfit(color: textColor.withValues(alpha: enabled ? 0.6 : 0.3), fontSize: 13)),
+          hint: Text(hint, style: GoogleFonts.outfit(color: textColor.withValues(alpha: enabled ? 0.55 : 0.3), fontSize: 13)),
           items: items.map((item) {
             return DropdownMenuItem<T>(
               value: item,
@@ -554,7 +580,8 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
           }).toList(),
           onChanged: enabled ? onChanged : null,
           dropdownColor: cardColor,
-          icon: Icon(Icons.arrow_drop_down, color: textColor.withValues(alpha: enabled ? 0.6 : 0.3)),
+          borderRadius: BorderRadius.circular(16),
+          icon: Icon(Icons.keyboard_arrow_down_rounded, color: textColor.withValues(alpha: enabled ? 0.5 : 0.25), size: 20),
           style: GoogleFonts.outfit(color: textColor, fontSize: 13),
         ),
       ),
@@ -577,17 +604,20 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF7F6041) : theme.cardColor,
+          color: isSelected ? AppTheme.primaryColor : theme.cardColor,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1),
+            color: isSelected ? AppTheme.primaryColor : textColor.withValues(alpha: 0.1),
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3)),
+          ] : null,
         ),
         child: Text(
           label,
           style: GoogleFonts.outfit(
-            color: isSelected ? Colors.white : textColor.withValues(alpha: 0.7),
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected ? const Color(0xFF131313) : textColor.withValues(alpha: 0.7),
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.normal,
             fontSize: 13,
           ),
         ),

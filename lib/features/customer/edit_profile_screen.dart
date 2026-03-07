@@ -136,10 +136,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                      Container(
                        padding: const EdgeInsets.all(16),
                        decoration: BoxDecoration(
-                         color: Colors.green.withValues(alpha: 0.1),
+                         color: const Color(0xFFF9C06A).withValues(alpha: 0.1),
                          shape: BoxShape.circle,
                        ),
-                       child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 48),
+                       child: const Icon(Icons.check_circle_rounded, color: Color(0xFFF9C06A), size: 48),
                      ),
                      const SizedBox(height: 16),
                      Text(
@@ -157,11 +157,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                        width: double.infinity,
                        child: Container(
                          decoration: BoxDecoration(
-                           gradient: const LinearGradient(
-                             begin: Alignment.topLeft,
-                             end: Alignment.bottomRight,
-                             colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                           ),
+                           color: const Color(0xFFF9C06A),
                            borderRadius: BorderRadius.circular(12),
                          ),
                          child: ElevatedButton(
@@ -212,20 +208,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       imageProvider = const AssetImage('assets/images/default_profile.png');
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFEBEBEB),
-      appBar: AppBar(
-        title: Text(lang.translate('edit_profile'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
+    return Container(
+      color: const Color(0xFFF6F0EB), // Top notch color match
+      child: SafeArea(
+        bottom: false,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(lang.translate('edit_profile'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            centerTitle: true,
+          ),
+      body: Container(
+        height: double.infinity,
+        color: const Color(0xFFEBEBEB), // Body background
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(), // Prevent any scrolling/overscroll completely
+          padding: const EdgeInsets.all(24),
+          child: Form(
+              key: _formKey,
+              child: Column(
+                children: [
               // Avatar
               Center(
                 child: Stack(
@@ -253,7 +257,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               color: Color(0xFFF9C06A), // Main yellow theme color
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.person_rounded, size: 40, color: Color(0xFF76410B)),
+                            child: const Icon(Icons.person_rounded, size: 40, color: Colors.white),
                         ),
                       ),
                     ),
@@ -371,7 +375,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
-                      foregroundColor: const Color(0xFF131313), // Dark text for yellow bg
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -383,6 +387,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ],
           ),
+        ),
+      ),
+      ),
         ),
       ),
     );
@@ -401,7 +408,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: textColor),
+      style: TextStyle(color: textColor),
       validator: (val) => val == null || val.isEmpty ? lang.translate('fill_all_fields') : null,
       decoration: InputDecoration(
         labelText: label,

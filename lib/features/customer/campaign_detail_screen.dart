@@ -23,7 +23,8 @@ class CampaignDetailScreen extends StatelessWidget {
     final Color bgColor = isDark ? const Color(0xFF121212) : const Color(0xFFEBEBEB);
     final Color textColor = isDark ? Colors.white : const Color(0xFF131313);
     final Color cardColor = isDark ? const Color(0xFF1E1E1E) : Colors.white;
-    const Color accentColor = Color(0xFF76410B);
+    const Color accentColor = Color(0xFFF9C06A);
+    const Color deepBrown = Color(0xFF76410B);
 
     return SwipeBackDetector(
       child: Scaffold(
@@ -32,7 +33,7 @@ class CampaignDetailScreen extends StatelessWidget {
           physics: const BouncingScrollPhysics(),
           slivers: [
             _buildSliverAppBar(context, bgColor, accentColor),
-            _buildContent(context, bgColor, textColor, cardColor, accentColor),
+            _buildContent(context, bgColor, textColor, cardColor, accentColor, deepBrown),
           ],
         ),
       ),
@@ -82,52 +83,38 @@ class CampaignDetailScreen extends StatelessWidget {
           ],
         ),
       ),
-      // CURVE ON TOP: This stays at the bottom of the App Bar and OVER the image
-      bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(30),
-        child: Container(
-          height: 30,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-        ),
-      ),
     );
   }
 
-  Widget _buildContent(BuildContext context, Color bgColor, Color textColor, Color cardColor, Color accentColor) {
+  Widget _buildContent(BuildContext context, Color bgColor, Color textColor, Color cardColor, Color accentColor, Color deepBrown) {
     return SliverToBoxAdapter(
       child: Container(
         color: bgColor,
-        padding: const EdgeInsets.fromLTRB(24, 20, 24, 120), // 20px air from curve bottom
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // [NEW] Business Name Box (Top Left)
+            // Business Name Badge
             FutureBuilder<Map<String, dynamic>?>(
               future: context.read<ApiService>().getBusinessById(campaign.businessId),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) return const SizedBox.shrink();
                 final businessName = snapshot.data!['companyName'] ?? context.read<LanguageProvider>().translate('business');
-                final color = (snapshot.data!['cardColor'] != null) 
-                    ? Color(int.parse(snapshot.data!['cardColor'].replaceAll('#', '0xFF')))
-                    : accentColor;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.1),
+                    color: accentColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.4)),
                   ),
                   child: Text(
                     businessName,
                     style: GoogleFonts.outfit(
-                      color: color,
-                      fontWeight: FontWeight.bold, 
-                      fontSize: 13
+                      color: deepBrown,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
                   ),
                 );
@@ -140,9 +127,9 @@ class CampaignDetailScreen extends StatelessWidget {
                 Container(
                   width: 60, height: 60,
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(30), // Radius 30
-                    border: Border.all(color: accentColor.withValues(alpha: 0.12), width: 1.5),
+                    color: accentColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(30),
+                    border: Border.all(color: accentColor.withValues(alpha: 0.4), width: 1.5),
                   ),
                   child: Icon(_parseCampaignIcon(campaign.icon), color: accentColor, size: 28),
                 ),
@@ -189,26 +176,30 @@ class CampaignDetailScreen extends StatelessWidget {
                             campaign.bundleName.isNotEmpty ? campaign.bundleName : campaign.menuItems.map((e) => e.productName).join(' + '),
                             // Price Display Logic
                             null, // Passing null as value to use custom child
-                            customValueWidget: Row(
+                            customValueWidget: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (campaign.discountAmount > 0) ...[
                                   Text(
                                     '₺${campaign.totalPrice.toStringAsFixed(0)}',
                                     style: GoogleFonts.outfit(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       color: textColor.withValues(alpha: 0.5),
                                       decoration: TextDecoration.lineThrough,
                                       fontWeight: FontWeight.w500,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(width: 8),
                                   Text(
                                     '₺${campaign.discountedPrice.toStringAsFixed(0)}',
                                     style: GoogleFonts.outfit(
                                       fontSize: 18,
-                                      color: accentColor,
+                                      color: deepBrown,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ] else
                                   Text(
@@ -218,6 +209,8 @@ class CampaignDetailScreen extends StatelessWidget {
                                       color: textColor,
                                       fontWeight: FontWeight.bold,
                                     ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                               ],
                             ),

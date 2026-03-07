@@ -57,76 +57,84 @@ class WalletCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // Left: Coffee Cup + Gift Text
-                        SizedBox(
-                          width: 110,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Coffee cup: empty PNG + fill overlay
-                              SizedBox(
-                                height: 120,
-                                width: 90,
-                                child: Stack(
-                                  children: [
-                                    // Empty cup image (bottom layer)
-                                    Positioned.fill(
-                                      child: Image.asset(
-                                        'assets/images/coffee_cup_empty.png',
-                                        fit: BoxFit.contain,
-                                      ),
-                                    ),
-                                    // Coffee fill: uses cup PNG as shape mask
-                                    if (fillProgress > 0)
+                        GestureDetector(
+                          onTap: () => context.push('/business-detail', extra: firm),
+                          behavior: HitTestBehavior.opaque,
+                          child: SizedBox(
+                            width: 110,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                // Coffee cup: empty PNG + fill overlay
+                                SizedBox(
+                                  height: 120,
+                                  width: 90,
+                                  child: Stack(
+                                    children: [
+                                      // Empty cup image (bottom layer)
                                       Positioned.fill(
-                                        child: ClipRect(
-                                          clipper: _CoffeeLevelClipper(fillProgress),
-                                          child: ShaderMask(
-                                            shaderCallback: (bounds) => const LinearGradient(
-                                              begin: Alignment.topCenter,
-                                              end: Alignment.bottomCenter,
-                                              colors: [Color(0xFF4A2810), Color(0xFF6B3A14)],
-                                            ).createShader(bounds),
-                                            blendMode: BlendMode.srcIn,
-                                            child: Image.asset(
-                                              'assets/images/coffee_cup_empty.png',
-                                              fit: BoxFit.contain,
+                                        child: Image.asset(
+                                          'assets/images/coffee_cup_empty.png',
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                      // Coffee fill: uses cup PNG as shape mask
+                                      if (fillProgress > 0)
+                                        Positioned.fill(
+                                          child: ClipRect(
+                                            clipper: _CoffeeLevelClipper(fillProgress),
+                                            child: ShaderMask(
+                                              shaderCallback: (bounds) => const LinearGradient(
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                colors: [Color(0xFF4A2810), Color(0xFF6B3A14)],
+                                              ).createShader(bounds),
+                                              blendMode: BlendMode.srcIn,
+                                              child: Image.asset(
+                                                'assets/images/coffee_cup_empty.png',
+                                                fit: BoxFit.contain,
+                                              ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '$giftsCount ${langProvider.translate('hediye_icecek')}',
-                                style: GoogleFonts.outfit(
-                                  color: AppTheme.bodyText,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
+                                const SizedBox(height: 6),
+                                Text(
+                                  '$giftsCount ${langProvider.translate('hediye_icecek')}',
+                                  style: GoogleFonts.outfit(
+                                    color: AppTheme.bodyText,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         // Right: Stats (Firm Tag moved to Positioned)
                         Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 64), // Space moved down from _buildFirmTag to align badhes with coffee text
-                              // Stats: Damga + Puan
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  _buildDamgaCircle(stampCount, target, langProvider),
-                                  _buildPuanCircle(points, langProvider),
-                                ],
-                              ),
-                            ],
+                          child: GestureDetector(
+                            onTap: () => context.push('/business-detail', extra: firm),
+                            behavior: HitTestBehavior.opaque,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(height: 64), // Space moved down from _buildFirmTag to align badhes with coffee text
+                                // Stats: Damga + Puan
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _buildDamgaCircle(stampCount, target, langProvider),
+                                    _buildPuanCircle(points, langProvider),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -299,80 +307,80 @@ class WalletCard extends StatelessWidget {
       logoWidget = const Icon(Icons.store_rounded, color: AppTheme.deepBrown, size: 18);
     }
 
-    return AspectRatio(
-      aspectRatio: 221 / 78,
-      child: Stack(
-        children: [
-          // SVG background shape
-          Positioned.fill(
-            child: SvgPicture.asset(
-              'assets/images/firm_tag_bg.svg',
-              fit: BoxFit.fill,
+    return GestureDetector(
+      onTap: () => context.push('/business-detail', extra: firm),
+      child: AspectRatio(
+        aspectRatio: 219 / 78,
+        child: Stack(
+          children: [
+            // SVG background shape
+            Positioned.fill(
+              child: SvgPicture.asset(
+                'assets/images/firm_tag_bg.svg',
+                fit: BoxFit.fill,
+              ),
             ),
-          ),
-          // Content overlay
-          Positioned.fill(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
-              child: Row(
-                children: [
-                  logoWidget,
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            name,
-                            style: GoogleFonts.outfit(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                              height: 1.1,
-                              color: const Color(0xFF131313),
+            // Content overlay
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 28, right: 12, top: 8, bottom: 8),
+                child: Row(
+                  children: [
+                    logoWidget,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              name,
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 15,
+                                height: 1.1,
+                                color: const Color(0xFF131313),
+                              ),
+                              maxLines: 1,
                             ),
-                            maxLines: 1,
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: Alignment.centerLeft,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.star_rounded, color: Color(0xFFF7C35F), size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                score.toStringAsFixed(1).replaceAll('.', ','),
-                                style: GoogleFonts.outfit(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF4A4A4A),
+                          const SizedBox(height: 8),
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Row(
+                              children: [
+                                const Icon(Icons.star_rounded, color: Color(0xFFF7C35F), size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  score.toStringAsFixed(1).replaceAll('.', ','),
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF4A4A4A),
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                "($count ${langProvider.translate('reviews_count')})",
-                                style: GoogleFonts.outfit(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w400,
-                                  color: const Color(0xFF4A4A4A),
+                                const SizedBox(width: 6),
+                                Text(
+                                  "($count ${langProvider.translate('reviews_count')})",
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w400,
+                                    color: const Color(0xFF4A4A4A),
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Navigation Arrow - ONLY this triggers navigation
-                  GestureDetector(
-                    onTap: () => context.push('/business-detail', extra: firm),
-                    child: Container(
+                    const SizedBox(width: 8),
+                    // Navigation Arrow (visual only, whole tag is tappable)
+                    Container(
                       width: 22,
                       height: 22,
                       decoration: const BoxDecoration(
@@ -384,12 +392,12 @@ class WalletCard extends StatelessWidget {
                       ),
                       child: const Icon(Icons.chevron_right_rounded, color: Colors.black, size: 18),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

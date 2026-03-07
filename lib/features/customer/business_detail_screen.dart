@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -49,6 +50,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     _giftsCount = data['giftsCount'] ?? 0;
     _points = (data['points'] ?? '0').toString();
     _businessId = data['id'] ?? '';
+    _isNew = data['isNew'] ?? false;
 
     // Fetch campaigns and menu products for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -253,12 +255,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              "$_giftsCount ${lang.translate('hediye_icecek')}",
-              style: GoogleFonts.outfit(
-                color: const Color(0xFF4A4A4A),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
+            SizedBox(
+              width: 100,
+              child: Text(
+                "$_giftsCount ${lang.translate('hediye_icecek')}",
+                style: GoogleFonts.outfit(
+                  color: const Color(0xFF4A4A4A),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ],
@@ -457,12 +465,15 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           ],
                         ),
                         child: Center(
-                          child: Text(
-                            _points,
-                            style: GoogleFonts.outfit(
-                              color: const Color(0xFF77410C),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w500,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _points,
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF77410C),
+                                fontSize: 18,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
@@ -538,7 +549,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
         ),
         const SizedBox(height: 18),
         SizedBox(
-          height: 166,
+          height: 210,
           child: _isProductsLoading
               ? const Center(child: CircularProgressIndicator())
               : (_products.isEmpty
@@ -554,7 +565,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       separatorBuilder: (_, __) => const SizedBox(width: 16),
                       itemBuilder: (context, index) {
                         final product = _products[index];
-                        return _buildMenuItemCard(product);
+                        return _buildMenuItemCard(product, lang, brandColor, businessName);
                       },
                     )),
         ),
@@ -562,54 +573,46 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     );
   }
 
-  Widget _buildMenuItemCard(dynamic product) {
+  Widget _buildMenuItemCard(dynamic product, LanguageProvider lang, Color brandColor, String businessName) {
     final imageUrl = resolveImageUrl(product['imageUrl']);
     final price = (product['price'] as num?) ?? 0;
+    final discount = (product['discount'] as num?) ?? 0;
 
     return Container(
       width: 150,
-      height: 166,
+      height: 210,
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: const Color(0xFFFFFDF7),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         shadows: const [
-          BoxShadow(
-            color: Color(0x3F000000),
-            blurRadius: 4,
-            offset: Offset(0, 4),
-          ),
+          BoxShadow(color: Color(0x3F000000), blurRadius: 4, offset: Offset(0, 4)),
         ],
       ),
-      child: Stack(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Product Image Container
-          Positioned(
-            left: 2,
-            top: 2,
-            child: Container(
-              width: 146,
-              height: 83,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: imageUrl != null
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
-                    )
-                  : Container(color: Colors.grey[100]),
+          // Image
+          Container(
+            height: 86,
+            margin: const EdgeInsets.fromLTRB(6, 6, 6, 0),
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: imageUrl != null
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
+                  )
+                : Container(color: Colors.grey[100]),
           ),
-          // Product Info
-          Positioned(
-            left: 10,
-            top: 92,
-            child: SizedBox(
-              width: 130,
+          // Info
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -619,52 +622,89 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.outfit(
                       color: Colors.black,
-                      fontSize: 15, // Increased font size
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(height: 2),
-                  AutoText(
-                    product['description'] ?? '',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF4F4A4A),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w400,
+                  Expanded(
+                    child: AutoText(
+                      product['description'] ?? '',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.outfit(
+                        color: const Color(0xFF4F4A4A),
+                        fontSize: 9,
+                        fontWeight: FontWeight.w400,
+                      ),
                     ),
+                  ),
+                  // Price row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      if (discount > 0) ...[
+                        Text(
+                          '${price.toStringAsFixed(0)}₺',
+                          style: GoogleFonts.outfit(
+                            color: Colors.grey,
+                            fontSize: 11,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      Flexible(
+                        child: Text(
+                          '${(price - discount).toStringAsFixed(0)}₺',
+                          style: GoogleFonts.outfit(
+                            color: Colors.black,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-          // Price
-          Positioned(
-            right: 10,
-            bottom: 10,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if ((product['discount'] ?? 0) > 0) ...[
-                  Text(
-                    '${price.toStringAsFixed(0)}₺',
-                    style: GoogleFonts.outfit(
-                      color: Colors.grey,
-                      fontSize: 12,
-                      decoration: TextDecoration.lineThrough,
-                    ),
+          // View Details Button
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => MenuScreen(
+                    businessId: _businessId,
+                    businessName: businessName,
+                    businessColor: brandColor,
+                    businessImage: widget.businessData['image'],
+                    businessLogo: widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'],
                   ),
-                  const SizedBox(width: 4),
-                ],
-                Text(
-                  '${(price - (product['discount'] ?? 0)).toStringAsFixed(0)}₺',
+                ),
+              );
+            },
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(6, 0, 6, 6),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9C06A),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  lang.translate('view_details'),
                   style: GoogleFonts.outfit(
-                    color: Colors.black,
-                    fontSize: 16,
+                    color: const Color(0xFF76410B),
+                    fontSize: 10,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -1046,6 +1086,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           // Scrollable Content layer
           Positioned.fill(
             child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
               padding: const EdgeInsets.only(bottom: 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1246,8 +1287,66 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
           if (_isNew)
             Positioned.fill(
-              child: Container(
-                color: Colors.grey.withValues(alpha: 0.2), // Light grey overlay
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Container(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    child: SafeArea(
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Lock icon
+                              Container(
+                                width: 88,
+                                height: 88,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF9C06A),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFFF9C06A).withValues(alpha: 0.45),
+                                      blurRadius: 28,
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.lock_rounded,
+                                  color: Colors.white,
+                                  size: 40,
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+                              Text(
+                                context.watch<LanguageProvider>().translate('locked_business_title'),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF131313),
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                context.watch<LanguageProvider>().translate('locked_business_subtitle'),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.outfit(
+                                  color: const Color(0xFF131313).withValues(alpha: 0.5),
+                                  fontSize: 14,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
         ],

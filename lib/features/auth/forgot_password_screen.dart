@@ -212,7 +212,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   Center(
                     child: TextButton(
                       onPressed: () => setState(() => _currentStep = ResetStep.phone),
-                      child: Text('Geri Dön', style: GoogleFonts.outfit(color: primaryBrand, fontWeight: FontWeight.bold)),
+                      child: Text('Geri Dön', style: GoogleFonts.outfit(color: const Color(0xFFF9C06A), fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -260,12 +260,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       height: 56,
       child: Container(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFA96307), Color(0xFF371E04)],
-          ),
+          color: const Color(0xFFF9C06A),
           borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF9C06A).withValues(alpha: 0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ElevatedButton(
           onPressed: _isLoading ? null : () {

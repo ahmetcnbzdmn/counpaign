@@ -67,7 +67,7 @@ class AppLocalizations {
       'my_points': 'Puanlarım',
       'stamps': 'Damga',
       'explore': 'Keşfet',
-      'deals': 'Fırsatlar',
+      'deals': 'Diğer Kampanyalar',
       'active_campaigns': 'Aktif Kampanya',
       'explore_cafes': 'Kafeleri Keşfet',
       'venues': 'Mekan',
@@ -149,9 +149,24 @@ class AppLocalizations {
       'search_cafe': 'Kafe ara...',
       'no_cafes_found': 'Kriterlere uygun kafe bulunamadı.',
       'newly_added': 'Yeni Eklenenler',
+      'newly_added_subtitle': 'Bölgene yeni katılanlar',
+      'discover_new_places': 'Yeni mekanları keşfet',
       'all_businesses': 'Tüm İşletmeler',
       'no_address': 'Adres bilgisi yok',
       'no_cafes_yet': 'Henüz keşfedilecek yeni mekan yok.',
+      'new_badge': 'YENİ',
+
+      // Business categories
+      'cat_kafe': 'Kafe',
+      'cat_restoran': 'Restoran',
+      'cat_bar': 'Bar',
+      'cat_fırın': 'Fırın',
+      'cat_pastane': 'Pastane',
+      'cat_market': 'Market',
+      'cat_spor': 'Spor',
+      'cat_güzellik': 'Güzellik',
+      'cat_giyim': 'Giyim',
+      'cat_teknoloji': 'Teknoloji',
 
       // Gift Selection
       'gift_selection_title': 'Hediye Seçimi',
@@ -185,6 +200,8 @@ class AppLocalizations {
       'no_campaigns_soon': 'Yakında yeni fırsatlar burada olacak! ✨',
       'add_to_wallet': 'Cüzdana Ekle',
       'added_to_wallet_msg': 'Bu işletme artık cüzdanında! 🎉',
+      'locked_business_title': 'Bu İşletme Kilitli',
+      'locked_business_subtitle': 'Bu işletmenin içeriğini görmek için önce cüzdanına eklemen gerekiyor.',
 
       // Add Firm Screen
       'page_title_add_cafe': 'Kafe Ekle',
@@ -322,7 +339,7 @@ class AppLocalizations {
       'delete_account_title': 'Hesabı Sil',
       'delete_account_desc': 'Hesabınızı silmek geri alınamaz bir işlemdir. Tüm puanlarınız, hediye geçmişiniz ve kişisel verileriniz kalıcı olarak silinecektir.\n\nİşlemi onaylamak için lütfen mevcut şifrenizi giriniz:',
       'change_password': 'Şifre Değiştir',
-      'privacy_policy': 'Gizlilik Güvenlik',
+      'privacy_policy': 'Gizlilik & Güvenlik',
       'popular_products': 'Öne Çıkanlar',
       'confirm_delete_btn': 'SİL',
       'cancel_btn': 'İPTAL',
@@ -356,6 +373,8 @@ class AppLocalizations {
       'no_campaigns_soon': 'New deals will be here soon! ✨',
       'add_to_wallet': 'Add to Wallet',
       'added_to_wallet_msg': 'Business added to your wallet! 🎉',
+      'locked_business_title': 'This Business is Locked',
+      'locked_business_subtitle': 'Add this business to your wallet to see its content.',
       
       // Add Firm Screen (EN)
       'page_title_add_cafe': 'Add Cafe',
@@ -469,7 +488,7 @@ class AppLocalizations {
       'my_points': 'My Points',
       'stamps': 'Stamps',
       'explore': 'Explore',
-      'deals': 'Deals',
+      'deals': 'Other Campaigns',
       'active_campaigns': 'Active Campaigns',
       'explore_cafes': 'Explore Cafes',
       'venues': 'Venues',
@@ -553,9 +572,24 @@ class AppLocalizations {
       'search_cafe': 'Search cafes...',
       'no_cafes_found': 'No cafes found matching criteria.',
       'newly_added': 'Newly Added',
+      'newly_added_subtitle': 'New arrivals in your area',
+      'discover_new_places': 'Discover new places',
       'all_businesses': 'All Businesses',
       'no_address': 'No address info',
       'no_cafes_yet': 'No new places to explore yet.',
+      'new_badge': 'NEW',
+
+      // Business categories
+      'cat_kafe': 'Cafe',
+      'cat_restoran': 'Restaurant',
+      'cat_bar': 'Bar',
+      'cat_fırın': 'Bakery',
+      'cat_pastane': 'Patisserie',
+      'cat_market': 'Market',
+      'cat_spor': 'Sports',
+      'cat_güzellik': 'Beauty',
+      'cat_giyim': 'Fashion',
+      'cat_teknoloji': 'Technology',
 
       // Gift Selection
       'gift_selection_title': 'Gift Selection',
@@ -658,7 +692,7 @@ class AppLocalizations {
       'delete_account_title': 'Delete Account',
       'delete_account_desc': 'Deleting your account is permanent. All your points, gift history, and personal data will be permanently removed.\n\nPlease enter your current password to confirm:',
       'change_password': 'Change Password',
-      'privacy_policy': 'Privacy Security',
+      'privacy_policy': 'Privacy &Security',
       'popular_products': 'Featured Products',
       'confirm_delete_btn': 'DELETE',
       'cancel_btn': 'CANCEL',

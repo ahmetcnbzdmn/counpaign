@@ -118,7 +118,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     const bgColor = Color(0xFFEBEBEB);
     const cardColor = Colors.white;
     const textColor = Color(0xFF131313);
-    const primaryBrand = Color(0xFF76410B);
+    const primaryBrand = Color(0xFFF9C06A);
     
     final lang = context.watch<LanguageProvider>();
 
@@ -129,8 +129,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           lang.translate('notifications'),
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
         actions: [
           IconButton(

@@ -58,6 +58,7 @@ class AppTheme {
     appBarTheme: const AppBarTheme(
       backgroundColor: lightBackground,
       elevation: 0,
+      scrolledUnderElevation: 0,
       iconTheme: IconThemeData(color: lightTextPrimary),
       centerTitle: false,
       titleTextStyle: TextStyle(
@@ -92,6 +93,7 @@ class AppTheme {
     appBarTheme: const AppBarTheme(
       backgroundColor: darkBackground,
       elevation: 0,
+      scrolledUnderElevation: 0,
       iconTheme: IconThemeData(color: darkTextPrimary),
       centerTitle: false,
       titleTextStyle: TextStyle(

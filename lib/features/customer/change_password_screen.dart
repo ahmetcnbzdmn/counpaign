@@ -56,13 +56,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container( // This Container cannot be const because its decoration property is not a constant expression.
+                  Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
+                      color: const Color(0xFFF9C06A).withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check_circle_rounded, color: Colors.green, size: 64),
+                    child: const Icon(Icons.check_circle_rounded, color: Color(0xFFF9C06A), size: 64),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -81,15 +81,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     height: 54,
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Color(0xFFA96307), Color(0xFF371E04)],
-                        ),
+                        color: const Color(0xFFF9C06A),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFFA96307).withValues(alpha: 0.3),
+                            color: const Color(0xFFF9C06A).withValues(alpha: 0.4),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -173,7 +169,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   child: const Icon(
                     Icons.lock_reset_rounded,
-                    color: primaryBrand,
+                    color: accentColor,
                     size: 64,
                   ),
                 ),
@@ -288,10 +284,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     child: auth.isLoading 
                       ? const SizedBox(
-                          width: 24, 
-                          height: 24, 
-                          child: CircularProgressIndicator(color: primaryBrand, strokeWidth: 2.5)
-                        ) 
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(color: accentColor, strokeWidth: 2.5)
+                        )
                       : Text(lang.translate('update').toUpperCase()),
                   ),
                 ),
@@ -337,8 +333,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16), 
-          borderSide: BorderSide(color: primaryBrand, width: 1.5)
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: Color(0xFFF9C06A), width: 1.5)
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16), 

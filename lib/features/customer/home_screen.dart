@@ -1269,7 +1269,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Tile 2: "Diğer Kampanyalar" (Figma: 173x172 r=16 #FFE5BE, border #76410B/0.5)
               Expanded(
                 child: GestureDetector(
-                  onTap: () => context.go('/campaigns'),
+                  onTap: () => context.push('/campaigns'),
                   child: Container(
                     height: 172,
                     decoration: BoxDecoration(
