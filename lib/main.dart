@@ -228,21 +228,21 @@ class _CounpaignAppState extends State<CounpaignApp> {
         GoRoute(
           path: '/business-detail',
           builder: (context, state) {
-            final data = state.extra as Map<String, dynamic>;
+            final data = (state.extra as Map<String, dynamic>?) ?? {};
             return BusinessDetailScreen(businessData: data);
           },
         ),
         GoRoute(
           path: '/business-scanner',
           builder: (context, state) {
-            final data = state.extra as Map<String, dynamic>;
+            final data = (state.extra as Map<String, dynamic>?) ?? {};
             return BusinessScannerScreen(businessData: data);
           },
         ),
         GoRoute(
           path: '/menu',
           builder: (context, state) {
-            final data = state.extra as Map<String, dynamic>;
+            final data = (state.extra as Map<String, dynamic>?) ?? {};
             return MenuScreen(
               businessId: data['businessId'],
               businessName: data['businessName'],

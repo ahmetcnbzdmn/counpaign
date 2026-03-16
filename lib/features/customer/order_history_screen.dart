@@ -92,6 +92,8 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       appBar: AppBar(
         title: Text(lang.translate('order_history'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
         backgroundColor: bgColor,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         iconTheme: IconThemeData(color: textColor),
         elevation: 0,
         centerTitle: true,
@@ -109,19 +111,27 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                       final isSelected = _selectedFilter == filterKey;
                       return Padding(
                         padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          label: Text(lang.translate(filterKey), style: GoogleFonts.outfit(
-                            color: isSelected ? const Color(0xFF131313) : textColor, // Use dark text when selected for yellow bg
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          )),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            if (selected) setState(() => _selectedFilter = filterKey);
-                          },
-                          selectedColor: activeColor,
-                          backgroundColor: cardColor,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          side: BorderSide(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _selectedFilter = filterKey),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: isSelected ? activeColor : cardColor,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
+                              boxShadow: isSelected ? [BoxShadow(color: activeColor.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3))] : [],
+                            ),
+                            child: Text(
+                              lang.translate(filterKey),
+                              style: GoogleFonts.outfit(
+                                color: isSelected ? const Color(0xFF131313) : textColor,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
                         ),
                       );
                     }).toList(),

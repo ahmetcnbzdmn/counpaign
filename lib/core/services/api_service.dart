@@ -73,8 +73,7 @@ class ApiService {
                   final retryResponse = await _dio.fetch(options);
                   return handler.resolve(retryResponse);
                 }
-              } catch (refreshErr) {
-                debugPrint('Token refresh failed: $refreshErr');
+              } catch (_) {
               }
             }
 
@@ -129,9 +128,7 @@ class ApiService {
   }
 
   Future<List<dynamic>> getMyFirms() async {
-    debugPrint("[DEBUG] ApiService: Calling getMyFirms()");
     final response = await _dio.get('/wallet/my');
-    debugPrint("[DEBUG] ApiService: getMyFirms returned ${response.data.length} items");
     return response.data as List<dynamic>;
   }
 
@@ -183,9 +180,7 @@ class ApiService {
   }
 
   Future<List<dynamic>> getTransactionHistory(String businessId) async {
-    debugPrint("[DEBUG] ApiService: Calling getTransactionHistory for $businessId");
     final response = await _dio.get('/transactions/history/$businessId');
-    debugPrint("[DEBUG] ApiService: getTransactionHistory returned ${response.data.length} items");
     return response.data as List<dynamic>;
   }
 
@@ -289,9 +284,7 @@ class ApiService {
   Future<void> updateFcmToken(String token) async {
     try {
       await _dio.post('/users/update-fcm-token', data: {'fcmToken': token});
-      debugPrint("[DEBUG] FCM Token updated on backend");
-    } catch (e) {
-      debugPrint('Update FCM Token Error: $e');
+    } catch (_) {
     }
   }
   Future<List<dynamic>> getUserNotifications() async {
@@ -331,7 +324,7 @@ class _RetryInterceptor extends Interceptor {
                        retryCount < maxRetries;
 
     if (shouldRetry) {
-      debugPrint("♻️ Retrying request (${retryCount + 1}/$maxRetries): ${options.path}");
+      // Retry silently
       
       await Future.delayed(Duration(milliseconds: retryDelayMs));
       

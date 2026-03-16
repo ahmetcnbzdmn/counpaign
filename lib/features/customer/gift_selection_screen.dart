@@ -82,28 +82,87 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
     final api = context.read<ApiService>();
     
     // 1. Confirmation Dialog
+    final isTr = lang.locale.languageCode == 'tr';
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Theme.of(context).cardColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(lang.translate('confirm_redeem_title'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
-        content: Text(
-          "${lang.translate('confirm_redeem_msg')}${gift['title']}?\n(${gift['pointCost']} ${lang.translate('points')})",
-          style: GoogleFonts.outfit(),
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: Theme.of(dialogCtx).cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9C06A).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.redeem_rounded, color: Color(0xFFD4940A), size: 28),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              lang.translate('confirm_redeem_title'),
+              style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${gift['title']}',
+              style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w600, color: const Color(0xFF3E2723)),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9C06A).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                '${gift['pointCost']} ${lang.translate('points')}',
+                style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFFD4940A)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isTr ? 'Bu ürünü almak istediğinize emin misiniz?' : 'Are you sure you want to redeem this item?',
+              style: GoogleFonts.outfit(fontSize: 13, color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+          ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(lang.translate('cancel'), style: GoogleFonts.outfit(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEE2C2C),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(lang.translate('confirm'), style: GoogleFonts.outfit(color: Colors.white)),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(dialogCtx, false),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: Text(lang.translate('cancel'), style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w500)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF9C06A),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () => Navigator.pop(dialogCtx, true),
+                  child: Text(lang.translate('confirm'), style: GoogleFonts.outfit(color: const Color(0xFF3E2723), fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -131,9 +190,9 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
           ),
         );
 
-        // If scanner returned true (success), go home
+        // If scanner returned true (success), pop back to business detail to refresh data
         if (result == true && mounted) {
-          context.go('/home');
+          Navigator.of(context).pop(true);
         }
       }
     } catch (e) {
@@ -383,18 +442,13 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            SizedBox(
-                              width: 110,
-                              child: Text(
-                                widget.businessName,
-                                style: GoogleFonts.outfit(
-                                  color: const Color(0xFF131313),
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  height: 1.1,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              widget.businessName,
+                              style: GoogleFonts.outfit(
+                                color: const Color(0xFF131313),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                height: 1.1,
                               ),
                             ),
                             const SizedBox(height: 2),

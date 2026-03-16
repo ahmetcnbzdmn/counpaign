@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class StorageService {
   static const String _tokenKey = 'auth_token';
@@ -6,42 +7,58 @@ class StorageService {
   static const String _roleKey = 'user_role';
   static const String _userKey = 'cached_user';
 
+  // Secure storage for sensitive data (tokens, user data)
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+  );
+
+  // === SECURE STORAGE (tokens, credentials, user data) ===
+
   Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
+    await _secureStorage.write(key: _tokenKey, value: token);
   }
 
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _secureStorage.read(key: _tokenKey);
   }
 
   Future<void> saveRefreshToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_refreshTokenKey, token);
+    await _secureStorage.write(key: _refreshTokenKey, value: token);
   }
 
   Future<String?> getRefreshToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_refreshTokenKey);
+    return await _secureStorage.read(key: _refreshTokenKey);
   }
 
   Future<void> saveCachedUser(String userJson) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_userKey, userJson);
+    await _secureStorage.write(key: _userKey, value: userJson);
   }
 
   Future<String?> getCachedUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_userKey);
+    return await _secureStorage.read(key: _userKey);
   }
 
   Future<void> saveRole(String role) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_roleKey, role);
+    await _secureStorage.write(key: _roleKey, value: role);
   }
 
+  Future<String?> getRole() async {
+    return await _secureStorage.read(key: _roleKey);
+  }
+
+  Future<void> clearSession() async {
+    await _secureStorage.delete(key: _tokenKey);
+    await _secureStorage.delete(key: _refreshTokenKey);
+    await _secureStorage.delete(key: _roleKey);
+    await _secureStorage.delete(key: _userKey);
+  }
+
+  // === SHARED PREFERENCES (non-sensitive settings) ===
+
   static const String _introKey = 'has_seen_intro';
+  static const String _themeKey = 'app_theme';
+  static const String _langKey = 'app_language';
 
   Future<void> setHasSeenIntro(bool seen) async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,13 +70,6 @@ class StorageService {
     return prefs.getBool(_introKey) ?? false;
   }
 
-  Future<String?> getRole() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_roleKey);
-  }
-
-  static const String _themeKey = 'app_theme';
-
   Future<void> saveTheme(bool isDark) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_themeKey, isDark);
@@ -69,17 +79,6 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_themeKey);
   }
-
-  Future<void> clearSession() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-    await prefs.remove(_refreshTokenKey);
-    await prefs.remove(_roleKey);
-    await prefs.remove(_userKey);
-    // Do not clear theme on logout usually
-  }
-
-  static const String _langKey = 'app_language';
 
   Future<void> saveLanguage(String languageCode) async {
     final prefs = await SharedPreferences.getInstance();

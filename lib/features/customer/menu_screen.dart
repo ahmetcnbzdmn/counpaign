@@ -8,6 +8,7 @@ import '../../core/config/api_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
+import 'menu_item_detail_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   final String businessId;
@@ -180,7 +181,7 @@ class _MenuScreenState extends State<MenuScreen> {
   String _getImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
-    final baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+    final baseUrl = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
     return '$baseUrl$path';
   }
 
@@ -233,6 +234,8 @@ class _MenuScreenState extends State<MenuScreen> {
       floating: false,
       pinned: true,
       backgroundColor: const Color(0xFFEBEBEB),
+      surfaceTintColor: Colors.transparent,
+      scrolledUnderElevation: 0,
       elevation: 0,
       leading: Container(
         margin: const EdgeInsets.all(8),
@@ -509,8 +512,21 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Widget _buildCreativePopularCard(dynamic product) {
     final imageUrl = _getImageUrl(product['imageUrl']);
-    
-    return Container(
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MenuItemDetailScreen(
+              product: Map<String, dynamic>.from(product),
+              businessName: widget.businessName,
+              businessLogo: widget.businessLogo ?? widget.businessImage,
+            ),
+          ),
+        );
+      },
+      child: Container(
       width: 160,
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -604,14 +620,28 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
+    ),
     );
   }
 
 
   Widget _buildCreativeGridCard(dynamic product) {
     final imageUrl = _getImageUrl(product['imageUrl']);
-    
-    return Container(
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MenuItemDetailScreen(
+              product: Map<String, dynamic>.from(product),
+              businessName: widget.businessName,
+              businessLogo: widget.businessLogo ?? widget.businessImage,
+            ),
+          ),
+        );
+      },
+      child: Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20), // Figma standard
@@ -648,16 +678,9 @@ class _MenuScreenState extends State<MenuScreen> {
                       borderRadius: BorderRadius.circular(20), // Pill shape
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.stars_rounded, color: Colors.white, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          (((product['price'] as num) - (product['discount'] ?? 0)).toInt()).toString(),
-                          style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
-                        ),
-                      ],
+                    child: Text(
+                      '${(((product['price'] as num) - (product['discount'] ?? 0)).toInt())}₺',
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
                     ),
                   ),
                 ),
@@ -703,6 +726,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }

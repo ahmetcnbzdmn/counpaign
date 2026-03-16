@@ -66,12 +66,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    'Şifreniz Güncellendi!',
+                    lang.translate('password_updated_title'),
                     style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF131313)),
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Yeni şifreniz başarıyla kaydedildi. Artık bu şifre ile giriş yapabilirsiniz.',
+                    lang.translate('password_updated_msg'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 14),
                   ),
@@ -114,9 +114,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       }
     } catch (e) {
       if (mounted) {
-        String errMsg = 'Güncelleme başarısız oldu.';
+        String errMsg = lang.translate('update_failed');
         if (e is DioException) {
-          errMsg = e.response?.data['error'] ?? 'Bir hata oluştu.';
+          errMsg = e.response?.data['error'] ?? lang.translate('an_error_occurred');
         }
         showCustomPopup(context, message: errMsg, type: PopupType.error);
       }
@@ -144,7 +144,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           lang.translate('change_password'), 
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)
         ),
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgColor,
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -177,7 +179,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: 32),
               
               Text(
-                'Güvenliğiniz için şifrenizi düzenli aralıklarla güncellemenizi öneririz.',
+                lang.translate('password_security_tip'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.outfit(
                   color: textColor.withValues(alpha: 0.6),
@@ -209,7 +211,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onChanged: (val) => setState(() {}),
                 validator: (val) {
                   if (val == null || val.isEmpty) return lang.translate('fill_all_fields');
-                  if (val.length < 6) return 'Şifre en az 6 karakter olmalıdır';
+                  if (val.length < 6) return lang.translate('password_min_chars');
                   return null;
                 },
               ),
@@ -226,7 +228,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onChanged: (val) => setState(() {}),
                 validator: (val) {
                   if (val == null || val.isEmpty) return lang.translate('fill_all_fields');
-                  if (val != _newPasswordController.text) return 'Şifreler eşleşmiyor';
+                  if (val != _newPasswordController.text) return lang.translate('passwords_dont_match');
                   return null;
                 },
               ),
@@ -244,7 +246,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        passwordsMatch ? 'Şifreler eşleşiyor' : 'Şifreler eşleşmiyor',
+                        passwordsMatch ? lang.translate('passwords_match') : lang.translate('passwords_dont_match'),
                         style: GoogleFonts.outfit(
                           color: passwordsMatch ? Colors.green : Colors.red,
                           fontSize: 13,
@@ -315,7 +317,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       obscureText: obscureText,
       onChanged: onChanged,
       style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.w500),
-      validator: validator ?? (val) => val == null || val.isEmpty ? 'Bu alan boş bırakılamaz' : null,
+      validator: validator ?? (val) => val == null || val.isEmpty ? Provider.of<LanguageProvider>(context, listen: false).translate('field_required') : null,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5)),

@@ -130,7 +130,9 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
       // Start Polling for Confirmation
       // Show waiting dialog
+      bool _dialogOpen = false;
       if (mounted) {
+        _dialogOpen = true;
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -192,6 +194,12 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          attempts++;
       }
 
+      // Close the waiting dialog first
+      if (_dialogOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        _dialogOpen = false;
+      }
+
       if (!mounted) return;
       if (isConfirmed) {
          if (mounted) {
@@ -201,9 +209,10 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.success,
             );
          }
-         if (mounted) context.go('/home');
+         if (mounted) {
+           Navigator.of(context).pop(true);
+         }
       } else if (isCancelled) {
-          // [NEW] Handle Cancellation
           if (mounted) {
             await showCustomPopup(
               context,
@@ -211,7 +220,6 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.error,
             );
           }
-           // Stay on scanner (or pop depending on UX preference, usually stay to scan again)
       } else {
          if (mounted) {
             await showCustomPopup(

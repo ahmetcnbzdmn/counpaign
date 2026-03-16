@@ -38,6 +38,9 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedRating = 0;
   bool _isSubmittingReview = false;
   bool _pendingReviewsLoaded = false;
+
+  // Track fetched campaign firms to avoid infinite re-fetch loop
+  final Set<String> _campaignFetchAttempted = {};
   
   @override
   void dispose() {
@@ -73,10 +76,13 @@ class _HomeScreenState extends State<HomeScreen> {
         bp.fetchExploreFirms();
         cp.fetchAllCampaigns();
 
+        // Fetch campaigns for each firm with delay to avoid rate limiting
         if (mounted) {
           final firms = bp.myFirms;
-          for (var firm in firms) {
-            cp.fetchCampaigns(firm['id']);
+          for (var i = 0; i < firms.length; i++) {
+            if (!mounted) break;
+            if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
+            cp.fetchCampaigns(firms[i]['id']);
           }
         }
       } catch (e) {
@@ -471,8 +477,8 @@ class _HomeScreenState extends State<HomeScreen> {
              ]);
           },
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(top: 10, bottom: 100),
+            physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
+            padding: const EdgeInsets.only(top: 10, bottom: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -849,13 +855,13 @@ class _HomeScreenState extends State<HomeScreen> {
                           final starIndex = i + 1;
                           final isFilled = (_isSubmittingReview && _selectedRating >= starIndex);
                           return Padding(
-                            padding: const EdgeInsets.only(right: 12),
+                            padding: EdgeInsets.only(right: i < 4 ? 8 : 0),
                             child: GestureDetector(
                               onTap: () => _showRatingDialog(review, starIndex),
                               child: Icon(
                                 Icons.star_rounded,
                                 color: isFilled ? const Color(0xFFE68A01) : const Color(0xFF6D6D6D).withValues(alpha: 0.4),
-                                size: 22.83,
+                                size: 20,
                               ),
                             ),
                           );
@@ -863,21 +869,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 12),
                       // Date & Time
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            date,
-                            style: GoogleFonts.outfit(color: const Color(0xFF3D3D3D), fontSize: 10, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(width: 4),
-                          Container(width: 1, height: 10, color: const Color(0xFF3D3D3D)),
-                          const SizedBox(width: 4),
-                          Text(
-                            time,
-                            style: GoogleFonts.outfit(color: const Color(0xFF3D3D3D), fontSize: 10, fontWeight: FontWeight.w500),
-                          ),
-                        ],
+                      Text(
+                        "$date | $time",
+                        style: GoogleFonts.outfit(color: const Color(0xFF3D3D3D), fontSize: 10, fontWeight: FontWeight.w500),
                       ),
                       const SizedBox(height: 8),
                       // Business Row
@@ -896,11 +890,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           else
                             Image.asset('assets/images/splash_logo.png', width: 16, height: 16, errorBuilder: (_, __, ___) => const SizedBox(width: 16, height: 16)),
                           const SizedBox(width: 6),
-                          SizedBox(
-                            width: 113,
+                          Flexible(
                             child: Text(
                               firmName,
-                              overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.outfit(color: const Color(0xFF131313), fontSize: 14, fontWeight: FontWeight.w500),
                             ),
                           ),
@@ -929,33 +921,63 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildActiveCampaignsCarousel(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context, listen: false);
-    final campaigns = context.watch<CampaignProvider>().allCampaigns;
     final isTr = lang.locale.languageCode == 'tr';
+
+    // Get current firm from wallet
+    final firms = _getFirmBalances(context);
+    final isAddCard = firms.isEmpty || _currentIndex >= firms.length;
+    final currentFirmId = (!isAddCard) ? firms[_currentIndex]['id'] as String? : null;
+    final isEmptyWallet = firms.isEmpty ||
+        firms.first['name'] == lang.translate('wallet_empty');
+
+    // Get campaigns for current wallet firm
+    final campaignProvider = context.watch<CampaignProvider>();
+    final List<dynamic> campaigns = (currentFirmId != null && !isEmptyWallet)
+        ? campaignProvider.getCampaignsForBusiness(currentFirmId)
+        : [];
+
+    // If campaigns not yet fetched for this firm, trigger fetch (only once per firm)
+    if (currentFirmId != null && !isEmptyWallet && campaigns.isEmpty && !campaignProvider.isLoading && !_campaignFetchAttempted.contains(currentFirmId)) {
+      _campaignFetchAttempted.add(currentFirmId);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.read<CampaignProvider>().fetchCampaigns(currentFirmId);
+      });
+    }
+
+    // Dots: max 5, map current index to dot index
+    final dotCount = campaigns.length.clamp(0, 5);
+    final activeDotIndex = dotCount <= 1
+        ? 0
+        : (campaigns.length <= 5
+            ? _currentCampaignIndex.clamp(0, dotCount - 1)
+            : (_currentCampaignIndex * (dotCount - 1) / (campaigns.length - 1))
+                .round()
+                .clamp(0, dotCount - 1));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 24), // Push down to avoid overlap with coffee splash
-        // Section Header (Figma: #434343 w600 14px)
+        const SizedBox(height: 24),
+        // Section Header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                lang.translate('active_campaigns_header'), 
+                lang.translate('active_campaigns_header'),
                 style: GoogleFonts.outfit(
-                  color: AppTheme.sectionTitle, // #434343
-                  fontSize: 14, // Figma: 14px
+                  color: AppTheme.sectionTitle,
+                  fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               GestureDetector(
                 onTap: () => context.push('/campaigns'),
                 child: Text(
-                  isTr ? 'Tümünü gör' : 'View All', 
+                  isTr ? 'Tümünü gör' : 'View All',
                   style: GoogleFonts.outfit(
-                    color: Colors.black, // Figma: #000000
+                    color: Colors.black,
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                   ),
@@ -964,39 +986,156 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 12), // Figma gap=12
+        const SizedBox(height: 12),
         SizedBox(
-          height: 184, // Increased height to prevent bottom shadow clipping
-          child: campaigns.isEmpty 
-            ? Center(child: Text(lang.translate('no_notifications'), style: GoogleFonts.outfit(color: AppTheme.bodyText)))
-            : PageView.builder(
-                controller: _campaignPageController,
-                itemCount: campaigns.length,
-                onPageChanged: (index) => setState(() => _currentCampaignIndex = index),
-                itemBuilder: (context, index) {
-                  final c = campaigns[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    child: _buildCampaignCard(c, isTr),
-                  );
-                },
-              ),
+          height: 184,
+          child: campaigns.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Container(
+                    height: 164,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 12, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Row(
+                      children: [
+                        // Left: text content
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(left: 18, right: 12, top: 18, bottom: 18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                Text(
+                                  isTr ? 'Aktif Kampanya' : 'No Active',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                Text(
+                                  isTr ? 'Bulunmuyor.' : 'Campaigns.',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.black,
+                                    height: 1.1,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  isTr
+                                      ? 'Yakında yeni fırsatlar gelebilir!'
+                                      : 'Check back soon for new offers!',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF7F6041),
+                                    height: 1.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // Right: decorative panel
+                        SizedBox(
+                          width: 130,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              // Large background circle (top-right)
+                              Positioned(
+                                right: -20,
+                                top: -20,
+                                child: Container(
+                                  width: 120,
+                                  height: 120,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFF9C06A).withValues(alpha: 0.15),
+                                  ),
+                                ),
+                              ),
+                              // Medium circle (bottom-left)
+                              Positioned(
+                                left: -10,
+                                bottom: -15,
+                                child: Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFF9C06A).withValues(alpha: 0.18),
+                                  ),
+                                ),
+                              ),
+                              // Centered icon circle
+                              Positioned.fill(
+                                child: Center(
+                                  child: Container(
+                                    width: 58,
+                                    height: 58,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: const Color(0xFFF9C06A).withValues(alpha: 0.22),
+                                    ),
+                                    child: const Icon(
+                                      Icons.local_offer_rounded,
+                                      color: Color(0xFF76410B),
+                                      size: 28,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : PageView.builder(
+                  key: ValueKey(currentFirmId),
+                  controller: _campaignPageController,
+                  itemCount: campaigns.length,
+                  physics: const ClampingScrollPhysics(),
+                  onPageChanged: (index) =>
+                      setState(() => _currentCampaignIndex = index),
+                  itemBuilder: (context, index) {
+                    final c = campaigns[index] as CampaignModel;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: _buildCampaignCard(c, isTr),
+                    );
+                  },
+                ),
         ),
-        // Dots (Dynamic generation based on campaigns count)
+        // Dots: max 5, highlight active
         if (campaigns.length > 1)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                campaigns.length,
+                dotCount,
                 (i) => AnimatedContainer(
                   duration: const Duration(milliseconds: 300),
-                  width: _currentCampaignIndex == i ? 19 : 11,
+                  width: activeDotIndex == i ? 19 : 11,
                   height: 9,
                   margin: const EdgeInsets.symmetric(horizontal: 2.5),
                   decoration: BoxDecoration(
-                    color: _currentCampaignIndex == i ? AppTheme.activeDot : AppTheme.inactiveDot,
+                    color: activeDotIndex == i
+                        ? AppTheme.activeDot
+                        : AppTheme.inactiveDot,
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
@@ -1368,11 +1507,19 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: () async {
             await context.push('/add-firm');
             if (context.mounted) {
-              context.read<BusinessProvider>().fetchMyFirms();
+              final bp = context.read<BusinessProvider>();
+              await bp.fetchMyFirms();
+              if (context.mounted) {
+                final cp = context.read<CampaignProvider>();
+                for (var i = 0; i < bp.myFirms.length; i++) {
+                  if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
+                  cp.fetchCampaigns(bp.myFirms[i]['id']);
+                }
+              }
             }
           },
           child: SizedBox(
-            height: 180, // Reasonable height for a static "Add Cafe" card
+            height: 180,
             child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),
           ),
         ),
@@ -1390,7 +1537,13 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: totalItems,
             padEnds: true,
             onPageChanged: (index) {
-              setState(() => _currentIndex = index);
+              setState(() {
+                _currentIndex = index;
+                _currentCampaignIndex = 0;
+              });
+              if (_campaignPageController.hasClients) {
+                _campaignPageController.jumpToPage(0);
+              }
               context.read<BusinessProvider>().setHomeSelectedFirmIndex(index);
             },
             itemBuilder: (context, index) {
@@ -1464,7 +1617,15 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () async {
           await context.push('/add-firm');
           if (context.mounted) {
-            context.read<BusinessProvider>().fetchMyFirms();
+            final bp = context.read<BusinessProvider>();
+            await bp.fetchMyFirms();
+            if (context.mounted) {
+              final cp = context.read<CampaignProvider>();
+              for (var i = 0; i < bp.myFirms.length; i++) {
+                if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
+                cp.fetchCampaigns(bp.myFirms[i]['id']);
+              }
+            }
           }
         },
         child: _buildAddKafeCard(context, key: const ValueKey('add_cafe_card')),

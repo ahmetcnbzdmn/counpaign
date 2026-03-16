@@ -18,70 +18,72 @@ class AuthService {
       final response = await _apiService.client.post('/auth/lookup-email', data: {
         'phoneNumber': phoneNumber
       });
-      
       final email = response.data['email'];
-      
-      UserCredential? userCredential;
-      
-      try {
-        // 2. Login with Real Email (Preferred)
-        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-      } catch (firebaseError) {
-        // FALLBACK: If real email fails, try Legacy "Fake" Email
-        // Old users are stored as "phone@counpaign.local" in Firebase
-        debugPrint("Login with real email failed ($firebaseError). Trying legacy fallback...");
-        
-        final legacyEmail = "$phoneNumber@counpaign.local";
-        userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: legacyEmail,
-          password: password,
-        );
-      }
-      
-      final user = userCredential.user;
-      if (user != null) {
-        // 3. Obtain Permanent Backend Token (365 days)
-        try {
-          final backendResponse = await _apiService.client.post('/auth/login', data: {
-            'phoneNumber': phoneNumber,
-            'password': password
-          });
-          
-          final backendToken = backendResponse.data['token'];
-          final refreshToken = backendResponse.data['refreshToken'];
 
-          if (backendToken != null) {
-            await _storageService.saveToken(backendToken);
-            if (refreshToken != null) {
-              await _storageService.saveRefreshToken(refreshToken);
-            }
-            debugPrint("✅ Obtained 365d Backend Token for user: $phoneNumber");
-          }
-        } catch (backendErr) {
-          debugPrint("Backend Token Sync Error: $backendErr. Falling back to Firebase token.");
-          // Fallback: use Firebase token if backend login fails for some reason
-          final token = await user.getIdToken();
-          if (token != null) {
-            await _storageService.saveToken(token);
-          }
+      // 2. Obtain Backend Token (primary auth — this is what the app uses)
+      final backendResponse = await _apiService.client.post('/auth/login', data: {
+        'phoneNumber': phoneNumber,
+        'password': password
+      });
+
+      final backendToken = backendResponse.data['token'];
+      final refreshToken = backendResponse.data['refreshToken'];
+      if (backendToken != null) {
+        await _storageService.saveToken(backendToken);
+        if (refreshToken != null) {
+          await _storageService.saveRefreshToken(refreshToken);
         }
       }
-      
-      return {'user': user};
+
+      // 3. Firebase Auth Login (secondary — keep in sync)
+      User? firebaseUser;
+      String? loggedInWithEmail;
+      final emailsToTry = [email, "$phoneNumber@counpaign.local"];
+      for (final tryEmail in emailsToTry) {
+        try {
+          final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+            email: tryEmail,
+            password: password,
+          );
+          firebaseUser = cred.user;
+          loggedInWithEmail = tryEmail;
+          break;
+        } catch (_) {}
+      }
+
+      // If Firebase login succeeded with a different email than backend,
+      // delete old Firebase user and recreate with correct email
+      if (firebaseUser != null && loggedInWithEmail != email) {
+        try {
+          await firebaseUser.delete();
+          final newCred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: email,
+            password: password,
+          );
+          firebaseUser = newCred.user;
+        } catch (syncErr) {
+          // Try updateEmail as fallback
+          try {
+            firebaseUser = FirebaseAuth.instance.currentUser;
+            if (firebaseUser != null) {
+              // ignore: deprecated_member_use
+              await firebaseUser.updateEmail(email);
+            }
+          } catch (_) {}
+        }
+      }
+
+      return {'user': firebaseUser};
     } catch (e) {
-      debugPrint("Firebase Login Error: $e");
       rethrow;
     }
   }
 
   Future<Map<String, dynamic>> register({
-    required String name, 
-    required String surname, 
-    required String phoneNumber, 
-    required String email, 
+    required String name,
+    required String surname,
+    required String phoneNumber,
+    required String email,
     required String password,
     String? gender,
     DateTime? birthDate,
@@ -100,12 +102,9 @@ class AuthService {
           'birthDate': birthDate?.toIso8601String(),
         },
       );
-      
+
       return response.data;
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
-      }
       rethrow;
     }
   }
@@ -117,15 +116,14 @@ class AuthService {
   Future<void> deleteAccount(String password) async {
     // 1. Delete MongoDB data via API
     await _apiService.deleteAccount(password);
-    
+
     // 2. Delete Firebase Auth user locally
     try {
       await FirebaseAuth.instance.currentUser?.delete();
-    } catch (e) {
-      debugPrint("Firebase user deletion failed locally: $e");
+    } catch (_) {
       // Non-blocking. The JWT and Mongo records are already dead.
     }
-    
+
     // 3. Clear session
     await logout();
   }
@@ -135,18 +133,14 @@ class AuthService {
       final response = await _apiService.client.get('/customer/profile');
       return response.data;
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
-         debugPrint("Request URI: ${e.requestOptions.uri}");
-      }
       rethrow;
     }
   }
 
   Future<Map<String, dynamic>> updateProfile({
-    String? name, 
-    String? surname, 
-    String? email, 
+    String? name,
+    String? surname,
+    String? email,
     String? profileImage,
     String? gender,
     DateTime? birthDate,
@@ -166,11 +160,23 @@ class AuthService {
         '/customer/profile',
         data: data,
       );
+
+      // Sync email change to Firebase Auth so login keeps working
+      if (email != null) {
+        try {
+          final fbUser = FirebaseAuth.instance.currentUser;
+          if (fbUser != null && fbUser.email != email) {
+            // ignore: deprecated_member_use
+            await fbUser.updateEmail(email);
+          }
+        } catch (_) {
+          // updateEmail may fail (deprecated/requires-recent-login)
+          // Login flow will handle the sync with delete+recreate
+        }
+      }
+
       return response.data;
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Backend Error: ${e.response?.data ?? e.message}");
-      }
       rethrow;
     }
   }
@@ -181,9 +187,6 @@ class AuthService {
         'phoneNumber': phoneNumber,
       });
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("SMS Send Error: ${e.response?.data}");
-      }
       rethrow;
     }
   }
@@ -194,7 +197,7 @@ class AuthService {
         'phoneNumber': phoneNumber,
         'code': code,
       });
-      
+
       final token = response.data['token'];
       final refreshToken = response.data['refreshToken'];
 
@@ -213,20 +216,16 @@ class AuthService {
             email: email,
             password: password,
           );
-          
+
           if (name != null) {
             await userCredential.user?.updateDisplayName("$name ${surname ?? ''}");
           }
-        } catch (fbError) {
-          debugPrint("Safe Firebase Creation Warning: $fbError");
+        } catch (_) {
           // Non-blocking error. The backend JWT gives us full access anyway.
         }
       }
 
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("SMS Verify Error: ${e.response?.data}");
-      }
       rethrow;
     }
   }
@@ -237,9 +236,6 @@ class AuthService {
         'phoneNumber': phoneNumber,
       });
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Reset SMS Send Error: ${e.response?.data}");
-      }
       rethrow;
     }
   }
@@ -250,7 +246,7 @@ class AuthService {
         'phoneNumber': phoneNumber,
         'code': code,
       });
-      
+
       final resetToken = response.data['resetToken'];
       if (resetToken != null) {
         // Temporarily save reset token to enable the /reset-password call
@@ -259,9 +255,6 @@ class AuthService {
       }
       throw Exception("Reset token missing");
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Reset Code Verify Error: ${e.response?.data}");
-      }
       rethrow;
     }
   }
@@ -271,27 +264,48 @@ class AuthService {
       await _apiService.client.post('/auth/reset-password', data: {
         'password': newPassword,
       });
-      
+
       // Clear the temporary reset token after use
       await logout();
     } catch (e) {
-      if (e is DioException) {
-         debugPrint("Password Reset Error: ${e.response?.data}");
-      }
       rethrow;
     }
   }
 
   Future<void> changePassword(String oldPassword, String newPassword) async {
     try {
+      // 1. Update backend password first (validates old password)
       await _apiService.client.post('/auth/change-password', data: {
         'oldPassword': oldPassword,
         'newPassword': newPassword,
       });
-    } catch (e) {
-      if (e is DioException) {
-        debugPrint("Change Password Error: ${e.response?.data}");
+
+      // 2. Sync Firebase Auth credentials
+      final fbUser = FirebaseAuth.instance.currentUser;
+      if (fbUser != null && fbUser.email != null) {
+        try {
+          // Re-authenticate with current Firebase email + old password
+          final credential = EmailAuthProvider.credential(
+            email: fbUser.email!,
+            password: oldPassword,
+          );
+          await fbUser.reauthenticateWithCredential(credential);
+
+          // Update Firebase password to match backend
+          await fbUser.updatePassword(newPassword);
+
+          // Also sync Firebase email to backend email if they differ
+          try {
+            final profileData = await getProfile();
+            final backendEmail = profileData['email'] as String?;
+            if (backendEmail != null && backendEmail != fbUser.email) {
+              // ignore: deprecated_member_use
+              await fbUser.updateEmail(backendEmail);
+            }
+          } catch (_) {}
+        } catch (_) {}
       }
+    } catch (e) {
       rethrow;
     }
   }

@@ -9,7 +9,7 @@ String? resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return null;
   if (path.startsWith('http')) return path;
   
-  final base = ApiConfig.baseUrl.replaceAll('/api', '');
+  final base = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
   
   // Ensure we don't have double slashes or missing slashes
   if (path.startsWith('/')) {

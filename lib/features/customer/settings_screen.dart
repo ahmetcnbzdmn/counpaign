@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/language_provider.dart';
@@ -78,21 +80,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             },
                           ),
                         ),
-                        Container(
-                          width: 100,
-                          height: 100,
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFF9C06A), width: 2),
-                            boxShadow: [
-                              BoxShadow(color: const Color(0xFFF9C06A).withValues(alpha: 0.3), blurRadius: 20),
-                            ]
-                          ),
-                          child: CircleAvatar(
-                            backgroundImage: (user?.profileImage != null)
-                                ? MemoryImage(base64Decode(user!.profileImage!)) as ImageProvider
-                                : const AssetImage('assets/images/default_profile.png'),
+                        GestureDetector(
+                          onTap: () {
+                            ImageProvider img;
+                            if (user?.profileImage != null) {
+                              img = MemoryImage(base64Decode(user!.profileImage!));
+                            } else {
+                              img = const AssetImage('assets/images/default_profile.png');
+                            }
+                            _showFullScreenPhoto(context, img);
+                          },
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: const Color(0xFFF9C06A), width: 2),
+                              boxShadow: [
+                                BoxShadow(color: const Color(0xFFF9C06A).withValues(alpha: 0.3), blurRadius: 20),
+                              ]
+                            ),
+                            child: CircleAvatar(
+                              backgroundColor: Colors.transparent,
+                              backgroundImage: (user?.profileImage != null)
+                                  ? MemoryImage(base64Decode(user!.profileImage!)) as ImageProvider
+                                  : const AssetImage('assets/images/default_profile.png'),
+                            ),
                           ),
                         ),
                       ],
@@ -154,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                          _buildSectionHeader(lang.translate('other'), textColor),
                          const SizedBox(height: 12),
                          _buildSettingsTile(icon: Icons.shield_outlined, title: lang.translate('privacy_policy'), textColor: textColor, cardColor: cardColor, onTap: () => context.push('/privacy-security')),
-                         _buildSettingsTile(icon: Icons.help_outline_rounded, title: lang.translate('help_support'), textColor: textColor, cardColor: cardColor, onTap: () {}),
+                         _buildSettingsTile(icon: Icons.help_outline_rounded, title: lang.translate('help_support'), textColor: textColor, cardColor: cardColor, onTap: () => _showHelpSupportSheet(context, lang)),
                          
                          // Removed notification settings and rate app items as requested
                          
@@ -225,6 +239,249 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
   }
 
+
+  void _showFullScreenPhoto(BuildContext context, ImageProvider imageProvider) {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        opaque: false,
+        barrierColor: Colors.black87,
+        barrierDismissible: true,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return FadeTransition(
+            opacity: animation,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Hero(
+                        tag: 'profile_photo',
+                        child: InteractiveViewer(
+                          minScale: 0.5,
+                          maxScale: 4.0,
+                          child: Container(
+                            width: 300,
+                            height: 300,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: imageProvider,
+                                fit: BoxFit.cover,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.3),
+                                  blurRadius: 30,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 60,
+                      right: 20,
+                      child: IconButton(
+                        icon: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.close, color: Colors.white, size: 24),
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showHelpSupportSheet(BuildContext context, LanguageProvider lang) {
+    const bgColor = Color(0xFFEBEBEB);
+    const cardColor = Colors.white;
+    const textColor = Color(0xFF131313);
+    const yellow = Color(0xFFF9C06A);
+    const deepBrown = Color(0xFF76410B);
+
+    final contacts = [
+      {
+        'key': 'contact_support',
+        'descKey': 'contact_support_desc',
+        'icon': Icons.headset_mic_rounded,
+        'iconBg': const Color(0xFFE8F4FD),
+        'iconColor': const Color(0xFF2196F3),
+        'contact': 'support@counpaign.com',
+        'type': 'email',
+      },
+      {
+        'key': 'contact_sales',
+        'descKey': 'contact_sales_desc',
+        'icon': Icons.storefront_rounded,
+        'iconBg': const Color(0xFFFFF3E0),
+        'iconColor': deepBrown,
+        'contact': '05464135531',
+        'type': 'phone',
+      },
+      {
+        'key': 'contact_info',
+        'descKey': 'contact_info_desc',
+        'icon': Icons.info_outline_rounded,
+        'iconBg': const Color(0xFFE8F5E9),
+        'iconColor': const Color(0xFF4CAF50),
+        'contact': 'info@counpaign.com',
+        'type': 'email',
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(color: textColor.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
+              ),
+              const SizedBox(height: 24),
+              // Title row
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: yellow.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.help_outline_rounded, color: deepBrown, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lang.translate('help_support'),
+                        style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
+                      ),
+                      Text(
+                        lang.translate('help_support_subtitle'),
+                        style: GoogleFonts.outfit(fontSize: 13, color: textColor.withValues(alpha: 0.5)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              ...contacts.map((c) {
+                final icon = c['icon'] as IconData;
+                final iconBg = c['iconBg'] as Color;
+                final iconColor = c['iconColor'] as Color;
+                final contact = c['contact'] as String;
+                final type = c['type'] as String;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4))],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      splashFactory: NoSplash.splashFactory,
+                      highlightColor: yellow.withValues(alpha: 0.08),
+                      onTap: () async {
+                        if (type == 'phone') {
+                          final waMessage = lang.translate('whatsapp_sales_message');
+                          final waUri = Uri.parse('https://wa.me/905464135531?text=${Uri.encodeComponent(waMessage)}');
+                          if (await canLaunchUrl(waUri)) launchUrl(waUri, mode: LaunchMode.externalApplication);
+                        } else {
+                          // Try Gmail app first, fallback to default mail
+                          final gmailUri = Uri.parse('googlegmail:///co?to=$contact');
+                          if (await canLaunchUrl(gmailUri)) {
+                            launchUrl(gmailUri, mode: LaunchMode.externalApplication);
+                          } else {
+                            final uri = Uri(scheme: 'mailto', path: contact);
+                            if (await canLaunchUrl(uri)) launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        }
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                              child: Icon(icon, color: iconColor, size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    lang.translate(c['key'] as String),
+                                    style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.bold, color: textColor),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    lang.translate(c['descKey'] as String),
+                                    style: GoogleFonts.outfit(fontSize: 12, color: textColor.withValues(alpha: 0.5), height: 1.4),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        type == 'phone' ? Icons.phone_rounded : Icons.mail_outline_rounded,
+                                        size: 13,
+                                        color: deepBrown.withValues(alpha: 0.7),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        type == 'phone' ? '+90 546 413 5531' : contact,
+                                        style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: deepBrown),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: textColor.withValues(alpha: 0.25)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildSectionHeader(String title, Color textColor) {
     return Align(

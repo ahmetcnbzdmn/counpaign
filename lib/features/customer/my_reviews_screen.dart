@@ -89,7 +89,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     String resolveLogoUrl(String? path) {
       if (path == null || path.isEmpty) return '';
       if (path.startsWith('http')) return path;
-      final baseUrl = ApiConfig.baseUrl.replaceAll('/api', '');
+      final baseUrl = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
       return '$baseUrl$path';
     }
 
@@ -102,6 +102,8 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
         appBar: AppBar(
           title: Text(lang.translate('my_reviews'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
           backgroundColor: bgColor,
+          surfaceTintColor: Colors.transparent,
+          scrolledUnderElevation: 0,
           iconTheme: const IconThemeData(color: textColor),
           elevation: 0,
           centerTitle: true,
@@ -110,6 +112,8 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
             labelColor: activeColor,
             unselectedLabelColor: textColor.withValues(alpha: 0.5),
             labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+            overlayColor: WidgetStateProperty.all(Colors.transparent),
+            splashFactory: NoSplash.splashFactory,
             tabs: [
               Tab(text: lang.translate('rated_tab')),
               Tab(text: lang.translate('pending_tab')),
@@ -141,19 +145,30 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
               final isSelected = _selectedFilter == filterKey;
               return Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                  label: Text(lang.translate(filterKey), style: GoogleFonts.outfit(
-                    color: isSelected ? Colors.white : textColor,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  )),
-                  selected: isSelected,
-                  onSelected: (selected) {
-                    if (selected) setState(() => _selectedFilter = filterKey);
-                  },
-                  selectedColor: AppTheme.primaryColor,
-                  backgroundColor: cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  side: BorderSide(color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1)),
+                child: GestureDetector(
+                  onTap: () => setState(() => _selectedFilter = filterKey),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? AppTheme.primaryColor : cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: isSelected ? Colors.transparent : textColor.withValues(alpha: 0.1),
+                      ),
+                      boxShadow: isSelected ? [
+                        BoxShadow(color: AppTheme.primaryColor.withValues(alpha: 0.35), blurRadius: 8, offset: const Offset(0, 3)),
+                      ] : [],
+                    ),
+                    child: Text(
+                      lang.translate(filterKey),
+                      style: GoogleFonts.outfit(
+                        color: isSelected ? Colors.white : textColor,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
               );
             }).toList(),

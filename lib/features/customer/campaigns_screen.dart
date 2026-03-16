@@ -207,6 +207,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: isSelected ? yellow : cardColor,
                         borderRadius: BorderRadius.circular(20),

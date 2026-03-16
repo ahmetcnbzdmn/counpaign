@@ -46,6 +46,7 @@ class CampaignDetailScreen extends StatelessWidget {
       pinned: true,
       stretch: true,
       backgroundColor: bgColor,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
       scrolledUnderElevation: 0,
       leading: IconButton(
@@ -297,8 +298,7 @@ class CampaignDetailScreen extends StatelessWidget {
                 child: Text(
                   label,
                   style: GoogleFonts.outfit(fontSize: 12, color: textColor.withValues(alpha: 0.5), fontWeight: FontWeight.bold),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
                 ),
               ),
             ],

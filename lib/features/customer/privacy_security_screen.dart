@@ -6,6 +6,7 @@ import 'package:dio/dio.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/language_provider.dart';
+import 'legal_content_screen.dart';
 
 class PrivacySecurityScreen extends StatefulWidget {
   const PrivacySecurityScreen({super.key});
@@ -203,14 +204,55 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
               onTap: () => context.push('/change-password'),
             ),
             const SizedBox(height: 16),
-            // Privacy Policy
+            // User Agreement
             _buildTile(
-              icon: Icons.description_outlined, 
-              title: lang.translate('privacy_policy'), 
-              textColor: textColor, 
-              cardColor: cardColor, 
-              showArrow: false,
-              onTap: null,
+              icon: Icons.handshake_outlined,
+              title: lang.translate('user_agreement'),
+              textColor: textColor,
+              cardColor: cardColor,
+              showArrow: true,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => LegalContentScreen(
+                    title: lang.translate('user_agreement'),
+                    assetBaseName: 'user_agreement',
+                  ),
+                ));
+              },
+            ),
+
+            // KVKK
+            _buildTile(
+              icon: Icons.security_outlined,
+              title: lang.translate('kvkk_title'),
+              textColor: textColor,
+              cardColor: cardColor,
+              showArrow: true,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => LegalContentScreen(
+                    title: lang.translate('kvkk_title'),
+                    assetBaseName: 'kvkk',
+                  ),
+                ));
+              },
+            ),
+
+            // Review Rules
+            _buildTile(
+              icon: Icons.rate_review_outlined,
+              title: lang.translate('review_rules_title'),
+              textColor: textColor,
+              cardColor: cardColor,
+              showArrow: true,
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                  builder: (_) => LegalContentScreen(
+                    title: lang.translate('review_rules_title'),
+                    assetBaseName: 'review_rules',
+                  ),
+                ));
+              },
             ),
 
             const SizedBox(height: 32),

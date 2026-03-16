@@ -130,8 +130,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
         ),
         backgroundColor: bgColor,
-        elevation: 0,
+        surfaceTintColor: Colors.transparent,
         scrolledUnderElevation: 0,
+        elevation: 0,
         centerTitle: true,
         actions: [
           IconButton(

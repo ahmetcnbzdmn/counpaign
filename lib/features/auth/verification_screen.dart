@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/language_provider.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -13,9 +14,9 @@ class VerificationScreen extends StatefulWidget {
   final String? password;
   final String? name;
   final String? surname;
-  
+
   const VerificationScreen({
-    super.key, 
+    super.key,
     required this.phoneNumber,
     this.email,
     this.password,
@@ -51,28 +52,28 @@ class _VerificationScreenState extends State<VerificationScreen> {
     try {
       final auth = context.read<AuthProvider>();
       await auth.verifySmsCode(
-        widget.phoneNumber, 
+        widget.phoneNumber,
         _pinController.text,
         email: widget.email,
         password: widget.password,
         name: widget.name,
         surname: widget.surname,
       );
-      
+
       if (mounted) {
-        // Success Haptic
         HapticFeedback.heavyImpact();
         context.go('/home');
       }
     } catch (e) {
       if (mounted) {
+        final lang = context.read<LanguageProvider>();
         HapticFeedback.vibrate();
-        _pinController.clear(); // Clear on error for retry
+        _pinController.clear();
         showCustomPopup(
           context,
-          message: e.toString().contains("Exception:") 
-              ? e.toString().replaceAll("Exception: ", "") 
-              : "Doğrulama başarısız.",
+          message: e.toString().contains("Exception:")
+              ? e.toString().replaceAll("Exception: ", "")
+              : lang.translate('verification_failed'),
           type: PopupType.error,
         );
       }
@@ -87,11 +88,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
       final auth = context.read<AuthProvider>();
       await auth.sendSmsVerification(widget.phoneNumber);
       if (mounted) {
-        showCustomPopup(context, message: "Kod tekrar gönderildi.", type: PopupType.success);
+        final lang = context.read<LanguageProvider>();
+        showCustomPopup(context, message: lang.translate('code_resent_msg'), type: PopupType.success);
       }
     } catch (e) {
       if (mounted) {
-        showCustomPopup(context, message: "Kod gönderilemedi.", type: PopupType.error);
+        final lang = context.read<LanguageProvider>();
+        showCustomPopup(context, message: lang.translate('code_error_msg'), type: PopupType.error);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -103,6 +106,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     const textColor = Color(0xFF131313);
     const primaryColor = Color(0xFF76410B);
     const bgColor = Color(0xFFEBEBEB);
+    final lang = context.watch<LanguageProvider>();
 
     // Pinput Theme
     final defaultPinTheme = PinTheme(
@@ -142,6 +146,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
       color: Colors.white,
     );
 
+    // Build description based on language
+    final descPrefix = lang.translate('verification_code_desc_prefix');
+    final descSuffix = lang.translate('verification_code_desc_suffix');
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
@@ -156,7 +164,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 20),
-              
+
               // Icon / Logo
               Container(
                 padding: const EdgeInsets.all(20),
@@ -166,31 +174,32 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 ),
                 child: const Icon(Icons.mark_email_unread_rounded, size: 48, color: primaryColor),
               ),
-              
+
               const SizedBox(height: 32),
-              
+
               Text(
-                'Doğrulama Kodu',
+                lang.translate('verification_code_title'),
                 style: GoogleFonts.outfit(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: textColor,
                 ),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  text: 'Lütfen ',
+                  text: '$descPrefix ',
                   style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontSize: 16),
                   children: [
                     TextSpan(
                       text: widget.phoneNumber,
                       style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
                     ),
-                    const TextSpan(text: ' numarasına gönderilen 6 haneli kodu giriniz.'),
+                    if (descSuffix.isNotEmpty)
+                      TextSpan(text: ' $descSuffix'),
                   ],
                 ),
               ),
@@ -249,9 +258,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 0.5),
                     ),
-                    child: _isLoading 
+                    child: _isLoading
                       ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('DOĞRULA'),
+                      : Text(lang.translate('verify_action')),
                   ),
                 ),
               ),
@@ -262,7 +271,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               TextButton(
                 onPressed: _isLoading ? null : _resendCode,
                 child: Text(
-                  "Kodu tekrar gönder",
+                  lang.translate('resend_code'),
                   style: TextStyle(
                     color: textColor.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,

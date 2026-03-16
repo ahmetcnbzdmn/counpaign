@@ -17,6 +17,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/widgets/auto_text.dart';
 import 'gift_selection_screen.dart';
 import 'menu_screen.dart';
+import 'menu_item_detail_screen.dart';
 
 class BusinessDetailScreen extends StatefulWidget {
   final Map<String, dynamic> businessData;
@@ -55,7 +56,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     // Fetch campaigns and menu products for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CampaignProvider>().fetchCampaigns(_businessId);
-      context.read<BusinessProvider>().setContextFirm(_businessId, widget.businessData['name'] ?? 'İşletme', {
+      context.read<BusinessProvider>().setContextFirm(_businessId, widget.businessData['name'] ?? '', {
         'expectedBusinessId': _businessId,
         'expectedBusinessName': widget.businessData['name'] ?? '',
         'expectedBusinessColor': widget.businessData['color'],
@@ -147,7 +148,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               final firmCampaigns = allCampaigns.where((c) => c.businessId == _businessId).toList();
               
               if (firmCampaigns.isEmpty) {
-                showNoCampaignsDialog(context, widget.businessData['name'] ?? 'İşletme');
+                showNoCampaignsDialog(context, widget.businessData['name'] ?? '');
                 return;
               }
 
@@ -162,7 +163,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 'currentPoints': _points,
               });
             },
-            iconWidget: Image.asset('assets/images/qr.png', fit: BoxFit.contain),
+            iconWidget: SvgPicture.asset('assets/images/qrlogo.svg', fit: BoxFit.contain),
             label: lang.translate('qr_okut'),
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
@@ -323,8 +324,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   // Visual vertical alignment adjustment removed for better centering
-                                  SizedBox(
-                                    width: 110, // Max space left in the box
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
                                     child: Text(
                                       businessName,
                                       style: GoogleFonts.outfit(
@@ -333,8 +335,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                         fontWeight: FontWeight.w500,
                                         height: 1.1,
                                       ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -565,7 +565,19 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       separatorBuilder: (_, __) => const SizedBox(width: 16),
                       itemBuilder: (context, index) {
                         final product = _products[index];
-                        return _buildMenuItemCard(product, lang, brandColor, businessName);
+                        return GestureDetector(
+                          onTap: () {
+                            final logoUrl = widget.businessData['logo'] ?? widget.businessData['image'];
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => MenuItemDetailScreen(
+                                product: Map<String, dynamic>.from(product),
+                                businessName: businessName,
+                                businessLogo: logoUrl,
+                              ),
+                            ));
+                          },
+                          child: _buildMenuItemCard(product, lang, brandColor, businessName),
+                        );
                       },
                     )),
         ),
@@ -678,11 +690,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => MenuScreen(
-                    businessId: _businessId,
+                  builder: (_) => MenuItemDetailScreen(
+                    product: Map<String, dynamic>.from(product),
                     businessName: businessName,
-                    businessColor: brandColor,
-                    businessImage: widget.businessData['image'],
                     businessLogo: widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'],
                   ),
                 ),
@@ -880,8 +890,6 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           Text(
                              widget.businessData['name'] ?? '',
                              style: GoogleFonts.outfit(fontSize: 14, color: AppTheme.deepBrown.withValues(alpha: 0.6)),
-                             maxLines: 1, 
-                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -930,10 +938,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
                         
                         // Default values
-                        // Use local variables that will be assigned in the branches below
-                        final String title;
-                        final String sign;
-                        final Color color;
+                        String title = lang.translate('transaction');
+                        String sign = '';
+                        Color color = Colors.grey;
                         final List<Widget> amountWidgets = [];
                         
                         // Parse points securely
@@ -947,14 +954,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         }
 
                         if (type == 'gift_redemption') {
-                          final isEntitlement = description.contains('Hediye Hakkı');
+                          final isEntitlement = description.contains('Hediye Hakkı') || description.contains('Gift Entitlement');
                           sign = "";
                           if (isEntitlement || pts == null || pts == 0) {
-                             title = "Hediye Kullanıldı";
-                             color = Colors.amber; 
-                             amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                             title = lang.translate('gift_redeemed');
+                             color = Colors.amber;
+                             amountWidgets.add(Text("-1 ${lang.translate('unit_gift')}", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
                            } else {
-                              title = description.replaceAll('Hediye Alımı: ', '');
+                              title = description.replaceAll('Hediye Alımı: ', '').replaceAll('Gift Redemption: ', '');
                               color = AppTheme.primaryColor;
                               amountWidgets.add(Text("${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
                            }
@@ -972,7 +979,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                            if (pts != null && pts < 0) {
                               title = lang.translate('point_spending');
                               color = AppTheme.primaryColor;
-                              amountWidgets.add(Text("${pts.toInt()} Puan", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                              amountWidgets.add(Text("${pts.toInt()} ${lang.translate('unit_point')}", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
                            } else {
                               title = lang.translate('point_earned');
                               color = const Color(0xFF4CAF50);
@@ -984,9 +991,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                            title = Provider.of<LanguageProvider>(context, listen: false).translate('gift_redeemed');
                            color = Colors.red;
                            sign = "-";
-                           amountWidgets.add(Text("-1 Hediye", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
+                           amountWidgets.add(Text("-1 ${lang.translate('unit_gift')}", style: GoogleFonts.outfit(color: color, fontWeight: FontWeight.bold, fontSize: 13)));
                         } else {
-                           title = "İşlem";
+                           title = lang.translate('transaction');
                            color = Colors.grey;
                            sign = "";
                         }

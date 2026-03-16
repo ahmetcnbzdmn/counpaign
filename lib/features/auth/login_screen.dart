@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
+import 'package:counpaign/core/providers/language_provider.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -36,6 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
   String? _selectedGender;
   DateTime? _selectedBirthDate;
+  bool _acceptedAgreement = false;
+  bool _acceptedKvkk = false;
 
   @override
   void dispose() {
@@ -66,11 +69,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CupertinoButton(
-                    child: Text('İptal', style: TextStyle(color: Colors.red.shade400)),
+                    child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: TextStyle(color: Colors.red.shade400)),
                     onPressed: () => Navigator.pop(context),
                   ),
                   CupertinoButton(
-                    child: const Text('Tamam', style: TextStyle(color: Colors.blue)),
+                    child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('ok'), style: const TextStyle(color: Colors.blue)),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -115,50 +118,55 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _submit() async {
     final auth = context.read<AuthProvider>();
-    
+    final lang = context.read<LanguageProvider>();
+
     // Haptic Feedback for premium feel
     HapticFeedback.mediumImpact();
 
     try {
       if (_activePageIndex == 0) { // Login
          if (_phoneController.text.isEmpty || _passwordController.text.isEmpty) {
-           throw Exception("Lütfen tüm alanları doldurun.");
+           throw Exception(lang.translate('fill_all_fields_msg'));
          }
          await auth.login(_phoneController.text, _passwordController.text);
       } else { // Register
-         if (_nameController.text.isEmpty || _surnameController.text.isEmpty || 
-             _phoneController.text.isEmpty || _emailController.text.isEmpty || 
+         if (_nameController.text.isEmpty || _surnameController.text.isEmpty ||
+             _phoneController.text.isEmpty || _emailController.text.isEmpty ||
              _passwordController.text.isEmpty || _selectedGender == null || _selectedBirthDate == null) {
-             throw Exception("Lütfen tüm alanları doldurun.");
+             throw Exception(lang.translate('fill_all_fields_msg'));
          }
-         
+
          if (!_phoneController.text.startsWith('5')) {
-           throw Exception("Telefon numarası 5 ile başlamalıdır.");
+           throw Exception(lang.translate('phone_start_5_msg'));
          }
 
          // Email Validation
          final emailRegex = RegExp(r"^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$");
          if (!emailRegex.hasMatch(_emailController.text)) {
-           throw Exception("Lütfen geçerli bir e-posta adresi giriniz.");
+           throw Exception(lang.translate('invalid_email_msg'));
          }
 
          if (_passwordController.text != _confirmPasswordController.text) {
-           throw Exception("Şifreler eşleşmiyor.");
+           throw Exception(lang.translate('passwords_dont_match_msg'));
          }
-         
+
+         if (!_acceptedAgreement || !_acceptedKvkk) {
+           throw Exception(lang.translate('accept_agreements_msg'));
+         }
+
          await auth.register(
-           name: _nameController.text, 
+           name: _nameController.text,
            surname: _surnameController.text,
-           phoneNumber: _phoneController.text, 
-           email: _emailController.text, 
+           phoneNumber: _phoneController.text,
+           email: _emailController.text,
            password: _passwordController.text,
            gender: _selectedGender,
            birthDate: _selectedBirthDate,
          );
-         
+
          // SUCCESS: Send SMS & Navigate
          await auth.sendSmsVerification(_phoneController.text);
-         
+
          if (mounted) {
            context.push('/verify-phone', extra: {
              'phoneNumber': _phoneController.text,
@@ -172,37 +180,46 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (mounted) {
         String errorMessage = e.toString();
-        
+
         if (e is DioException) {
-           errorMessage = e.response?.data['error'] ?? "Sunucu Hatası: ${e.message}";
+           final statusCode = e.response?.statusCode;
+           if (statusCode == 401 || statusCode == 400) {
+             errorMessage = lang.translate('invalid_credential');
+           } else if (statusCode == 404) {
+             errorMessage = lang.translate('user_not_found');
+           } else if (statusCode == 403) {
+             errorMessage = lang.translate('user_disabled');
+           } else {
+             errorMessage = lang.translate('server_error_prefix');
+           }
         } else if (e is FirebaseAuthException) {
            switch (e.code) {
              case 'email-already-in-use':
-               errorMessage = "Bu e-posta adresi zaten kullanımda.";
+               errorMessage = lang.translate('email_in_use');
                break;
              case 'invalid-email':
-               errorMessage = "Geçersiz e-posta adresi.";
+               errorMessage = lang.translate('invalid_email_firebase');
                break;
              case 'weak-password':
-               errorMessage = "Şifreniz çok zayıf.";
+               errorMessage = lang.translate('weak_password');
                break;
              case 'user-not-found':
-               errorMessage = "Kullanıcı bulunamadı.";
+               errorMessage = lang.translate('user_not_found');
                break;
              case 'wrong-password':
-               errorMessage = "Şifre hatalı.";
+               errorMessage = lang.translate('wrong_password');
                break;
              case 'invalid-credential':
-               errorMessage = "Şifre veya kullanıcı bilgisi hatalı.";
+               errorMessage = lang.translate('invalid_credential');
                break;
              case 'user-disabled':
-               errorMessage = "Bu hesap devre dışı bırakılmış.";
+               errorMessage = lang.translate('user_disabled');
                break;
              default:
-               errorMessage = "Giriş Hatası: ${e.message}";
+               errorMessage = "${lang.translate('login_error_prefix')}: ${e.message}";
            }
         } else if (e.toString().contains("DioException")) {
-           errorMessage = "Kayıt Başarısız. Bilgilerinizi kontrol ediniz."; 
+           errorMessage = lang.translate('register_failed');
         }
 
         showCustomPopup(
@@ -217,6 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthProvider>().isLoading;
+    final lang = context.watch<LanguageProvider>();
     // Theme Colors
     const Color bgColor = Color(0xFFEBEBEB);
     const Color cardColor = Colors.white;
@@ -244,7 +262,7 @@ class _LoginScreenState extends State<LoginScreen> {
              ),
              padding: const EdgeInsets.symmetric(horizontal: 24.0),
              child: Column(
-               crossAxisAlignment: CrossAxisAlignment.start,
+               crossAxisAlignment: CrossAxisAlignment.center,
                mainAxisAlignment: MainAxisAlignment.center,
                children: [
                  const SizedBox(height: 60),
@@ -298,36 +316,50 @@ class _LoginScreenState extends State<LoginScreen> {
                        
                        const SizedBox(height: 32),
                        
-                       SizedBox(
-                         height: 90, // Fixed height to prevent jitter
-                         child: AnimatedSwitcher(
-                           duration: const Duration(milliseconds: 400),
-                           switchInCurve: Curves.easeOutCubic,
-                           switchOutCurve: Curves.easeInCubic,
-                           transitionBuilder: (Widget child, Animation<double> animation) {
-                             return FadeTransition(opacity: animation, child: SlideTransition(
-                               position: Tween<Offset>(
-                                 begin: const Offset(0.0, 0.2),
-                                 end: Offset.zero,
-                               ).animate(animation),
-                               child: child,
-                             ));
-                           },
-                           child: Align(
-                             alignment: Alignment.center,
-                             key: ValueKey<int>(_activePageIndex),
-                             child: Text(
-                               _activePageIndex == 0 ? 'Hoşgeldin.\nGiriş Yap.' : 'Hesap\nOluştur.',
+                       AnimatedSwitcher(
+                         duration: const Duration(milliseconds: 400),
+                         switchInCurve: Curves.easeOutCubic,
+                         switchOutCurve: Curves.easeInCubic,
+                         transitionBuilder: (Widget child, Animation<double> animation) {
+                           return FadeTransition(opacity: animation, child: SlideTransition(
+                             position: Tween<Offset>(
+                               begin: const Offset(0.0, 0.2),
+                               end: Offset.zero,
+                             ).animate(animation),
+                             child: child,
+                           ));
+                         },
+                         child: Column(
+                           key: ValueKey<int>(_activePageIndex),
+                           crossAxisAlignment: CrossAxisAlignment.center,
+                           children: [
+                             Text(
+                               _activePageIndex == 0
+                                   ? lang.translate('login_title')
+                                   : lang.translate('register_title'),
                                textAlign: TextAlign.center,
                                style: GoogleFonts.outfit(
-                                 fontSize: 36,
-                                 fontWeight: FontWeight.bold,
-                                 height: 1.2,
+                                 fontSize: 34,
+                                 fontWeight: FontWeight.w800,
+                                 height: 1.15,
                                  color: textColor,
-                                 letterSpacing: -0.5,
+                                 letterSpacing: -0.8,
                                ),
                              ),
-                           ),
+                             const SizedBox(height: 6),
+                             Text(
+                               _activePageIndex == 0
+                                   ? lang.translate('login_subtitle')
+                                   : lang.translate('register_subtitle'),
+                               textAlign: TextAlign.center,
+                               style: GoogleFonts.outfit(
+                                 fontSize: 15,
+                                 fontWeight: FontWeight.w600,
+                                 color: const Color(0xFFF9C06A),
+                                 letterSpacing: 0.1,
+                               ),
+                             ),
+                           ],
                          ),
                        ),
                      ],
@@ -350,9 +382,9 @@ class _LoginScreenState extends State<LoginScreen> {
                        if (_activePageIndex == 1) ...[
                          Row(
                            children: [
-                             Expanded(child: _buildModernTextField(controller: _nameController, hint: 'Ad', icon: Icons.person)),
+                             Expanded(child: _buildModernTextField(controller: _nameController, hint: lang.translate('name'), icon: Icons.person)),
                              const SizedBox(width: 12),
-                             Expanded(child: _buildModernTextField(controller: _surnameController, hint: 'Soyad', icon: Icons.person_outline)),
+                             Expanded(child: _buildModernTextField(controller: _surnameController, hint: lang.translate('surname'), icon: Icons.person_outline)),
                            ],
                          ),
                          const SizedBox(height: 16),
@@ -376,7 +408,7 @@ class _LoginScreenState extends State<LoginScreen> {
                        if (_activePageIndex == 1) ...[
                          _buildModernTextField(
                            controller: _emailController, 
-                           hint: 'E-posta Adresi', 
+                           hint: lang.translate('email'),
                            icon: Icons.alternate_email_rounded,
                            keyboardType: TextInputType.emailAddress,
                          ),
@@ -392,13 +424,13 @@ class _LoginScreenState extends State<LoginScreen> {
                            child: DropdownButtonHideUnderline(
                              child: DropdownButton<String>(
                                value: _selectedGender,
-                               hint: Text("Cinsiyet", style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
+                               hint: Text(lang.translate('gender'), style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
                                isExpanded: true,
                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
-                               items: const [
-                                 DropdownMenuItem(value: 'Erkek', child: Text('Erkek')),
-                                 DropdownMenuItem(value: 'Kadın', child: Text('Kadın')),
-                                 DropdownMenuItem(value: 'Diğer', child: Text('Diğer')),
+                               items: [
+                                 DropdownMenuItem(value: 'male', child: Text(lang.translate('male'))),
+                                 DropdownMenuItem(value: 'female', child: Text(lang.translate('female'))),
+                                 DropdownMenuItem(value: 'other', child: Text(lang.translate('other_gender'))),
                                ],
                                onChanged: (val) => setState(() => _selectedGender = val),
                              ),
@@ -421,8 +453,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                  const SizedBox(width: 12),
                                  Expanded(
                                    child: Text(
-                                     _selectedBirthDate == null 
-                                         ? "Doğum Tarihi" 
+                                     _selectedBirthDate == null
+                                         ? lang.translate('birth_date')
                                          : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
                                      style: TextStyle(
                                        color: _selectedBirthDate == null ? textColor.withValues(alpha: 0.3) : textColor,
@@ -440,18 +472,18 @@ class _LoginScreenState extends State<LoginScreen> {
                          Padding(
                            padding: const EdgeInsets.only(left: 4),
                            child: Text(
-                             "* Kayıt olduktan sonra doğum tarihini değiştiremezsiniz.",
+                             lang.translate('birth_date_note'),
                              style: TextStyle(color: const Color(0xFFF9C06A).withValues(alpha: 0.9), fontSize: 11, fontStyle: FontStyle.italic),
                            ),
                          ),
                          const SizedBox(height: 16),
                        ],
 
-                       _buildModernTextField(controller: _passwordController, hint: 'Şifre', icon: Icons.lock_outline_rounded, isPassword: true),
+                       _buildModernTextField(controller: _passwordController, hint: lang.translate('password'), icon: Icons.lock_outline_rounded, isPassword: true),
                        
                        if (_activePageIndex == 1) ...[
                          const SizedBox(height: 16),
-                         _buildModernTextField(controller: _confirmPasswordController, hint: 'Şifreyi Doğrula', icon: Icons.lock_reset_rounded, isPassword: true),
+                         _buildModernTextField(controller: _confirmPasswordController, hint: lang.translate('confirm_password'), icon: Icons.lock_reset_rounded, isPassword: true),
                        ],
                        
                        const SizedBox(height: 8),
@@ -462,9 +494,27 @@ class _LoginScreenState extends State<LoginScreen> {
                            alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: () => context.push('/forgot-password'),
-                              child: Text("Parolamı Unuttum?", style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 13)),
+                              child: Text(lang.translate('forgot_password'), style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 13)),
                             ),
                          ),
+
+                       // Agreement Checkboxes (Register only)
+                       if (_activePageIndex == 1) ...[
+                         const SizedBox(height: 16),
+                         _buildAgreementCheckbox(
+                           value: _acceptedAgreement,
+                           onChanged: (v) => setState(() => _acceptedAgreement = v ?? false),
+                           text: lang.translate('accept_agreement_text'),
+                           textColor: textColor,
+                         ),
+                         const SizedBox(height: 8),
+                         _buildAgreementCheckbox(
+                           value: _acceptedKvkk,
+                           onChanged: (v) => setState(() => _acceptedKvkk = v ?? false),
+                           text: lang.translate('accept_kvkk_text'),
+                           textColor: textColor,
+                         ),
+                       ],
 
                        const SizedBox(height: 32),
 
@@ -496,7 +546,7 @@ class _LoginScreenState extends State<LoginScreen> {
                              ),
                              child: isLoading 
                                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                               : Text(_activePageIndex == 0 ? 'Giriş Yap' : 'Kayıt Ol'),
+                               : Text(_activePageIndex == 0 ? lang.translate('login_btn') : lang.translate('register_btn')),
                            ),
                          ),
                        ),
@@ -518,7 +568,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                borderRadius: BorderRadius.circular(30),
                              ),
                              child: Text(
-                               _activePageIndex == 0 ? "Hesabın yok mu? Kayıt Ol" : "Zaten üye misin? Giriş Yap",
+                               _activePageIndex == 0 ? lang.translate('no_account') : lang.translate('already_member'),
                                style: TextStyle(
                                  color: textColor.withValues(alpha: 0.5),
                                  fontWeight: FontWeight.w500,
@@ -537,6 +587,48 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAgreementCheckbox({
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+    required String text,
+    required Color textColor,
+  }) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: Checkbox(
+              value: value,
+              onChanged: onChanged,
+              activeColor: const Color(0xFFF9C06A),
+              checkColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+              side: BorderSide(color: textColor.withValues(alpha: 0.3)),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                text,
+                style: GoogleFonts.outfit(
+                  color: textColor.withValues(alpha: 0.7),
+                  fontSize: 12,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/language_provider.dart';
 
 enum ResetStep { phone, otp, newPassword }
 
@@ -20,42 +21,43 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _otpController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   ResetStep _currentStep = ResetStep.phone;
   bool _isLoading = false;
 
   void _sendSms() async {
+    final lang = context.read<LanguageProvider>();
     final phone = _phoneController.text.trim();
     if (phone.isEmpty || phone.length < 10) {
-      showCustomPopup(context, message: 'Lütfen geçerli bir telefon numarası girin.', type: PopupType.error);
+      showCustomPopup(context, message: lang.translate('invalid_phone_msg'), type: PopupType.error);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      // Normalize phone for backend: 5xx... (backend prepends +90)
       String normalizedPhone = phone;
       if (normalizedPhone.startsWith('0')) normalizedPhone = normalizedPhone.substring(1);
       if (normalizedPhone.startsWith('90')) normalizedPhone = normalizedPhone.substring(2);
       if (normalizedPhone.startsWith('+90')) normalizedPhone = normalizedPhone.substring(3);
 
       await context.read<AuthProvider>().sendResetSms(normalizedPhone);
-      
+
       if (mounted) {
-        showCustomPopup(context, message: 'Doğrulama kodu gönderildi.', type: PopupType.success);
+        showCustomPopup(context, message: lang.translate('code_sent_msg'), type: PopupType.success);
         setState(() => _currentStep = ResetStep.otp);
       }
     } catch (e) {
-      if (mounted) showCustomPopup(context, message: 'SMS gönderilemedi. Numaranızı kontrol edin.', type: PopupType.error);
+      if (mounted) showCustomPopup(context, message: lang.translate('sms_failed_msg'), type: PopupType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _verifyOtp() async {
+    final lang = context.read<LanguageProvider>();
     final code = _otpController.text.trim();
     if (code.length != 6) {
-      showCustomPopup(context, message: 'Lütfen 6 haneli kodu girin.', type: PopupType.error);
+      showCustomPopup(context, message: lang.translate('enter_6_digit_msg'), type: PopupType.error);
       return;
     }
 
@@ -67,48 +69,45 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (normalizedPhone.startsWith('+90')) normalizedPhone = normalizedPhone.substring(3);
 
       await context.read<AuthProvider>().verifyResetCode(normalizedPhone, code);
-      
+
       if (mounted) {
-        showCustomPopup(context, message: 'Kod doğrulandı. Yeni şifrenizi belirleyin.', type: PopupType.success);
+        showCustomPopup(context, message: lang.translate('code_verified_msg'), type: PopupType.success);
         setState(() => _currentStep = ResetStep.newPassword);
       }
     } catch (e) {
-      if (mounted) showCustomPopup(context, message: 'Geçersiz doğrulama kodu.', type: PopupType.error);
+      if (mounted) showCustomPopup(context, message: lang.translate('invalid_code_msg'), type: PopupType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   void _resetPassword() async {
+    final lang = context.read<LanguageProvider>();
     final pass = _passwordController.text;
     final confirm = _confirmPasswordController.text;
 
     if (pass.length < 6) {
-      showCustomPopup(context, message: 'Şifreniz en az 6 karakter olmalıdır.', type: PopupType.error);
+      showCustomPopup(context, message: lang.translate('password_min_6_msg'), type: PopupType.error);
       return;
     }
 
     if (pass != confirm) {
-      showCustomPopup(context, message: 'Şifreler uyuşmuyor.', type: PopupType.error);
+      showCustomPopup(context, message: lang.translate('passwords_no_match_msg'), type: PopupType.error);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
       await context.read<AuthProvider>().resetPassword(pass);
-      
+
       if (mounted) {
-        showCustomPopup(context, message: 'Şifreniz başarıyla güncellendi.', type: PopupType.success);
+        showCustomPopup(context, message: lang.translate('password_reset_success'), type: PopupType.success);
         Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) context.go('/'); // Redirect to home/login
+          if (mounted) context.go('/');
         });
       }
     } catch (e) {
-      String errorMsg = 'Yeni şifreniz eski şifrenizle aynı olamaz. Lütfen farklı bir şifre belirleyin.';
-      if (e.toString().contains('aynı olamaz')) {
-        errorMsg = 'Yeni şifreniz eski şifrenizle aynı olamaz.';
-      }
-      if (mounted) showCustomPopup(context, message: errorMsg, type: PopupType.error);
+      if (mounted) showCustomPopup(context, message: lang.translate('password_same_error'), type: PopupType.error);
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -117,19 +116,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     const textColor = Color(0xFF131313);
-    const primaryBrand = Color(0xFF76410B);
     const bgColor = Color(0xFFEBEBEB);
-    
+    final lang = context.watch<LanguageProvider>();
+
     return Scaffold(
       backgroundColor: bgColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: bgColor,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: const BackButton(color: textColor),
         title: Text(
-          _currentStep == ResetStep.phone ? 'Şifremi Unuttum' 
-          : _currentStep == ResetStep.otp ? 'Doğrulama' 
-          : 'Yeni Şifre',
+          _currentStep == ResetStep.phone ? lang.translate('forgot_password_title')
+          : _currentStep == ResetStep.otp ? lang.translate('verification_title')
+          : lang.translate('new_password_title'),
           style: const TextStyle(color: textColor, fontWeight: FontWeight.bold),
         ),
       ),
@@ -151,11 +152,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                 ),
                 const SizedBox(height: 32),
-                
+
                 if (_currentStep == ResetStep.phone) ...[
-                  Text('Telefon Numaranız', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  Text(lang.translate('phone_number_label'), style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
                   const SizedBox(height: 8),
-                  Text('Hesabınıza kayıtlı telefon numaranızı girin. Size doğrulama kodu göndereceğiz.', 
+                  Text(lang.translate('phone_number_desc'),
                     style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
                   const SizedBox(height: 32),
                     _buildInput(
@@ -169,9 +170,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       ],
                     ),
                 ] else if (_currentStep == ResetStep.otp) ...[
-                  Text('Kodu Girin', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  Text(lang.translate('enter_code_title'), style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
                   const SizedBox(height: 8),
-                  Text('${_phoneController.text} numarasına gönderilen 6 haneli kodu girin.', 
+                  Text('${_phoneController.text} ${lang.translate('otp_desc_prefix')}',
                     style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
                   const SizedBox(height: 32),
                   _buildInput(
@@ -185,34 +186,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ],
                   ),
                 ] else ...[
-                  Text('Yeni Şifre', style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                  Text(lang.translate('new_password_title'), style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
                   const SizedBox(height: 8),
-                  Text('Lütfen yeni şifrenizi belirleyin.', 
+                  Text(lang.translate('new_password_desc'),
                     style: GoogleFonts.outfit(fontSize: 16, color: textColor.withValues(alpha: 0.7))),
                   const SizedBox(height: 32),
                   _buildInput(
                     controller: _passwordController,
-                    hint: 'Yeni Şifre',
+                    hint: lang.translate('new_password_hint'),
                     icon: Icons.vpn_key_outlined,
                     isPassword: true,
                   ),
                   const SizedBox(height: 16),
                   _buildInput(
                     controller: _confirmPasswordController,
-                    hint: 'Şifreyi Onayla',
+                    hint: lang.translate('confirm_password_hint'),
                     icon: Icons.check_circle_outline,
                     isPassword: true,
                   ),
                 ],
 
                 const SizedBox(height: 40),
-                _buildButton(),
+                _buildButton(lang),
                 const SizedBox(height: 20),
                 if (_currentStep != ResetStep.phone)
                   Center(
                     child: TextButton(
                       onPressed: () => setState(() => _currentStep = ResetStep.phone),
-                      child: Text('Geri Dön', style: GoogleFonts.outfit(color: const Color(0xFFF9C06A), fontWeight: FontWeight.bold)),
+                      child: Text(lang.translate('go_back_btn'), style: GoogleFonts.outfit(color: const Color(0xFFF9C06A), fontWeight: FontWeight.bold)),
                     ),
                   ),
               ],
@@ -226,8 +227,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget _buildInput({
     required TextEditingController controller,
     required String hint,
-    IconData? icon, // Changed to nullable IconData
-    Widget? child, // Added child parameter
+    IconData? icon,
+    Widget? child,
     TextInputType type = TextInputType.text,
     bool isPassword = false,
     List<TextInputFormatter>? formatters,
@@ -246,7 +247,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.w500),
         decoration: InputDecoration(
           hintText: hint,
-          prefixIcon: child ?? (icon != null ? Icon(icon, color: const Color(0xFF131313).withValues(alpha: 0.5)) : null), // Use child if provided, else icon
+          prefixIcon: child ?? (icon != null ? Icon(icon, color: const Color(0xFF131313).withValues(alpha: 0.5)) : null),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
         ),
@@ -254,7 +255,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     );
   }
 
-  Widget _buildButton() {
+  Widget _buildButton(LanguageProvider lang) {
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -286,13 +287,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             foregroundColor: Colors.white,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: _isLoading 
+          child: _isLoading
             ? const SizedBox(
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
               )
-            : Text(_currentStep == ResetStep.phone ? 'KOD GÖNDER' : _currentStep == ResetStep.otp ? 'DOĞRULA' : 'ŞİFREYİ GÜNCELLE'),
+            : Text(
+                _currentStep == ResetStep.phone ? lang.translate('send_code_btn')
+                : _currentStep == ResetStep.otp ? lang.translate('verify_btn')
+                : lang.translate('update_password_btn'),
+              ),
         ),
       ),
     );

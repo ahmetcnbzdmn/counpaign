@@ -72,18 +72,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final lang = context.read<LanguageProvider>();
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: path,
+      cropStyle: CropStyle.circle,
       aspectRatioPresets: [
         CropAspectRatioPreset.square,
       ],
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: lang.translate('crop_image'),
-          toolbarColor: const Color(0xFFEE2C2C),
+          toolbarColor: const Color(0xFF76410B),
           toolbarWidgetColor: Colors.white,
           initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
-          activeControlsWidgetColor: const Color(0xFFEE2C2C),
+          activeControlsWidgetColor: const Color(0xFFF9C06A),
           dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
+          cropGridColor: const Color(0xFFF9C06A),
+          cropFrameColor: const Color(0xFFF9C06A),
         ),
         IOSUiSettings(
           title: lang.translate('crop_image'),
@@ -216,15 +219,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           backgroundColor: Colors.transparent,
           appBar: AppBar(
             title: Text(lang.translate('edit_profile'), style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)),
-            backgroundColor: Colors.transparent,
+            backgroundColor: const Color(0xFFF6F0EB),
+            surfaceTintColor: Colors.transparent,
             elevation: 0,
+            scrolledUnderElevation: 0,
             centerTitle: true,
           ),
       body: Container(
         height: double.infinity,
         color: const Color(0xFFEBEBEB), // Body background
         child: SingleChildScrollView(
-          physics: const NeverScrollableScrollPhysics(), // Prevent any scrolling/overscroll completely
+          physics: const ClampingScrollPhysics(),
           padding: const EdgeInsets.all(24),
           child: Form(
               key: _formKey,
