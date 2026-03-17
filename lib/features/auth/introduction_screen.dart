@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/services/storage_service.dart';
+import '../../core/providers/language_provider.dart';
 
 class IntroductionScreen extends StatefulWidget {
   const IntroductionScreen({super.key});
@@ -14,30 +16,32 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, dynamic>> _pages = [
-    {
-      'title': 'Kahve Keyfini Katla!',
-      'description': 'Her kahvende yeni bir ödül kazan, cüzdanını sevdiğin dükkanlarla doldur.',
-      'icon': Icons.local_cafe_rounded,
-    },
-    {
-      'title': 'Hızlı ve Kolay!',
-      'description': 'QR kodu okut, saniyeler içinde puanlarını topla ve harca.',
-      'icon': Icons.qr_code_scanner_rounded,
-    },
-    {
-      'title': 'Özel Fırsatlar!',
-      'description': 'Sadece sana özel kampanyaları keşfet, hiçbir fırsatı kaçırma.',
-      'icon': Icons.stars_rounded,
-    },
-  ];
-
   @override
   Widget build(BuildContext context) {
-    const primaryColor = Color(0xFF76410B);
-    const bgColor = Color(0xFFEBEBEB);
-    const textColor = Color(0xFF131313);
-    
+    final lang = context.watch<LanguageProvider>();
+
+    final List<Map<String, dynamic>> pages = [
+      {
+        'title': lang.translate('intro_title_1'),
+        'description': lang.translate('intro_desc_1'),
+        'icon': Icons.local_cafe_rounded,
+      },
+      {
+        'title': lang.translate('intro_title_2'),
+        'description': lang.translate('intro_desc_2'),
+        'icon': Icons.qr_code_scanner_rounded,
+      },
+      {
+        'title': lang.translate('intro_title_3'),
+        'description': lang.translate('intro_desc_3'),
+        'icon': Icons.stars_rounded,
+      },
+    ];
+
+    const primaryColor = Color(0xFFF9C06A);
+    const bgColor = Color(0xFFFDFBF7);
+    const textColor = Color(0xFF3E2723);
+
     return Scaffold(
       backgroundColor: bgColor,
       body: Stack(
@@ -50,38 +54,38 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    primaryColor.withValues(alpha: 0.05),
+                    primaryColor.withValues(alpha: 0.08),
                     bgColor,
                   ],
                 ),
               ),
             ),
           ),
-          
+
           SafeArea(
             child: Column(
               children: [
                 const SizedBox(height: 40),
-                
+
                 // Logo & Brand
                 Text(
                   'Counpaign',
                   style: GoogleFonts.outfit(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
-                    color: primaryColor,
+                    color: const Color(0xFF3E2723),
                     letterSpacing: -1,
                   ),
                 ),
-                
+
                 // Slider
                 Expanded(
                   child: PageView.builder(
                     controller: _pageController,
                     onPageChanged: (index) => setState(() => _currentPage = index),
-                    itemCount: _pages.length,
+                    itemCount: pages.length,
                     itemBuilder: (context, index) {
-                      final page = _pages[index];
+                      final page = pages[index];
                       return Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 40),
                         child: Column(
@@ -90,13 +94,13 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                             Container(
                               padding: const EdgeInsets.all(40),
                               decoration: BoxDecoration(
-                                color: primaryColor.withValues(alpha: 0.1),
+                                color: primaryColor.withValues(alpha: 0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 page['icon'],
                                 size: 100,
-                                color: primaryColor,
+                                color: const Color(0xFFD4940A),
                               ),
                             ),
                             const SizedBox(height: 40),
@@ -125,27 +129,27 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                     },
                   ),
                 ),
-                
+
                 // Page Indicators
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
-                    _pages.length,
+                    pages.length,
                     (index) => AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       height: 8,
                       width: _currentPage == index ? 24 : 8,
                       decoration: BoxDecoration(
-                        color: _currentPage == index ? primaryColor : primaryColor.withValues(alpha: 0.2),
+                        color: _currentPage == index ? primaryColor : primaryColor.withValues(alpha: 0.3),
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
+
                 // Action Buttons
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -153,29 +157,27 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                     children: [
                       _buildButton(
                         context,
-                        text: 'Giriş Yap',
+                        text: lang.translate('login_btn'),
                         onPressed: () async {
                           await StorageService().setHasSeenIntro(true);
                           if (context.mounted) context.push('/login', extra: {'pageIndex': 0});
                         },
                         isPrimary: true,
-                        primaryColor: primaryColor,
                       ),
                       const SizedBox(height: 12),
                       _buildButton(
                         context,
-                        text: 'Yeni Hesap Oluştur',
+                        text: lang.translate('create_account_btn'),
                         onPressed: () async {
                           await StorageService().setHasSeenIntro(true);
                           if (context.mounted) context.push('/login', extra: {'pageIndex': 1});
                         },
                         isPrimary: false,
-                        primaryColor: primaryColor,
                       ),
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
               ],
             ),
@@ -190,9 +192,8 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
     required String text,
     required VoidCallback onPressed,
     required bool isPrimary,
-    required Color primaryColor,
   }) {
-    
+
     if (isPrimary) {
       return SizedBox(
         width: double.infinity,
@@ -202,14 +203,14 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFFA96307), Color(0xFF371E04)],
+              colors: [Color(0xFFF9C06A), Color(0xFFD4940A)],
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0x3F7F7F7F),
-                blurRadius: 4,
-                offset: Offset(0, 4),
+                color: const Color(0xFFF9C06A).withValues(alpha: 0.4),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
@@ -233,7 +234,7 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         ),
       );
     }
-    
+
     return SizedBox(
       width: double.infinity,
       height: 60,
@@ -241,11 +242,11 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF131313),
+          foregroundColor: const Color(0xFF3E2723),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: const Color(0xFF131313).withValues(alpha: 0.1)),
+            side: BorderSide(color: const Color(0xFFF9C06A).withValues(alpha: 0.4)),
           ),
         ),
         child: Text(
