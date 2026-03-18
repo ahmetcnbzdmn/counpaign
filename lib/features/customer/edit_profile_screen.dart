@@ -72,17 +72,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final lang = context.read<LanguageProvider>();
     final croppedFile = await ImageCropper().cropImage(
       sourcePath: path,
-      cropStyle: CropStyle.circle,
-      aspectRatioPresets: [
-        CropAspectRatioPreset.square,
-      ],
+      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: lang.translate('crop_image'),
           toolbarColor: const Color(0xFF76410B),
           toolbarWidgetColor: Colors.white,
-          initAspectRatio: CropAspectRatioPreset.square,
           lockAspectRatio: true,
+          cropStyle: CropStyle.circle,
           activeControlsWidgetColor: const Color(0xFFF9C06A),
           dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
           cropGridColor: const Color(0xFFF9C06A),
@@ -92,6 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           title: lang.translate('crop_image'),
           doneButtonTitle: lang.translate('done'),
           cancelButtonTitle: lang.translate('cancel'),
+          cropStyle: CropStyle.circle,
           aspectRatioLockEnabled: true,
           aspectRatioPickerButtonHidden: true,
           resetButtonHidden: true,
