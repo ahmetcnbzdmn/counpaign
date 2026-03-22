@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else { // Register
          if (_nameController.text.isEmpty || _surnameController.text.isEmpty ||
              _phoneController.text.isEmpty || _emailController.text.isEmpty ||
-             _passwordController.text.isEmpty || _selectedGender == null || _selectedBirthDate == null) {
+             _passwordController.text.isEmpty) {
              throw Exception(lang.translate('fill_all_fields_msg'));
          }
 
@@ -424,13 +424,14 @@ class _LoginScreenState extends State<LoginScreen> {
                            child: DropdownButtonHideUnderline(
                              child: DropdownButton<String>(
                                value: _selectedGender,
-                               hint: Text(lang.translate('gender'), style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
+                               hint: Text('${lang.translate('gender')} (${lang.translate('optional_label')})', style: TextStyle(color: textColor.withValues(alpha: 0.3), fontSize: 14)),
                                isExpanded: true,
                                icon: const Icon(Icons.keyboard_arrow_down_rounded),
                                items: [
                                  DropdownMenuItem(value: 'male', child: Text(lang.translate('male'))),
                                  DropdownMenuItem(value: 'female', child: Text(lang.translate('female'))),
                                  DropdownMenuItem(value: 'other', child: Text(lang.translate('other_gender'))),
+                                 DropdownMenuItem(value: '', child: Text(lang.translate('wont_share'))),
                                ],
                                onChanged: (val) => setState(() => _selectedGender = val),
                              ),
@@ -454,7 +455,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                  Expanded(
                                    child: Text(
                                      _selectedBirthDate == null
-                                         ? lang.translate('birth_date')
+                                         ? '${lang.translate('birth_date')} (${lang.translate('optional_label')})'
                                          : "${_selectedBirthDate!.day}/${_selectedBirthDate!.month}/${_selectedBirthDate!.year}",
                                      style: TextStyle(
                                        color: _selectedBirthDate == null ? textColor.withValues(alpha: 0.3) : textColor,

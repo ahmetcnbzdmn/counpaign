@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -461,27 +462,110 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
+  void _showCupertinoDatePicker(BuildContext context) {
+    final lang = context.read<LanguageProvider>();
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => Container(
+        height: 250,
+        color: Theme.of(context).cardColor,
+        child: Column(
+          children: [
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                border: Border(bottom: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CupertinoButton(
+                    child: Text(lang.translate('cancel'), style: TextStyle(color: Colors.red.shade400)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  CupertinoButton(
+                    child: Text(lang.translate('ok'), style: const TextStyle(color: Colors.blue)),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Builder(
+                builder: (context) {
+                  final now = DateTime.now();
+                  final maxDate = DateTime(now.year - 12, now.month, now.day);
+                  final minDate = DateTime(1900);
+                  DateTime initialDate = _selectedBirthDate ?? DateTime(now.year - 18, now.month, now.day);
+                  if (initialDate.isAfter(maxDate)) initialDate = maxDate;
+                  if (initialDate.isBefore(minDate)) initialDate = minDate;
+                  return CupertinoDatePicker(
+                    mode: CupertinoDatePickerMode.date,
+                    initialDateTime: initialDate,
+                    maximumDate: maxDate,
+                    minimumDate: minDate,
+                    onDateTimeChanged: (date) => setState(() => _selectedBirthDate = date),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDatePickerField(LanguageProvider lang) {
     const textColor = Color(0xFF131313);
     const cardColor = Colors.white;
-    
-    return AbsorbPointer(
-      child: TextFormField(
-        enabled: false, // Visual feedback that it's disabled
-        controller: TextEditingController(
-          text: _selectedBirthDate == null ? "" : DateFormat('dd.MM.yyyy').format(_selectedBirthDate!)
+    final bool isLocked = _selectedBirthDate != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 6),
+          child: Text(
+            lang.translate('birth_date'),
+            style: TextStyle(color: const Color(0xFF131313).withValues(alpha: isLocked ? 0.4 : 0.6), fontSize: 12),
+          ),
         ),
-        style: TextStyle(color: textColor.withValues(alpha: 0.5)), // Dimmed text
-        decoration: InputDecoration(
-          labelText: lang.translate('birth_date'),
-          labelStyle: TextStyle(color: textColor.withValues(alpha: 0.4)),
-          prefixIcon: Icon(Icons.calendar_today, color: textColor.withValues(alpha: 0.3)), // Dimmed icon
-          filled: true,
-          fillColor: cardColor.withValues(alpha: 0.5), // Dimmed background
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-          suffixIcon: Icon(Icons.lock_outline, color: textColor.withValues(alpha: 0.3)), // Lock icon instead of arrow
+        GestureDetector(
+      onTap: isLocked ? null : () => _showCupertinoDatePicker(context),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+        decoration: BoxDecoration(
+          color: isLocked ? cardColor.withValues(alpha: 0.5) : cardColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today, color: isLocked ? textColor.withValues(alpha: 0.3) : textColor.withValues(alpha: 0.54), size: 22),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                _selectedBirthDate == null
+                    ? '—'
+                    : DateFormat('dd.MM.yyyy').format(_selectedBirthDate!),
+                style: TextStyle(
+                  color: _selectedBirthDate == null
+                      ? textColor.withValues(alpha: 0.4)
+                      : isLocked ? textColor.withValues(alpha: 0.5) : textColor,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Icon(
+              isLocked ? Icons.lock_outline : Icons.arrow_forward_ios_rounded,
+              size: isLocked ? 20 : 14,
+              color: textColor.withValues(alpha: 0.3),
+            ),
+          ],
         ),
       ),
+    ),
+      ],
     );
   }
 }
