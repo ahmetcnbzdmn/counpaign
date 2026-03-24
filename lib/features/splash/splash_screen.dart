@@ -46,25 +46,32 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     // Navigate after animation completes
     _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        if (mounted) {
-           final auth = context.read<AuthProvider>();
-           // Wait for initial session load if not done
-           if (!auth.isInitialized) {
-              // Usually it's fast enough, but fallback to home or login based on state
-              // The GoRouter redirect hook in main.dart handles deep guard usually
-           }
-           if (auth.isAuthenticated) {
-             context.go('/home'); 
-           } else {
-             final storage = StorageService();
-             final hasSeenIntro = await storage.hasSeenIntro();
-             if (!mounted) return;
-             if (hasSeenIntro) {
-               context.go('/login');
-             } else {
-               context.go('/intro');
-             }
-           }
+        if (!mounted) return;
+
+        final auth = context.read<AuthProvider>();
+
+        // Auth hazır değilse maksimum 3 saniye bekle
+        if (!auth.isInitialized) {
+          for (int i = 0; i < 30; i++) {
+            await Future<void>.delayed(const Duration(milliseconds: 100));
+            if (!mounted) return;
+            if (auth.isInitialized) break;
+          }
+        }
+
+        if (!mounted) return;
+
+        if (auth.isAuthenticated) {
+          context.go('/home');
+        } else {
+          final storage = StorageService();
+          final hasSeenIntro = await storage.hasSeenIntro();
+          if (!mounted) return;
+          if (hasSeenIntro) {
+            context.go('/login');
+          } else {
+            context.go('/intro');
+          }
         }
       }
     });
