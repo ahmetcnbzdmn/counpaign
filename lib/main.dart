@@ -326,7 +326,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
         // AUTH GUARD
         if (!authProvider.isInitialized) return null; // Wait for initialization (Stay on Splash)
 
-        final hasAccess = authProvider.hasAppAccess || guestProvider.isGuest; // true for logged-in, legacy guest mode, or active guest session
+        final hasAccess = authProvider.hasAppAccess || context.read<GuestProvider>().isGuest; // true for logged-in, legacy guest mode, or active guest session
         final isLoggedIn = authProvider.isAuthenticated;
         final isLoggingIn = state.uri.toString() == '/login';
         final isIntro = state.uri.toString() == '/intro';
