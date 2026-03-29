@@ -7,6 +7,7 @@ import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/providers/guest_provider.dart';
+import '../../core/providers/auth_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -113,9 +114,12 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       }
 
       final guestProvider = context.read<GuestProvider>();
+      final authProvider = context.read<AuthProvider>();
+      // Only treat as guest if NOT authenticated (stale guest state after registration)
+      final isActiveGuest = !authProvider.isAuthenticated && guestProvider.isGuest;
 
       // Guest limit check before even calling API
-      if (guestProvider.isGuest && !guestProvider.hasUsagesLeft) {
+      if (isActiveGuest && !guestProvider.hasUsagesLeft) {
         setState(() => _isProcessing = false);
         if (mounted) _showForcedAuthDialog(context);
         return;
@@ -126,7 +130,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
         expectedBusinessId: _expectedBusinessId,
         latitude: position?.latitude,
         longitude: position?.longitude,
-        guestId: guestProvider.isGuest ? guestProvider.guestId : null,
+        guestId: isActiveGuest ? guestProvider.guestId : null,
       );
       
       debugPrint("📩 Scan Result: $result");
@@ -216,7 +220,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
          // Increment guest usage count on successful scan + sync fresh points/stamps
          if (mounted) {
            final gp = context.read<GuestProvider>();
-           if (gp.isGuest) {
+           final ap = context.read<AuthProvider>();
+           if (!ap.isAuthenticated && gp.isGuest) {
              gp.incrementUsage();
              gp.syncFromBackend(); // refresh points & stamps from server
              // After last usage: show success then forced auth dialog
