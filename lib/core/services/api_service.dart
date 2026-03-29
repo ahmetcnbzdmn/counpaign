@@ -33,6 +33,13 @@ class ApiService {
         onError: (DioException e, handler) async {
           // Handle 401 Unauthorized
           if (e.response?.statusCode == 401) {
+            // No token at all (guest mode) - skip refresh entirely
+            final currentToken = await _storageService.getToken();
+            if (currentToken == null || currentToken.isEmpty) {
+              onUnauthorized?.call();
+              return handler.next(e);
+            }
+
             if (_isRefreshing) {
               final completer = Completer<bool>();
               _requestQueue.add(completer);
@@ -209,7 +216,7 @@ class ApiService {
   }
 
   // QR Methods
-  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId, double? latitude, double? longitude}) async {
+  Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId, double? latitude, double? longitude, String? guestId}) async {
     try {
       final response = await _dio.post(
         '/qr/validate',
@@ -218,6 +225,7 @@ class ApiService {
           if (expectedBusinessId != null) 'expectedBusinessId': expectedBusinessId,
           if (latitude != null) 'latitude': latitude,
           if (longitude != null) 'longitude': longitude,
+          if (guestId != null) 'guestId': guestId,
         }
       );
       return response.data;
@@ -226,8 +234,10 @@ class ApiService {
          throw Exception("FIRM_MISMATCH");
       } else if (e.response?.statusCode == 400 && e.response?.data['error'] == 'Kampanya Bulunamadı') {
          throw Exception("NO_CAMPAIGN:${e.response?.data['message']}");
+      } else if (e.response?.statusCode == 403 && e.response?.data['error'] == 'GUEST_LIMIT_REACHED') {
+         throw Exception("GUEST_LIMIT_REACHED");
       }
-      rethrow; // Replaced _handleDioError(e) as it's not defined in the provided context.
+      rethrow;
     }
   }
 
@@ -299,6 +309,37 @@ class ApiService {
   Future<void> deleteNotification(String notificationId) async {
     // Soft delete - marks as deleted but keeps in DB for admin panel
     await _dio.put('/notifications/$notificationId/soft-delete');
+  }
+
+  // ===== GUEST SESSION =====
+
+  Future<Map<String, dynamic>> createGuestSession({String? deviceId}) async {
+    final response = await _dio.post('/guest/session', data: {
+      if (deviceId != null) 'deviceId': deviceId,
+    });
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getGuestSession(String guestId) async {
+    final response = await _dio.get('/guest/session/$guestId');
+    return response.data;
+  }
+
+  Future<List<dynamic>> getGuestTransactions(String guestId) async {
+    final response = await _dio.get('/guest/transactions/$guestId');
+    return response.data as List<dynamic>;
+  }
+
+  Future<void> deleteGuestSession(String guestId) async {
+    await _dio.post('/guest/session/$guestId/delete');
+  }
+
+  Future<void> addToGuestWallet(String guestId, String businessId) async {
+    await _dio.post('/guest/wallet/add', data: {'guestId': guestId, 'businessId': businessId});
+  }
+
+  Future<void> removeFromGuestWallet(String guestId, String businessId) async {
+    await _dio.post('/guest/wallet/remove', data: {'guestId': guestId, 'businessId': businessId});
   }
 }
 

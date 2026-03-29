@@ -17,6 +17,10 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _currentUser != null;
 
+  bool _isGuestMode = false;
+  bool get isGuestMode => _isGuestMode;
+  bool get hasAppAccess => isAuthenticated || _isGuestMode;
+
   AuthProvider(this._authService, this._storageService);
 
   bool _isInitialized = false;
@@ -41,7 +45,13 @@ class AuthProvider extends ChangeNotifier {
           await fetchProfile();
         } catch (e) {
           debugPrint("Session Load (fetchProfile) Error: $e");
-          // Do NOT call logout() here, allowing the app to rely on cached user
+          // Admin deleted this account → 404. Force logout immediately.
+          final errStr = e.toString();
+          if (errStr.contains('404') || errStr.contains('Kullanıcı bulunamadı')) {
+            await logout();
+            return;
+          }
+          // Network/server errors: keep cached user, don't kick out
         }
       } else {
          // No token found, ensure state is clean
@@ -87,6 +97,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       await _authService.login(phoneNumber, password);
       await fetchProfile(); // Fetch full profile after login
+      _isGuestMode = false;
     } finally {
       _setLoading(false);
     }
@@ -96,18 +107,20 @@ class AuthProvider extends ChangeNotifier {
     await _authService.sendSmsVerification(phoneNumber);
   }
 
-  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname}) async {
+  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname, String? guestId}) async {
     _setLoading(true);
     try {
       await _authService.verifySmsCode(
-        phoneNumber, 
+        phoneNumber,
         code,
         email: email,
         password: password,
         name: name,
         surname: surname,
+        guestId: guestId,
       );
       await fetchProfile(); // Now we are fully logged in
+      _isGuestMode = false;
     } finally {
       _setLoading(false);
     }
@@ -176,9 +189,21 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  void enterGuestMode() {
+    _isGuestMode = true;
+    _currentUser = null;
+    notifyListeners();
+  }
+
+  void exitGuestMode() {
+    _isGuestMode = false;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     _currentUser = null;
+    _isGuestMode = false;
     notifyListeners();
   }
 

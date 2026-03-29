@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/models/campaign_model.dart';
@@ -802,11 +803,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _navigateToGiftSelection() async {
-    final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return;
-
     final double points = double.tryParse(_points) ?? 0.0;
-    
     final logoUrl = widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'];
     final reviewScore = (widget.businessData['reviewScore'] ?? 0.0).toDouble();
     final reviewCount = widget.businessData['reviewCount'] ?? 0;
@@ -832,8 +829,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   void _showHistoryBottomSheet() {
+    final guestProvider = context.read<GuestProvider>();
     final rawLogoUrl = widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'];
     final logoUrl = resolveImageUrl(rawLogoUrl) ?? '';
+
+    // Determine data source: guest or authenticated user
+    final Future<List<dynamic>> historyFuture = guestProvider.isGuest && guestProvider.guestId != null
+        ? context.read<ApiService>().getGuestTransactions(guestProvider.guestId!).then(
+            (all) => all.where((tx) {
+              final bizId = (tx['business']?['_id'] ?? tx['businessId'] ?? '').toString();
+              return bizId == _businessId;
+            }).toList())
+        : context.read<ApiService>().getTransactionHistory(_businessId);
 
     showModalBottomSheet(
       context: context,
@@ -856,7 +863,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Row(
                   children: [
-                    if (logoUrl.isNotEmpty) 
+                    if (logoUrl.isNotEmpty)
                       Container(
                         width: 48, height: 48,
                         decoration: BoxDecoration(
@@ -867,7 +874,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           border: Border.all(color: Colors.white, width: 2),
                         ),
                       )
-                    else 
+                    else
                       Container(
                         width: 48, height: 48,
                         decoration: BoxDecoration(
@@ -900,7 +907,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               const SizedBox(height: 16),
               Expanded(
                 child: FutureBuilder<List<dynamic>>(
-                  future: context.read<ApiService>().getTransactionHistory(_businessId),
+                  future: historyFuture,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());

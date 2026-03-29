@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/providers/language_provider.dart';
 import 'legal_content_screen.dart';
 
@@ -31,6 +32,15 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   }
 
   void _showDeleteAccountDialog(BuildContext context, AuthProvider auth, Color cardColor, Color textColor, Color primaryBrand) {
+    final guestProvider = context.read<GuestProvider>();
+    final isGuest = guestProvider.isGuest && auth.currentUser == null;
+
+    // Guest: no password required — just confirm and clear session
+    if (isGuest) {
+      _showGuestDeleteDialog(context, guestProvider, cardColor, textColor);
+      return;
+    }
+
     _passwordController.clear();
     final lang = context.read<LanguageProvider>();
     bool isDeleting = false;
@@ -48,7 +58,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
                 const SizedBox(width: 8),
                 Text(
-                  lang.translate('delete_account_title'), 
+                  lang.translate('delete_account_title'),
                   style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20)
                 ),
               ],
@@ -64,7 +74,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                 const SizedBox(height: 16),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true, // Hides input
+                  obscureText: true,
                   style: GoogleFonts.outfit(color: textColor, fontSize: 16),
                   decoration: InputDecoration(
                     hintText: lang.translate('your_password'),
@@ -92,12 +102,12 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                     showCustomPopup(context, message: lang.translate('password_required'), type: PopupType.error);
                     return;
                   }
-                  
+
                   setState(() => isDeleting = true);
                   try {
                     await auth.deleteAccount(_passwordController.text);
                     if (context.mounted) {
-                       Navigator.pop(dialogContext); // Close dialog
+                       Navigator.pop(dialogContext);
                        showCustomPopup(context, message: lang.translate('account_deleted_msg'), type: PopupType.success);
                     }
                   } catch (e) {
@@ -118,13 +128,74 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                child: isDeleting 
+                child: isDeleting
                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : Text(lang.translate('confirm_delete_btn'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
               ),
             ],
           );
         }
+      ),
+    );
+  }
+
+  void _showGuestDeleteDialog(BuildContext context, GuestProvider guestProvider, Color cardColor, Color textColor) {
+    final lang = context.read<LanguageProvider>();
+    bool isDeleting = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                const SizedBox(width: 8),
+                Text(
+                  lang.translate('delete_account_title'),
+                  style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 20),
+                ),
+              ],
+            ),
+            content: Text(
+              lang.locale.languageCode == 'tr'
+                  ? 'Misafir oturumunuz ve tüm geçici verileriniz silinecek. Bu işlem geri alınamaz.'
+                  : 'Your guest session and all temporary data will be deleted. This cannot be undone.',
+              style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 14),
+            ),
+            actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            actions: [
+              TextButton(
+                onPressed: isDeleting ? null : () => Navigator.pop(dialogContext),
+                child: Text(lang.translate('cancel').toUpperCase(), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6), fontWeight: FontWeight.bold)),
+              ),
+              ElevatedButton(
+                onPressed: isDeleting ? null : () async {
+                  setState(() => isDeleting = true);
+                  await guestProvider.clear(deleteFromServer: true);
+                  if (context.mounted) {
+                    Navigator.pop(dialogContext);
+                    context.go('/login');
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: isDeleting
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : Text(lang.translate('confirm_delete_btn'), style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -170,7 +241,9 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
   Widget build(BuildContext context) {
     final lang = Provider.of<LanguageProvider>(context);
     final auth = context.read<AuthProvider>();
-    
+    final guestProvider = context.read<GuestProvider>();
+    final isGuest = guestProvider.isGuest && auth.currentUser == null;
+
     final theme = Theme.of(context);
     final bgColor = theme.scaffoldBackgroundColor;
     final cardColor = theme.cardColor;
@@ -181,7 +254,7 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
       backgroundColor: bgColor,
       appBar: AppBar(
         title: Text(
-          lang.translate('privacy_policy'), 
+          lang.translate('privacy_policy'),
           style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold)
         ),
         backgroundColor: bgColor,
@@ -194,16 +267,18 @@ class _PrivacySecurityScreenState extends State<PrivacySecurityScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           children: [
-            // Change Password
+            // Change Password — hidden for guests
+            if (!isGuest) ...[
             _buildTile(
-              icon: Icons.vpn_key_rounded, 
-              title: lang.translate('change_password'), 
-              textColor: textColor, 
-              cardColor: cardColor, 
+              icon: Icons.vpn_key_rounded,
+              title: lang.translate('change_password'),
+              textColor: textColor,
+              cardColor: cardColor,
               showArrow: true,
               onTap: () => context.push('/change-password'),
             ),
             const SizedBox(height: 16),
+            ],
             // User Agreement
             _buildTile(
               icon: Icons.handshake_outlined,

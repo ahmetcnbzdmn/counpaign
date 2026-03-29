@@ -19,6 +19,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/widgets/backgrounds/organic_wave_background.dart';
+import '../../core/providers/guest_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -70,11 +71,17 @@ class _HomeScreenState extends State<HomeScreen> {
         if (mounted) _loadPendingReviews(); // Try again if auth just loaded
       }
 
+      // Always fetch campaigns and explore firms (public endpoints)
+      cp.fetchAllCampaigns();
+      bp.fetchExploreFirms();
+
+      // Skip auth-required API calls if not logged in (guest or unauthenticated)
+      if (!auth.isAuthenticated) {
+        return;
+      }
+
       try {
         await bp.fetchMyFirms();
-        // Fetch global data for counts
-        bp.fetchExploreFirms();
-        cp.fetchAllCampaigns();
 
         // Fetch campaigns for each firm with delay to avoid rate limiting
         if (mounted) {
@@ -92,6 +99,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadPendingReviews() async {
+    // Skip if not authenticated
+    if (!context.read<app.AuthProvider>().isAuthenticated) {
+      if (mounted) setState(() => _pendingReviewsLoaded = true);
+      return;
+    }
     try {
       final api = context.read<ApiService>();
       final data = await api.getPendingReviews();
@@ -315,13 +327,50 @@ class _HomeScreenState extends State<HomeScreen> {
   
   // Helper to get firms from provider and map them
   List<Map<String, dynamic>> _getFirmBalances(BuildContext context, {bool listen = true}) {
-    final provider = listen 
-        ? context.watch<BusinessProvider>() 
+    final authProvider = listen ? context.watch<app.AuthProvider>() : context.read<app.AuthProvider>();
+
+    // Guest mode: show guest wallet
+    if (!authProvider.isAuthenticated) {
+      final guest = listen ? context.watch<GuestProvider>() : context.read<GuestProvider>();
+      final data = guest.wallet;
+      if (data.isEmpty) {
+        final lang = Provider.of<LanguageProvider>(context, listen: false);
+        return [{
+          'name': lang.translate('wallet_empty'),
+          'points': '0',
+          'value': '0.00',
+          'color': Colors.grey,
+          'icon': Icons.account_balance_wallet_rounded,
+        }];
+      }
+      return data.map((e) => {
+        'id': (e['_id'] ?? e['id'] ?? '').toString(),
+        'name': e['companyName'] ?? 'Bilinmeyen',
+        'points': (e['points'] ?? 0).toString(),
+        'stamps': e['stamps'] ?? 0,
+        'stampsTarget': e['stampsTarget'] ?? 6,
+        'giftsCount': e['giftsCount'] ?? 0,
+        'value': '0.00',
+        'color': _parseColor(e['cardColor'] as String?),
+        'icon': _parseIcon(e['cardIcon'] as String?),
+        'city': e['city'],
+        'district': e['district'],
+        'neighborhood': e['neighborhood'],
+        'logo': e['logo'],
+        'image': e['image'],
+        'reviewScore': e['reviewScore'],
+        'reviewCount': e['reviewCount'],
+      }).toList();
+    }
+
+    // Authenticated: show real wallet
+    final provider = listen
+        ? context.watch<BusinessProvider>()
         : context.read<BusinessProvider>();
     final data = provider.myFirms;
 
     if (provider.isLoading && data.isEmpty) {
-      return []; // Or handle loading separately in UI
+      return [];
     }
 
     final mapped = data.map((e) => {
@@ -344,17 +393,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
 
     if (mapped.isEmpty) {
-        // Need context to access provider for translation
-        final lang = Provider.of<LanguageProvider>(context, listen: false);
-       return [{
-         'name': lang.translate('wallet_empty'),
-         'points': '0',
-         'value': '0.00',
-         'color': Colors.grey,
-         'icon': Icons.account_balance_wallet_rounded,
-       }];
+      final lang = Provider.of<LanguageProvider>(context, listen: false);
+      return [{
+        'name': lang.translate('wallet_empty'),
+        'points': '0',
+        'value': '0.00',
+        'color': Colors.grey,
+        'icon': Icons.account_balance_wallet_rounded,
+      }];
     }
-    
+
     return mapped;
   }
 
@@ -467,10 +515,11 @@ class _HomeScreenState extends State<HomeScreen> {
           child: RefreshIndicator(
           color: AppTheme.primaryColor,
           onRefresh: () async {
+             final isAuth = context.read<app.AuthProvider>().isAuthenticated;
              final biz = context.read<BusinessProvider>();
              final camp = context.read<CampaignProvider>();
              await Future.wait([
-               biz.fetchMyFirms(),
+               if (isAuth) biz.fetchMyFirms(),
                biz.fetchExploreFirms(),
                camp.fetchAllCampaigns(),
                _loadPendingReviews(),
@@ -564,9 +613,19 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 18), // Figma gap=18
           
-          // Banner Card — pending reviews from state
-          Consumer<BusinessProvider>(
-            builder: (context, bp, _) {
+          // Banner Card — guest activity or pending reviews from state
+          Consumer2<BusinessProvider, GuestProvider>(
+            builder: (context, bp, guestProvider, _) {
+              // Guest mode: show guest activity summary
+              if (guestProvider.isGuest) {
+                final usagesLeft = guestProvider.usagesLeft;
+                final usagesUsed = guestProvider.campaignUsageCount;
+                if (usagesUsed > 0) {
+                  return _buildGuestActivityBanner(context, usagesUsed, usagesLeft);
+                }
+                return _buildBannerState1(context, isTr);
+              }
+
               if (!_pendingReviewsLoaded) {
                 return Container(
                   height: 154,
@@ -596,6 +655,62 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+
+  /// Guest activity banner — shown when guest has made purchases
+  Widget _buildGuestActivityBanner(BuildContext context, int usagesUsed, int usagesLeft) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false);
+    return GestureDetector(
+      onTap: () => context.push('/order-history'),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF9C06A),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF131313), size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$usagesUsed ${lang.translate('order_history')}',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF131313),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    usagesLeft > 0
+                        ? '$usagesLeft ${lang.locale.languageCode == 'tr' ? 'ücretsiz hakkınız kaldı' : 'free scans remaining'}'
+                        : lang.locale.languageCode == 'tr' ? 'Tüm haklarınızı kullandınız — kayıt olun!' : 'All free scans used — register!',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFF131313).withValues(alpha: 0.65),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFF131313), size: 16),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// State 1: New user — "İlk kahveni birlikte seçelim!" (Figma 1.png)
   Widget _buildBannerState1(BuildContext context, bool isTr) {
@@ -1507,13 +1622,16 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: () async {
             await context.push('/add-firm');
             if (context.mounted) {
-              final bp = context.read<BusinessProvider>();
-              await bp.fetchMyFirms();
-              if (context.mounted) {
-                final cp = context.read<CampaignProvider>();
-                for (var i = 0; i < bp.myFirms.length; i++) {
-                  if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
-                  cp.fetchCampaigns(bp.myFirms[i]['id']);
+              final isAuth = context.read<app.AuthProvider>().isAuthenticated;
+              if (isAuth) {
+                final bp = context.read<BusinessProvider>();
+                await bp.fetchMyFirms();
+                if (context.mounted) {
+                  final cp = context.read<CampaignProvider>();
+                  for (var i = 0; i < bp.myFirms.length; i++) {
+                    if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
+                    cp.fetchCampaigns(bp.myFirms[i]['id']);
+                  }
                 }
               }
             }
@@ -1617,13 +1735,16 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: () async {
           await context.push('/add-firm');
           if (context.mounted) {
-            final bp = context.read<BusinessProvider>();
-            await bp.fetchMyFirms();
-            if (context.mounted) {
-              final cp = context.read<CampaignProvider>();
-              for (var i = 0; i < bp.myFirms.length; i++) {
-                if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
-                cp.fetchCampaigns(bp.myFirms[i]['id']);
+            final isAuth = context.read<app.AuthProvider>().isAuthenticated;
+            if (isAuth) {
+              final bp = context.read<BusinessProvider>();
+              await bp.fetchMyFirms();
+              if (context.mounted) {
+                final cp = context.read<CampaignProvider>();
+                for (var i = 0; i < bp.myFirms.length; i++) {
+                  if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
+                  cp.fetchCampaigns(bp.myFirms[i]['id']);
+                }
               }
             }
           }

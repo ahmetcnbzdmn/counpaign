@@ -43,6 +43,7 @@ import 'core/providers/business_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/language_provider.dart';
 import 'core/providers/campaign_provider.dart';
+import 'core/providers/guest_provider.dart';
 
 import 'core/services/notification_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -74,6 +75,7 @@ void main() async {
   final authService = AuthService(apiService, storageService);
   final authProvider = app.AuthProvider(authService, storageService);
   final businessProvider = BusinessProvider(apiService);
+  final guestProvider = GuestProvider(apiService, storageService);
 
   // Link ApiService 401 handling to AuthProvider logout
   apiService.onUnauthorized = () {
@@ -83,6 +85,7 @@ void main() async {
 
   // Don't await here! It blocks runApp if network is slow/down.
   authProvider.loadUserSession();
+  guestProvider.loadGuestSession();
 
   runApp(
     MultiProvider(
@@ -90,6 +93,7 @@ void main() async {
         ChangeNotifierProvider<app.AuthProvider>.value(value: authProvider),
         ChangeNotifierProvider.value(value: businessProvider),
         ChangeNotifierProvider(create: (_) => CampaignProvider(apiService)),
+        ChangeNotifierProvider<GuestProvider>.value(value: guestProvider),
 
         Provider<ApiService>.value(value: apiService),
         ChangeNotifierProvider(create: (_) => ThemeProvider(storageService)),
@@ -322,6 +326,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
         // AUTH GUARD
         if (!authProvider.isInitialized) return null; // Wait for initialization (Stay on Splash)
 
+        final hasAccess = authProvider.hasAppAccess; // true for both logged-in and guest
         final isLoggedIn = authProvider.isAuthenticated;
         final isLoggingIn = state.uri.toString() == '/login';
         final isIntro = state.uri.toString() == '/intro';
@@ -329,7 +334,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
         final isForgotPassword = state.uri.toString() == '/forgot-password';
         final isVerifyPhone = state.uri.toString() == '/verify-phone';
 
-        if (!isLoggedIn && !isLoggingIn && !isIntro && !isForgotPassword && !isVerifyPhone) {
+        if (!hasAccess && !isLoggingIn && !isIntro && !isForgotPassword && !isVerifyPhone) {
            return '/login'; // Token expired/invalid -> Force Login immediately instead of intro
         }
 

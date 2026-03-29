@@ -59,6 +59,8 @@ class StorageService {
   static const String _introKey = 'has_seen_intro';
   static const String _themeKey = 'app_theme';
   static const String _langKey = 'app_language';
+  static const String _guestSessionKey = 'guest_session';
+  static const String _installationIdKey = 'installation_id';
 
   Future<void> setHasSeenIntro(bool seen) async {
     final prefs = await SharedPreferences.getInstance();
@@ -88,5 +90,36 @@ class StorageService {
   Future<String?> getLanguage() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_langKey);
+  }
+
+  Future<void> saveGuestSession(String json) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_guestSessionKey, json);
+  }
+
+  Future<String?> getGuestSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_guestSessionKey);
+  }
+
+  Future<void> clearGuestSession({bool resetInstallationId = false}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_guestSessionKey);
+    if (resetInstallationId) {
+      await prefs.remove(_installationIdKey);
+    }
+  }
+
+  /// Stable installation ID — persists across app restarts (not reinstalls)
+  Future<String> getOrCreateInstallationId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final existing = prefs.getString(_installationIdKey);
+    if (existing != null && existing.isNotEmpty) return existing;
+    // Generate new UUID
+    final id = DateTime.now().microsecondsSinceEpoch.toRadixString(36) +
+        '-' +
+        (prefs.hashCode ^ DateTime.now().millisecondsSinceEpoch).toRadixString(36);
+    await prefs.setString(_installationIdKey, id);
+    return id;
   }
 }

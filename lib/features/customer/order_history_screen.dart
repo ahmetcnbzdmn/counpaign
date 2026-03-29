@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
 
@@ -16,6 +18,7 @@ class OrderHistoryScreen extends StatefulWidget {
 class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   bool _isLoading = true;
   List<dynamic> _transactions = [];
+  String? _error;
 
   @override
   void initState() {
@@ -24,16 +27,63 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   }
 
   Future<void> _fetchTransactions() async {
+    final auth = context.read<AuthProvider>();
+    final guest = context.read<GuestProvider>();
+
     try {
       final api = context.read<ApiService>();
-      final data = await api.getTransactions();
+      List<dynamic> data;
+      if (auth.isAuthenticated) {
+        data = await api.getTransactions();
+      } else if (guest.isGuest && guest.guestId != null) {
+        debugPrint('🔍 Fetching guest transactions for: ${guest.guestId}');
+        try {
+          data = await api.getGuestTransactions(guest.guestId!);
+        } catch (_) {
+          // Fallback: use getSession which now returns per-scan transactions
+          final session = await api.getGuestSession(guest.guestId!);
+          // Prefer the 'transactions' field (per-scan) if available
+          if (session['transactions'] is List && (session['transactions'] as List).isNotEmpty) {
+            data = session['transactions'] as List<dynamic>;
+          } else {
+            // Last resort: wallet summary (one entry per business)
+            final wallet = (session['wallet'] as List? ?? []);
+            data = wallet.where((w) {
+              final pts = (w['points'] ?? 0) as num;
+              final stm = (w['stamps'] ?? 0) as num;
+              return pts > 0 || stm > 0;
+            }).map((w) => {
+              'business': {
+                '_id': w['_id'] ?? w['id'],
+                'companyName': w['companyName'],
+                'logo': w['logo'],
+                'image': w['image'],
+                'cardColor': w['cardColor'],
+              },
+              'type': (w['stamps'] ?? 0) > 0 ? 'STAMP' : 'POINT',
+              'value': w['stamps'] ?? 0,
+              'pointsEarned': w['points'] ?? 0,
+              'createdAt': DateTime.now().toIso8601String(),
+              'isGuest': true,
+            }).toList();
+          }
+        }
+        debugPrint('✅ Guest transactions count: ${data.length}');
+      } else {
+        setState(() => _isLoading = false);
+        return;
+      }
       setState(() {
         _transactions = data;
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
-      // Handle error cleanly
+      debugPrint('❌ Fetch transactions error: $e');
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
     }
   }
 
@@ -100,7 +150,28 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : _error != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.cloud_off_rounded, size: 64, color: textColor.withValues(alpha: 0.2)),
+                        const SizedBox(height: 16),
+                        Text('Veriler yüklenemedi', style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.5), fontSize: 16)),
+                        const SizedBox(height: 8),
+                        Text(_error!, style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.3), fontSize: 11), textAlign: TextAlign.center),
+                        const SizedBox(height: 20),
+                        ElevatedButton(
+                          onPressed: () { setState(() { _isLoading = true; _error = null; }); _fetchTransactions(); },
+                          child: const Text('Tekrar Dene'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : Column(
               children: [
                 // Filter Chips
                 SingleChildScrollView(
@@ -299,7 +370,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                               ),
                                             ],
                                           )
-                                        else if (type != 'GIFT_REDEEM') // Only rate earnings? Or everything? Let's allow all for now
+                                        else if (type != 'GIFT_REDEEM' && tx['isGuest'] != true) // Hide rating for guest transactions
                                           GestureDetector(
                                             onTap: () => _showRatingDialog(context, tx),
                                             child: Container(

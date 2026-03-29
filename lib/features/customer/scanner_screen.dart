@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/theme/app_theme.dart';
 
@@ -111,11 +112,21 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
         debugPrint("⚠️ Location Error: $locErr");
       }
 
+      final guestProvider = context.read<GuestProvider>();
+
+      // Guest limit check before even calling API
+      if (guestProvider.isGuest && !guestProvider.hasUsagesLeft) {
+        setState(() => _isProcessing = false);
+        if (mounted) _showForcedAuthDialog(context);
+        return;
+      }
+
       final result = await apiService.scanBusinessQR(
-        token, 
+        token,
         expectedBusinessId: _expectedBusinessId,
         latitude: position?.latitude,
         longitude: position?.longitude,
+        guestId: guestProvider.isGuest ? guestProvider.guestId : null,
       );
       
       debugPrint("📩 Scan Result: $result");
@@ -202,6 +213,27 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
       if (!mounted) return;
       if (isConfirmed) {
+         // Increment guest usage count on successful scan + sync fresh points/stamps
+         if (mounted) {
+           final gp = context.read<GuestProvider>();
+           if (gp.isGuest) {
+             gp.incrementUsage();
+             gp.syncFromBackend(); // refresh points & stamps from server
+             // After last usage: show success then forced auth dialog
+             if (!gp.hasUsagesLeft) {
+               if (mounted) {
+                 await showCustomPopup(
+                   context,
+                   message: Provider.of<LanguageProvider>(context, listen: false).translate('approved'),
+                   type: PopupType.success,
+                 );
+               }
+               if (mounted) Navigator.of(context).pop(true);
+               if (mounted) _showForcedAuthDialog(context);
+               return;
+             }
+           }
+         }
          if (mounted) {
             await showCustomPopup(
               context,
@@ -236,7 +268,11 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       String errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('scan_error_title');
       
       // Improved Error Handling
-      if (e.toString().contains("FIRM_MISMATCH")) {
+      if (e.toString().contains("GUEST_LIMIT_REACHED")) {
+          setState(() => _isProcessing = false);
+          if (mounted) _showForcedAuthDialog(context);
+          return;
+      } else if (e.toString().contains("FIRM_MISMATCH")) {
           errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('firm_mismatch_error')}$_expectedBusinessName";
       } else if (e.toString().contains("NO_CAMPAIGN")) {
           // Extract message portion from Exception string (e.g. Exception: NO_CAMPAIGN:Firm XYZ işletmesinin ...)
@@ -268,8 +304,67 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       }
     }
   }
-  @override
 
+  /// Non-dismissable forced account creation dialog shown after 3 QR uses
+  void _showForcedAuthDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9C06A).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.lock_outline_rounded, color: Color(0xFF76410B), size: 32),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '3 Hakkınızı Kullandınız',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF131313)),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Kampanyalardan faydalanmaya devam etmek için ücretsiz hesap oluşturun. Kazandığınız puanlar hesabınıza aktarılacak.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.outfit(fontSize: 14, color: const Color(0xFF131313).withValues(alpha: 0.55), height: 1.5),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    context.go('/login', extra: {'pageIndex': 1});
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF9C06A),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text('Kayıt Ol', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: const Color(0xFF131313))),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
   void dispose() {
     _scannerController.dispose();
     super.dispose();
