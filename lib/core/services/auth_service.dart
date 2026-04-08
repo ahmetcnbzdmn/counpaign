@@ -12,7 +12,7 @@ class AuthService {
 
   ApiService get apiService => _apiService;
 
-  Future<Map<String, dynamic>> login(String phoneNumber, String password) async {
+  Future<Map<String, dynamic>> login(String phoneNumber, String password, {String? guestId}) async {
     try {
       // 1. Lookup Email from Backend
       final response = await _apiService.client.post('/auth/lookup-email', data: {
@@ -87,6 +87,7 @@ class AuthService {
     required String password,
     String? gender,
     DateTime? birthDate,
+    String? guestId,
   }) async {
     try {
       // ONLY Register in Custom Backend (MongoDB) - TempUser Queue
@@ -181,7 +182,7 @@ class AuthService {
     }
   }
 
-  Future<void> sendSmsVerification(String phoneNumber) async {
+  Future<void> sendSmsVerification(String phoneNumber, {String? guestId}) async {
     try {
       await _apiService.client.post('/auth/send-verification', data: {
         'phoneNumber': phoneNumber,
@@ -191,11 +192,12 @@ class AuthService {
     }
   }
 
-  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname}) async {
+  Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname, String? guestId}) async {
     try {
       final response = await _apiService.client.post('/auth/verify-code', data: {
         'phoneNumber': phoneNumber,
         'code': code,
+        if (guestId != null) 'guestId': guestId,
       });
 
       final token = response.data['token'];

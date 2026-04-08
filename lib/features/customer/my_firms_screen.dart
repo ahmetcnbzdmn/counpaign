@@ -3,7 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/business_provider.dart';
-
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/language_provider.dart';
@@ -23,6 +24,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.read<AuthProvider>().isAuthenticated) return;
       context.read<BusinessProvider>().fetchMyFirms();
     });
   }
@@ -75,15 +77,37 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
     const yellow = Color(0xFFF9C06A);
 
     final provider = context.watch<BusinessProvider>();
-    final firms = provider.myFirms;
+    final isAuth = context.read<AuthProvider>().isAuthenticated;
+    final guestProvider = context.watch<GuestProvider>();
+    // Guests see their wallet; authenticated users see their real firms
+    final firms = isAuth ? provider.myFirms : guestProvider.wallet.map((e) {
+      final id = (e['_id'] ?? e['id'] ?? '').toString();
+      // Hydrate from explore list to get static details (name, logo, ratings)
+      final exploreData = provider.exploreFirms.firstWhere(
+        (f) => (f['_id'] ?? f['id']) == id,
+        orElse: () => <String, dynamic>{},
+      );
+      final merged = {...exploreData, ...e};
+
+      return {
+        'id': id,
+        'companyName': merged['companyName'] ?? 'Bilinmeyen',
+        'category': merged['category'] ?? '',
+        'logo': merged['logo'],
+        'image': merged['image'],
+        'cardColor': merged['cardColor'],
+        'city': merged['city'],
+        'district': merged['district'],
+        'neighborhood': merged['neighborhood'],
+        'reviewScore': parseRating(merged['reviewScore'] ?? merged['rating'] ?? merged['avgRating'] ?? merged['averageRating']),
+        'reviewCount': parseReviewCount(merged['reviewCount'] ?? merged['ratingCount'] ?? merged['reviewsCount']),
+        'rating': parseRating(merged['rating'] ?? merged['reviewScore']),
+        'ratingCount': parseReviewCount(merged['ratingCount'] ?? merged['reviewCount']),
+      };
+    }).toList();
+    final isLoading = isAuth ? provider.isLoading : false;
     final lang = context.watch<LanguageProvider>();
 
-    String resolveLogoUrl(String? path) {
-      if (path == null || path.isEmpty) return '';
-      if (path.startsWith('http')) return path;
-      final baseUrl = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
-      return '$baseUrl$path';
-    }
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -175,9 +199,9 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
 
           // ── List ──────────────────────────────────────────────────
           Expanded(
-            child: provider.isLoading && firms.isEmpty
+            child: isLoading && firms.isEmpty
                 ? const Center(child: CircularProgressIndicator())
-                : !provider.isLoading && firms.isEmpty
+                : !isLoading && firms.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -219,7 +243,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     : ReorderableListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                     itemCount: firms.length,
-                    onReorder: _onReorder,
+                    onReorder: isAuth ? _onReorder : (_, __) {},
                     proxyDecorator: (child, index, animation) {
                       return AnimatedBuilder(
                         animation: animation,
@@ -238,7 +262,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                     itemBuilder: (context, index) {
                       final firm = firms[index];
                       final rawLogo = firm['logo'] ?? firm['image'] ?? firm['logoUrl'];
-                      final logoUrl = resolveLogoUrl(rawLogo);
+                      final logoUrl = resolveImageUrl(rawLogo) ?? '';
                       final rawCat = firm['category'] as String? ?? '';
                       final cat = rawCat.isNotEmpty ? _translateCategory(rawCat, lang) : lang.translate('general');
                       final addr = _formatAddress(firm);
@@ -246,7 +270,7 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
 
                       return Dismissible(
                         key: ValueKey(firm['id']),
-                        direction: DismissDirection.endToStart,
+                        direction: isAuth ? DismissDirection.endToStart : DismissDirection.none,
                         background: Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -258,6 +282,40 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                           child: const Icon(Icons.delete_rounded, color: Colors.white),
                         ),
                         confirmDismiss: (direction) async {
+                          // Guest: simple confirm, no password needed
+                          if (!isAuth) {
+                            final bool? confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                backgroundColor: cardColor,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                title: Text(
+                                  Provider.of<LanguageProvider>(context, listen: false).translate('delete_firm_title'),
+                                  style: GoogleFonts.outfit(color: textColor, fontWeight: FontWeight.bold),
+                                ),
+                                content: Text(
+                                  Provider.of<LanguageProvider>(context, listen: false).translate('delete_firm_content'),
+                                  style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.8), fontSize: 16),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(false),
+                                    child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('cancel'), style: GoogleFonts.outfit(color: textColor.withValues(alpha: 0.6))),
+                                  ),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                                    onPressed: () => Navigator.of(context).pop(true),
+                                    child: Text(Provider.of<LanguageProvider>(context, listen: false).translate('yes_delete'), style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm != true) return false;
+                            if (!context.mounted) return false;
+                            await context.read<GuestProvider>().removeFromWallet(firm['id']);
+                            return true;
+                          }
+
                           final bool? confirm = await showDialog<bool>(
                             context: context,
                             builder: (context) => AlertDialog(

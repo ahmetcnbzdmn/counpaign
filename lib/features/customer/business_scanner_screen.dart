@@ -59,9 +59,17 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
     super.dispose();
   }
 
+  bool _isProcessing = false;
+
   Future<void> _processScan() async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    
     final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return;
+    if (user == null) {
+      if (mounted) setState(() => _isProcessing = false);
+      return;
+    }
 
     try {
       final api = context.read<ApiService>();
@@ -88,6 +96,11 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
           type: PopupType.error,
         );
       }
+    } finally {
+      await Future.delayed(const Duration(milliseconds: 2500));
+      if (mounted) {
+        setState(() => _isProcessing = false);
+      }
     }
   }
 
@@ -102,9 +115,13 @@ class _BusinessScannerScreenState extends State<BusinessScannerScreen> {
           MobileScanner(
             controller: _scannerController,
             onDetect: (capture) {
-              // Real scanning logic would go here
-              // For now we just show it works
-              _processScan();
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                if (barcode.rawValue != null && !_isProcessing) {
+                  _processScan();
+                  break;
+                }
+              }
             },
           ),
 

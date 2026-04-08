@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/providers/business_provider.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
@@ -20,6 +22,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!context.read<AuthProvider>().isAuthenticated) return;
       context.read<BusinessProvider>().fetchExploreFirms();
     });
   }
@@ -88,7 +91,7 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       clipBehavior: Clip.antiAlias,
-      child: resolvedUrl != null
+      child: resolvedUrl.isNotEmpty
           ? Image.network(
               resolvedUrl,
               fit: BoxFit.cover,
@@ -249,7 +252,9 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
                     // ── Newest Slider ─────────────────────────────
                     SliverToBoxAdapter(
                       child: FutureBuilder<List<dynamic>>(
-                        future: context.read<ApiService>().getNewestBusinesses(),
+                        future: context.read<AuthProvider>().isAuthenticated
+                            ? context.read<ApiService>().getNewestBusinesses()
+                            : Future.value([]),
                         builder: (context, snapshot) {
                           if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
                           final newest = snapshot.data!;
@@ -395,8 +400,8 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     required Color deepBrown,
   }) {
     final lang = context.read<LanguageProvider>();
-    final rating = (business['rating'] ?? business['reviewScore'] ?? 0.0).toDouble();
-    final reviewCount = business['reviewCount'] ?? 0;
+    final rating = parseRating(business['rating'] ?? business['reviewScore'] ?? business['avgRating'] ?? business['averageRating']);
+    final reviewCount = parseReviewCount(business['reviewCount'] ?? business['ratingCount'] ?? business['reviewsCount']);
     final rawCategory = business['category'] ?? '';
     final category = rawCategory.isNotEmpty ? _translateCategory(rawCategory, lang) : '';
 
@@ -419,11 +424,21 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
         child: InkWell(
           onTap: () async {
             final provider = context.read<BusinessProvider>();
+            final guestProvider = context.read<GuestProvider>();
             final id = business['_id'] ?? business['id'];
-            final isInWallet = provider.isFirmInWallet(id);
+            
+            bool isInWallet = provider.isFirmInWallet(id);
+            if (!isInWallet && guestProvider.isGuest) {
+              isInWallet = guestProvider.wallet.any((f) => (f['_id'] ?? f['id']) == id);
+            }
+
             dynamic walletData;
             if (isInWallet) {
-              walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+              if (provider.isFirmInWallet(id)) {
+                walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+              } else if (guestProvider.isGuest) {
+                walletData = guestProvider.wallet.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+              }
             }
 
             context.push('/business-detail', extra: {
@@ -578,12 +593,21 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
     final icon = _parseIcon(firm['cardIcon']);
 
     final provider = context.read<BusinessProvider>();
+    final guestProvider = context.read<GuestProvider>();
     final id = firm['_id'] ?? firm['id'];
-    final isInWallet = provider.isFirmInWallet(id);
+    
+    bool isInWallet = provider.isFirmInWallet(id);
+    if (!isInWallet && guestProvider.isGuest) {
+      isInWallet = guestProvider.wallet.any((f) => (f['_id'] ?? f['id']) == id);
+    }
 
     dynamic walletData;
     if (isInWallet) {
-      walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+      if (provider.isFirmInWallet(id)) {
+        walletData = provider.myFirms.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+      } else if (guestProvider.isGuest) {
+        walletData = guestProvider.wallet.firstWhere((f) => (f['_id'] ?? f['id']) == id);
+      }
     }
 
     final isNew = !isInWallet;
@@ -598,8 +622,8 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
           'stampsTarget': isInWallet ? (walletData['stampsTarget'] ?? 6) : (firm['stampsTarget'] ?? 6),
           'giftsCount': isInWallet ? (walletData['giftsCount'] ?? 0) : 0,
           'value': isInWallet ? (walletData['value'] ?? '0.00') : '0.00',
-          'reviewScore': firm['rating'] ?? firm['reviewScore'] ?? 0.0,
-          'reviewCount': firm['reviewCount'] ?? 0,
+          'reviewScore': parseRating(firm['rating'] ?? firm['reviewScore'] ?? firm['avgRating'] ?? firm['averageRating']),
+          'reviewCount': parseReviewCount(firm['reviewCount'] ?? firm['ratingCount'] ?? firm['reviewsCount']),
           'color': _parseColor(firm['cardColor']),
           'icon': icon,
           'city': firm['city'],

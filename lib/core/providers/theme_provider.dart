@@ -32,10 +32,10 @@ class ThemeProvider extends ChangeNotifier {
     brightness: Brightness.dark,
     scaffoldBackgroundColor: const Color(0xFF0A0E13),
     cardColor: const Color(0xFF1E2329),
-    primaryColor: const Color(0xFFEE2C2C), // New Brand Red
+    primaryColor: const Color(0xFF76410B), // Brand Brown
     colorScheme: const ColorScheme.dark(
-      primary: Color(0xFFEE2C2C),
-      secondary: Color(0xFFEE2C2C),
+      primary: Color(0xFFF9C06A), // Brand Gold
+      secondary: Color(0xFF76410B),
       surface: Color(0xFF1E2329),
     ),
     textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
@@ -52,10 +52,10 @@ class ThemeProvider extends ChangeNotifier {
     brightness: Brightness.light,
     scaffoldBackgroundColor: const Color(0xFFF2F3F5), 
     cardColor: Colors.white,
-    primaryColor: const Color(0xFFEE2C2C), // New Brand Red
+    primaryColor: const Color(0xFF76410B), // Brand Brown
     colorScheme: const ColorScheme.light(
-      primary: Color(0xFFEE2C2C),
-      secondary: Color(0xFFEE2C2C),
+      primary: Color(0xFFF9C06A), // Brand Gold
+      secondary: Color(0xFF76410B),
       surface: Colors.white,
     ),
     textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),

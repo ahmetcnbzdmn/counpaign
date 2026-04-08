@@ -213,8 +213,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     final double fillProgress = (_stampsTarget > 0) ? (_stamps / _stampsTarget).clamp(0.0, 1.0) : 0.0;
     
     // Review score & count (fallback to defaults if undefined)
-    final double reviewScore = (widget.businessData['reviewScore'] ?? 0.0).toDouble();
-    final int reviewCount = widget.businessData['reviewCount'] ?? 0;
+    final double reviewScore = parseRating(widget.businessData['reviewScore'] ?? widget.businessData['rating'] ?? widget.businessData['avgRating'] ?? widget.businessData['averageRating']);
+    final int reviewCount = parseReviewCount(widget.businessData['reviewCount'] ?? widget.businessData['ratingCount'] ?? widget.businessData['reviewsCount']);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end, // Align elements to bottom to balance the cup and the badges on the same line
@@ -663,7 +663,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             color: Colors.grey,
                             fontSize: 11,
                             decoration: TextDecoration.lineThrough,
-                          ),
+                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                         ),
                         const SizedBox(width: 4),
                       ],
@@ -674,7 +674,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                             color: Colors.black,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                          ),
+                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -768,17 +768,33 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Future<void> _refreshData() async {
       // Re-fetch business data to update stamps/points
       try {
-        final api = context.read<ApiService>();
-        // We might need a specific endpoint to get single business details or just refresh list
-        // For now, re-fetching global list and finding this business again
-        // Or if we have a direct endpoint:
-        final updatedData = await api.getBusinessById(_businessId);
-        setState(() {
-            _stamps = updatedData['stamps'] ?? _stamps;
-            _stampsTarget = updatedData['stampsTarget'] ?? _stampsTarget;
-            _giftsCount = updatedData['giftsCount'] ?? _giftsCount;
-            _points = (updatedData['points'] ?? _points).toString();
-        });
+        final guestProvider = context.read<GuestProvider>();
+        if (guestProvider.isGuest) {
+          // Guest: refresh from its own wallet
+          await guestProvider.syncFromBackend();
+          final firmInWallet = guestProvider.wallet.firstWhere(
+            (f) => (f['_id'] ?? f['id'] ?? '').toString() == _businessId,
+            orElse: () => {},
+          );
+          if (firmInWallet.isNotEmpty) {
+            setState(() {
+              _stamps = firmInWallet['stamps'] ?? _stamps;
+              _stampsTarget = firmInWallet['stampsTarget'] ?? _stampsTarget;
+              _giftsCount = firmInWallet['giftsCount'] ?? _giftsCount;
+              _points = (firmInWallet['points'] ?? _points).toString();
+            });
+          }
+        } else {
+          // Authenticated: API
+          final api = context.read<ApiService>();
+          final updatedData = await api.getBusinessById(_businessId);
+          setState(() {
+              _stamps = updatedData['stamps'] ?? _stamps;
+              _stampsTarget = updatedData['stampsTarget'] ?? _stampsTarget;
+              _giftsCount = updatedData['giftsCount'] ?? _giftsCount;
+              _points = (updatedData['points'] ?? _points).toString();
+          });
+        }
       } catch (e) {
           debugPrint("Error refreshing business data: $e");
       }
@@ -805,8 +821,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   Future<void> _navigateToGiftSelection() async {
     final double points = double.tryParse(_points) ?? 0.0;
     final logoUrl = widget.businessData['logo'] ?? widget.businessData['image'] ?? widget.businessData['logoUrl'];
-    final reviewScore = (widget.businessData['reviewScore'] ?? 0.0).toDouble();
-    final reviewCount = widget.businessData['reviewCount'] ?? 0;
+    final reviewScore = parseRating(widget.businessData['reviewScore'] ?? widget.businessData['rating'] ?? widget.businessData['avgRating'] ?? widget.businessData['averageRating']);
+    final reviewCount = parseReviewCount(widget.businessData['reviewCount'] ?? widget.businessData['ratingCount'] ?? widget.businessData['reviewsCount']);
 
     final bool? result = await Navigator.push(
       context,
@@ -836,8 +852,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
     // Determine data source: guest or authenticated user
     final Future<List<dynamic>> historyFuture = guestProvider.isGuest && guestProvider.guestId != null
         ? context.read<ApiService>().getGuestTransactions(guestProvider.guestId!).then(
-            (all) => all.where((tx) {
-              final bizId = (tx['business']?['_id'] ?? tx['businessId'] ?? '').toString();
+            (all) => (all as List? ?? []).where((tx) {
+              // Robustly find business ID from different possible paths
+              final bizId = (tx['businessId'] ?? tx['business']?['_id'] ?? tx['business']?['id'] ?? '').toString();
               return bizId == _businessId;
             }).toList())
         : context.read<ApiService>().getTransactionHistory(_businessId);
@@ -941,8 +958,18 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         final pointsEarned = tx['pointsEarned']; // May be null or number
                         final description = tx['description'] ?? '';
                         
-                        final date = DateTime.parse(tx['createdAt']);
-                        final formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
+                        String formattedDate = '';
+                        try {
+                          String? rawDate = tx['createdAt']?.toString();
+                          if (rawDate != null && rawDate != 'null') {
+                            if (!rawDate.endsWith('Z')) rawDate += 'Z';
+                            final dateUtc = DateTime.parse(rawDate);
+                            final date = dateUtc.toLocal();
+                            formattedDate = DateFormat('dd.MM.yyyy HH:mm').format(date);
+                          }
+                        } catch (e) {
+                          formattedDate = '--.--.---- --:--';
+                        }
                         
                         // Default values
                         String title = lang.translate('transaction');
@@ -954,10 +981,10 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                         double? pts;
                         if (pointsEarned != null) {
                            if (pointsEarned is num) pts = pointsEarned.toDouble();
-                           if (pointsEarned is String) pts = double.tryParse(pointsEarned);
+                           else if (pointsEarned is String) pts = double.tryParse(pointsEarned);
                         } else if (type == 'POINT' && tx['value'] != null) {
                            if (tx['value'] is num) pts = tx['value'].toDouble();
-                           if (tx['value'] is String) pts = double.tryParse(tx['value']);
+                           else if (tx['value'] is String) pts = double.tryParse(tx['value']);
                         }
 
                         if (type == 'gift_redemption') {
@@ -1024,7 +1051,7 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(
-                                  (sign == "-" || (pointsEarned != null && (pointsEarned as num) < 0)) ? Icons.shopping_bag_outlined : Icons.redeem_rounded,
+                                  (sign == "-" || (pts != null && pts < 0)) ? Icons.shopping_bag_outlined : Icons.redeem_rounded,
                                   color: color,
                                   size: 24,
                                 ),
@@ -1391,9 +1418,37 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
   }
 
   Future<void> _addToWallet() async {
+    final guestProvider = context.read<GuestProvider>();
+    final isGuest = guestProvider.isGuest;
+
     setState(() => _isAddingLoading = true);
     try {
-      await context.read<ApiService>().addFirm(_businessId);
+      if (isGuest) {
+        // Guest: optimistic update + backend sync (handled inside addToWallet).
+        // We do NOT call _refreshData() separately after this because addToWallet
+        // already calls syncFromBackend internally — a second call would be redundant
+        // and could surface a spurious error popup even when the add succeeded.
+        await guestProvider.addToWallet(_businessId, widget.businessData);
+        // Read the freshly-synced wallet directly from provider (no extra network call)
+        if (mounted) {
+          final firmInWallet = guestProvider.wallet.firstWhere(
+            (f) => (f['_id'] ?? f['id'] ?? '').toString() == _businessId,
+            orElse: () => <String, dynamic>{},
+          );
+          if (firmInWallet.isNotEmpty) {
+            setState(() {
+              _stamps      = firmInWallet['stamps']      ?? _stamps;
+              _stampsTarget = firmInWallet['stampsTarget'] ?? _stampsTarget;
+              _giftsCount  = firmInWallet['giftsCount']  ?? _giftsCount;
+              _points      = (firmInWallet['points']     ?? _points).toString();
+            });
+          }
+        }
+      } else {
+        // Authenticated: API
+        await context.read<ApiService>().addFirm(_businessId);
+      }
+
       if (mounted) {
         showCustomPopup(
           context,
@@ -1401,7 +1456,9 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
           type: PopupType.success,
         );
         // Refresh providers
-        context.read<BusinessProvider>().fetchMyFirms();
+        if (!isGuest) {
+          context.read<BusinessProvider>().fetchMyFirms();
+        }
         context.read<BusinessProvider>().fetchExploreFirms();
         // Unlock screen instead of popping
         setState(() {

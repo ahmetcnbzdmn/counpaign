@@ -8,6 +8,7 @@ import '../../core/config/api_config.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
+import '../../core/utils/ui_utils.dart';
 import 'menu_item_detail_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -178,12 +179,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  String _getImageUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-    final baseUrl = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
-    return '$baseUrl$path';
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -225,8 +220,8 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildCreativeAppBar() {
-    final logoUrl = _getImageUrl(widget.businessLogo ?? widget.businessImage);
-    final coverUrl = _getImageUrl(widget.businessImage);
+    final logoUrl = resolveImageUrl(widget.businessLogo ?? widget.businessImage);
+    final coverUrl = resolveImageUrl(widget.businessImage);
     final bool hasCover = coverUrl.isNotEmpty && coverUrl != logoUrl;
 
     return SliverAppBar(
@@ -511,7 +506,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Widget _buildCreativePopularCard(dynamic product) {
-    final imageUrl = _getImageUrl(product['imageUrl']);
+    final imageUrl = resolveImageUrl(product['imageUrl']);
 
     return GestureDetector(
       onTap: () {
@@ -577,7 +572,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         ),
                         child: Text(
                           '₺${(product['price'] as num) - (product['discount'] ?? 0)}',
-                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
+                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                         ),
                       ),
                       if ((product['discount'] ?? 0) > 0) ...[
@@ -588,7 +583,7 @@ class _MenuScreenState extends State<MenuScreen> {
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 12,
                             decoration: TextDecoration.lineThrough,
-                          ),
+                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                         ),
                       ],
                     ],
@@ -626,7 +621,7 @@ class _MenuScreenState extends State<MenuScreen> {
 
 
   Widget _buildCreativeGridCard(dynamic product) {
-    final imageUrl = _getImageUrl(product['imageUrl']);
+    final imageUrl = resolveImageUrl(product['imageUrl']);
 
     return GestureDetector(
       onTap: () {
@@ -680,7 +675,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     child: Text(
                       '${(((product['price'] as num) - (product['discount'] ?? 0)).toInt())}₺',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                     ),
                   ),
                 ),

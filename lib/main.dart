@@ -78,9 +78,16 @@ void main() async {
   final guestProvider = GuestProvider(apiService, storageService);
 
   // Link ApiService 401 handling to AuthProvider logout
-  apiService.onUnauthorized = () {
-    // Keep user logged in offline/stale per user requirement instead of forcing logout 
-    debugPrint("401 Unauthorized triggered. App will stay logged in.");
+  apiService.onUnauthorized = ({bool isAccountDeleted = false}) {
+    if (isAccountDeleted) {
+       debugPrint("🚫 Account was deleted by Admin. Forcing logout.");
+       authProvider.accountWasDeleted = true;
+       authProvider.logout();
+    } else {
+       // Regular session expiration - can keep silent or logout. 
+       // Keeping user logged in offline per original comment, but ensuring session is cleaned if needed.
+       debugPrint("401 Unauthorized triggered (Session Expired).");
+    }
   };
 
   // Don't await here! It blocks runApp if network is slow/down.
@@ -119,10 +126,11 @@ class _CounpaignAppState extends State<CounpaignApp> {
   void initState() {
     super.initState();
     final authProvider = context.read<app.AuthProvider>();
-    
+    final guestProvider = context.read<GuestProvider>();
+
     _router = GoRouter(
       initialLocation: '/', // Start at Splash
-      refreshListenable: authProvider,
+      refreshListenable: Listenable.merge([authProvider, guestProvider]),
       observers: [
         _KeyboardDismissObserver(),
       ], 
@@ -307,6 +315,7 @@ class _CounpaignAppState extends State<CounpaignApp> {
                 password: extra['password'],
                 name: extra['name'],
                 surname: extra['surname'],
+                guestId: extra['guestId'],
               );
             } else if (extra is String) {
               return VerificationScreen(phoneNumber: extra);

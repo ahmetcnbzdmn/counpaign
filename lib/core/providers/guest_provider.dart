@@ -49,7 +49,7 @@ class GuestProvider extends ChangeNotifier {
       final result = await _apiService.createGuestSession(deviceId: deviceId);
       _guestId = result['guestId'] as String;
       _campaignUsageCount = (result['campaignUsageCount'] as int?) ?? 0;
-      _wallet = _parseWallet(result['wallet']);
+      _wallet = _mergeWithRemote(_parseWallet(result['wallet']));
 
       await _saveLocal();
       notifyListeners();
@@ -72,10 +72,21 @@ class GuestProvider extends ChangeNotifier {
     try {
       final result = await _apiService.getGuestSession(_guestId!);
       _campaignUsageCount = (result['campaignUsageCount'] as int?) ?? _campaignUsageCount;
-      _wallet = _parseWallet(result['wallet']);
+      _wallet = _mergeWithRemote(_parseWallet(result['wallet']));
       await _saveLocal();
       notifyListeners();
-    } catch (_) {}
+    } catch (e) {
+      final errStr = e.toString();
+      // Session expired or deleted on server — clear local state
+      if (errStr.contains('404') || errStr.contains('bulunamadı')) {
+        await _storageService.clearGuestSession();
+        _guestId = null;
+        _campaignUsageCount = 0;
+        _wallet = [];
+        notifyListeners();
+      }
+      // Other errors (network, server) are silently ignored to avoid disrupting UX
+    }
   }
 
   /// Add a firm to guest wallet
@@ -90,6 +101,7 @@ class GuestProvider extends ChangeNotifier {
     // Persist to backend (fire and forget)
     try {
       await _apiService.addToGuestWallet(_guestId!, businessId);
+      await syncFromBackend();
     } catch (e) {
       debugPrint('addToGuestWallet error: $e');
     }
@@ -135,6 +147,26 @@ class GuestProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _parseWallet(dynamic raw) {
     if (raw is! List) return [];
     return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  /// Merges remote wallet items (dynamic data) with local ones (static data)
+  List<Map<String, dynamic>> _mergeWithRemote(List<Map<String, dynamic>> remoteWallet) {
+    return remoteWallet.map((remoteItem) {
+      final firmId = _firmId(remoteItem);
+      // Find matching local item to preserve its static data (name, logo, ratings, etc.)
+      final localItem = _wallet.firstWhere(
+        (l) => _firmId(l) == firmId,
+        orElse: () => <String, dynamic>{},
+      );
+      
+      // Merge: Local static data + remote dynamic data (stamps, points)
+      return {
+        ...localItem, 
+        ...remoteItem, // Remote overrides stamps/points
+        '_id': firmId,
+        'id': firmId,
+      };
+    }).toList();
   }
 
   Future<void> _saveLocal() async {

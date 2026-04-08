@@ -26,6 +26,14 @@ class AuthProvider extends ChangeNotifier {
   bool _isInitialized = false;
   bool get isInitialized => _isInitialized;
 
+  bool _accountWasDeleted = false;
+  bool get accountWasDeleted => _accountWasDeleted;
+  set accountWasDeleted(bool value) {
+    _accountWasDeleted = value;
+    notifyListeners();
+  }
+  void clearAccountDeletedFlag() => _accountWasDeleted = false;
+
   Future<void> loadUserSession() async {
     try {
       final token = await _storageService.getToken();
@@ -48,6 +56,7 @@ class AuthProvider extends ChangeNotifier {
           // Admin deleted this account → 404. Force logout immediately.
           final errStr = e.toString();
           if (errStr.contains('404') || errStr.contains('Kullanıcı bulunamadı')) {
+            _accountWasDeleted = true;
             await logout();
             return;
           }
@@ -92,10 +101,10 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> login(String phoneNumber, String password) async {
+  Future<void> login(String phoneNumber, String password, {String? guestId}) async {
     _setLoading(true);
     try {
-      await _authService.login(phoneNumber, password);
+      await _authService.login(phoneNumber, password, guestId: guestId);
       await fetchProfile(); // Fetch full profile after login
       _isGuestMode = false;
     } finally {
@@ -103,8 +112,8 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> sendSmsVerification(String phoneNumber) async {
-    await _authService.sendSmsVerification(phoneNumber);
+  Future<void> sendSmsVerification(String phoneNumber, {String? guestId}) async {
+    await _authService.sendSmsVerification(phoneNumber, guestId: guestId);
   }
 
   Future<void> verifySmsCode(String phoneNumber, String code, {String? email, String? password, String? name, String? surname, String? guestId}) async {
@@ -134,6 +143,7 @@ class AuthProvider extends ChangeNotifier {
     required String password,
     String? gender,
     DateTime? birthDate,
+    String? guestId,
   }) async {
     _setLoading(true);
     try {
@@ -145,6 +155,7 @@ class AuthProvider extends ChangeNotifier {
         password: password,
         gender: gender,
         birthDate: birthDate,
+        guestId: guestId,
       );
     } finally {
       _setLoading(false);

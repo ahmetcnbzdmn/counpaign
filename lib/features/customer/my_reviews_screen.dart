@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../core/services/api_service.dart';
+import '../../core/providers/auth_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/theme/app_theme.dart';
@@ -27,6 +28,10 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
   }
 
   Future<void> _fetchReviews() async {
+    if (!context.read<AuthProvider>().isAuthenticated) {
+      setState(() => _isLoading = false);
+      return;
+    }
     try {
       final api = context.read<ApiService>();
       final results = await Future.wait([
@@ -86,12 +91,6 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     const textColor = Color(0xFF131313);
     const activeColor = AppTheme.primaryColor;
 
-    String resolveLogoUrl(String? path) {
-      if (path == null || path.isEmpty) return '';
-      if (path.startsWith('http')) return path;
-      final baseUrl = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
-      return '$baseUrl$path';
-    }
 
     final lang = context.watch<LanguageProvider>();
 
@@ -124,15 +123,15 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
             ? const Center(child: CircularProgressIndicator())
             : TabBarView(
                 children: [
-                  _buildRatedList(lang, textColor, cardColor, resolveLogoUrl),
-                  _buildPendingList(lang, textColor, cardColor, resolveLogoUrl),
+                  _buildRatedList(lang, textColor, cardColor),
+                  _buildPendingList(lang, textColor, cardColor),
                 ],
               ),
       ),
     );
   }
 
-  Widget _buildRatedList(LanguageProvider lang, Color textColor, Color cardColor, String Function(String?) resolveLogoUrl) {
+  Widget _buildRatedList(LanguageProvider lang, Color textColor, Color cardColor) {
     final filteredReviews = _getFilteredReviews();
     return Column(
       children: [
@@ -190,7 +189,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                     final formattedDate = DateFormat('dd MMM yyyy').format(date);
                     
                     final rawLogo = business['logo'] ?? business['image'] ?? business['logoUrl'];
-                    final logoUrl = resolveLogoUrl(rawLogo);
+                    final logoUrl = resolveImageUrl(rawLogo);
 
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
@@ -274,7 +273,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
     );
   }
 
-  Widget _buildPendingList(LanguageProvider lang, Color textColor, Color cardColor, String Function(String?) resolveLogoUrl) {
+  Widget _buildPendingList(LanguageProvider lang, Color textColor, Color cardColor) {
     return _pendingReviews.isEmpty
         ? _buildEmptyState(lang, textColor, 'no_pending_reviews')
         : ListView.builder(
@@ -288,7 +287,7 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
               final formattedDate = DateFormat('dd MMM yyyy, HH:mm').format(date);
               
               final rawLogo = business['logo'] ?? business['image'] ?? business['logoUrl'];
-              final logoUrl = resolveLogoUrl(rawLogo);
+              final logoUrl = resolveImageUrl(rawLogo);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),

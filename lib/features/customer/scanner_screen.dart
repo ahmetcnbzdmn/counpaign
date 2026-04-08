@@ -115,8 +115,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
       final guestProvider = context.read<GuestProvider>();
       final authProvider = context.read<AuthProvider>();
-      // Only treat as guest if NOT authenticated (stale guest state after registration)
-      final isActiveGuest = !authProvider.isAuthenticated && guestProvider.isGuest;
+      // Only treat as guest if NOT authenticated and guestId is available
+      final isActiveGuest = !authProvider.isAuthenticated && guestProvider.isGuest && guestProvider.guestId != null;
 
       // Guest limit check before even calling API
       if (isActiveGuest && !guestProvider.hasUsagesLeft) {
@@ -146,6 +146,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       // Start Polling for Confirmation
       // Show waiting dialog
       bool _dialogOpen = false;
+      bool _cancelledByUser = false;
+      final pollingTokenForCancel = result['pollToken'] ?? token;
       if (mounted) {
         _dialogOpen = true;
         showDialog(
@@ -172,7 +174,21 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                      textAlign: TextAlign.center,
                      style: GoogleFonts.outfit(color: Colors.grey),
                    ),
-                   const SizedBox(height: 16),
+                   const SizedBox(height: 20),
+                   TextButton(
+                     onPressed: () async {
+                       _cancelledByUser = true;
+                       Navigator.of(ctx).pop();
+                       try {
+                         await context.read<ApiService>().customerCancelQR(pollingTokenForCancel);
+                       } catch (_) {}
+                     },
+                     child: Text(
+                       Provider.of<LanguageProvider>(context, listen: false).translate('cancel'),
+                       style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600),
+                     ),
+                   ),
+                   const SizedBox(height: 4),
                 ],
               ),
             ),
@@ -184,14 +200,16 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       bool isConfirmed = false;
       bool isCancelled = false;
       int attempts = 0;
-      
+
       // Use pollToken from static QR response if available...
       final pollingToken = result['pollToken'] ?? token;
-      
+
       while (attempts < 30) {
          if (!mounted) break;
-         
+         if (_cancelledByUser) break;
+
          await Future.delayed(const Duration(seconds: 2));
+         if (_cancelledByUser) break;
          try {
             final statusResult = await apiService.checkConfirmationStatus(pollingToken);
             
@@ -205,6 +223,11 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
             }
          } catch (e) {
             debugPrint("⚠️ Polling Error: $e");
+            final errStr = e.toString();
+            // Don't keep polling on definitive server errors
+            if (errStr.contains('500') || errStr.contains('503') || errStr.contains('404')) {
+              break;
+            }
          }
          attempts++;
       }
@@ -216,6 +239,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       }
 
       if (!mounted) return;
+      if (_cancelledByUser) return;
       if (isConfirmed) {
          // Increment guest usage count on successful scan + sync fresh points/stamps
          if (mounted) {
@@ -234,6 +258,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                  );
                }
                if (mounted) Navigator.of(context).pop(true);
+               await Future.delayed(const Duration(milliseconds: 150));
                if (mounted) _showForcedAuthDialog(context);
                return;
              }
@@ -257,6 +282,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.error,
             );
           }
+          if (mounted) Navigator.of(context).pop(false);
       } else {
          if (mounted) {
             await showCustomPopup(
@@ -265,6 +291,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
               type: PopupType.error,
             );
          }
+         if (mounted) Navigator.of(context).pop(false);
       }
 
     } catch (e) {
@@ -274,9 +301,10 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
       
       // Improved Error Handling
       if (e.toString().contains("GUEST_LIMIT_REACHED")) {
-          setState(() => _isProcessing = false);
           if (mounted) _showForcedAuthDialog(context);
           return;
+      } else if (e.toString().contains("SCAN_IN_PROGRESS")) {
+          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('scan_in_progress_error');
       } else if (e.toString().contains("FIRM_MISMATCH")) {
           errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('firm_mismatch_error')}$_expectedBusinessName";
       } else if (e.toString().contains("NO_CAMPAIGN")) {
@@ -304,6 +332,8 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
         type: PopupType.error,
       );
     } finally {
+      // Cooldown to prevent Android from instantly scanning the same QR causing an infinite loop of error dialogs
+      await Future.delayed(const Duration(milliseconds: 2500));
       if (mounted) {
         setState(() => _isProcessing = false);
       }
@@ -312,6 +342,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
   /// Non-dismissable forced account creation dialog shown after 3 QR uses
   void _showForcedAuthDialog(BuildContext context) {
+    final router = GoRouter.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -352,7 +383,7 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(ctx).pop();
-                    context.go('/login', extra: {'pageIndex': 1});
+                    router.go('/login', extra: {'pageIndex': 1});
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFF9C06A),

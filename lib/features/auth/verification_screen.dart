@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/providers/language_provider.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class VerificationScreen extends StatefulWidget {
   final String? password;
   final String? name;
   final String? surname;
+  final String? guestId;
 
   const VerificationScreen({
     super.key,
@@ -22,6 +24,7 @@ class VerificationScreen extends StatefulWidget {
     this.password,
     this.name,
     this.surname,
+    this.guestId,
   });
 
   @override
@@ -51,6 +54,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     try {
       final auth = context.read<AuthProvider>();
+      final guestProvider = context.read<GuestProvider>();
+
       await auth.verifySmsCode(
         widget.phoneNumber,
         _pinController.text,
@@ -58,7 +63,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
         password: widget.password,
         name: widget.name,
         surname: widget.surname,
+        guestId: widget.guestId ?? (guestProvider.isGuest ? guestProvider.guestId : null),
       );
+
+      // Clear guest session after successful registration
+      if (guestProvider.isGuest) {
+        await guestProvider.clear();
+      }
 
       if (mounted) {
         HapticFeedback.heavyImpact();
@@ -86,7 +97,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
     setState(() => _isLoading = true);
     try {
       final auth = context.read<AuthProvider>();
-      await auth.sendSmsVerification(widget.phoneNumber);
+      final guestProvider = context.read<GuestProvider>();
+      final String? currentGuestId = widget.guestId ?? (guestProvider.isGuest ? guestProvider.guestId : null);
+      await auth.sendSmsVerification(widget.phoneNumber, guestId: currentGuestId);
       if (mounted) {
         final lang = context.read<LanguageProvider>();
         showCustomPopup(context, message: lang.translate('code_resent_msg'), type: PopupType.success);
@@ -155,6 +168,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         leading: const BackButton(color: textColor),
       ),
       body: SafeArea(

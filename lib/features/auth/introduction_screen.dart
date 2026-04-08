@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/storage_service.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 
 class IntroductionScreen extends StatefulWidget {
   const IntroductionScreen({super.key});
@@ -173,6 +175,40 @@ class _IntroductionScreenState extends State<IntroductionScreen> {
                           if (context.mounted) context.push('/login', extra: {'pageIndex': 1});
                         },
                         isPrimary: false,
+                      ),
+                      const SizedBox(height: 16),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () async {
+                          await StorageService().setHasSeenIntro(true);
+                          if (!context.mounted) return;
+                          try {
+                            final auth = context.read<AuthProvider>();
+                            final guest = context.read<GuestProvider>();
+                            await guest.startGuestSession();
+                            auth.enterGuestMode();
+                            if (context.mounted) context.go('/home');
+                          } catch (_) {
+                            final auth = context.read<AuthProvider>();
+                            auth.enterGuestMode();
+                            if (context.mounted) context.go('/home');
+                          }
+                        },
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              lang.translate('continue_as_guest'),
+                              style: GoogleFonts.outfit(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: textColor.withValues(alpha: 0.5),
+                                decoration: TextDecoration.underline,
+                                decorationColor: textColor.withValues(alpha: 0.3),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),

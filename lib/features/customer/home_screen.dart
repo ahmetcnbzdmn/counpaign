@@ -57,9 +57,6 @@ class _HomeScreenState extends State<HomeScreen> {
     // Fetch data using the provider
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      
-      // Load pending reviews immediately
-      _loadPendingReviews();
 
       final bp = context.read<BusinessProvider>();
       final cp = context.read<CampaignProvider>();
@@ -68,7 +65,6 @@ class _HomeScreenState extends State<HomeScreen> {
       // If auth not initialized yet, wait for it shortly
       if (!auth.isInitialized) {
         await Future.delayed(const Duration(milliseconds: 500));
-        if (mounted) _loadPendingReviews(); // Try again if auth just loaded
       }
 
       // Always fetch campaigns and explore firms (public endpoints)
@@ -77,11 +73,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // Skip auth-required API calls if not logged in (guest or unauthenticated)
       if (!auth.isAuthenticated) {
+        _loadPendingReviews(); // sets _pendingReviewsLoaded=true immediately
         return;
       }
 
       try {
         await bp.fetchMyFirms();
+        // Load pending reviews AFTER firms are loaded so banner shows correct state
+        if (mounted) _loadPendingReviews();
 
         // Fetch campaigns for each firm with delay to avoid rate limiting
         if (mounted) {
@@ -156,87 +155,98 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _showRatingDialog(dynamic review, int rating) {
+  void _showRatingDialog(dynamic review, int initialRating) {
     if (_isSubmittingReview) return;
-    
+
     final TextEditingController noteController = TextEditingController();
     final lang = Provider.of<LanguageProvider>(context, listen: false);
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFFF5F5F7),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text(
-            lang.translate('rating'),
-            style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
-            textAlign: TextAlign.center,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return Icon(
-                    Icons.star_rounded,
-                    color: index < rating ? const Color(0xFFE68A01) : const Color(0xFF6D6D6D).withValues(alpha: 0.4),
-                    size: 40,
-                  );
-                }),
+        int selectedRating = initialRating;
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFFF5F5F7),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                lang.translate('rating'),
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.black87),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 20),
-              TextField(
-                controller: noteController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: lang.translate('optional_note_hint'),
-                  hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFDADADA)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => selectedRating = index + 1),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(
+                            Icons.star_rounded,
+                            color: index < selectedRating ? const Color(0xFFE68A01) : const Color(0xFF6D6D6D).withValues(alpha: 0.4),
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    }),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFFDADADA)),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: lang.translate('optional_note_hint'),
+                      hintStyle: GoogleFonts.outfit(color: Colors.grey, fontSize: 13),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFDADADA)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFFDADADA)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF77410C)),
+                      ),
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    style: GoogleFonts.outfit(fontSize: 14),
                   ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF77410C)),
+                ],
+              ),
+              actionsAlignment: MainAxisAlignment.spaceEvenly,
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    lang.translate('cancel'),
+                    style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600, fontSize: 16),
                   ),
-                  filled: true,
-                  fillColor: Colors.white,
                 ),
-                style: GoogleFonts.outfit(fontSize: 14),
-              ),
-            ],
-          ),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                lang.translate('cancel'),
-                style: GoogleFonts.outfit(color: Colors.grey, fontWeight: FontWeight.w600, fontSize: 16),
-              ),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF77410C),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              onPressed: () {
-                Navigator.pop(context); // Close dialog
-                _submitReview(review, rating, comment: noteController.text.trim());
-              },
-              child: Text(
-                lang.translate('save'),
-                style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-            ),
-          ],
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF77410C),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _submitReview(review, selectedRating, comment: noteController.text.trim());
+                  },
+                  child: Text(
+                    lang.translate('save'),
+                    style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -328,6 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // Helper to get firms from provider and map them
   List<Map<String, dynamic>> _getFirmBalances(BuildContext context, {bool listen = true}) {
     final authProvider = listen ? context.watch<app.AuthProvider>() : context.read<app.AuthProvider>();
+    final provider = listen ? context.watch<BusinessProvider>() : context.read<BusinessProvider>();
 
     // Guest mode: show guest wallet
     if (!authProvider.isAuthenticated) {
@@ -343,30 +354,39 @@ class _HomeScreenState extends State<HomeScreen> {
           'icon': Icons.account_balance_wallet_rounded,
         }];
       }
-      return data.map((e) => {
-        'id': (e['_id'] ?? e['id'] ?? '').toString(),
-        'name': e['companyName'] ?? 'Bilinmeyen',
-        'points': (e['points'] ?? 0).toString(),
-        'stamps': e['stamps'] ?? 0,
-        'stampsTarget': e['stampsTarget'] ?? 6,
-        'giftsCount': e['giftsCount'] ?? 0,
-        'value': '0.00',
-        'color': _parseColor(e['cardColor'] as String?),
-        'icon': _parseIcon(e['cardIcon'] as String?),
-        'city': e['city'],
-        'district': e['district'],
-        'neighborhood': e['neighborhood'],
-        'logo': e['logo'],
-        'image': e['image'],
-        'reviewScore': e['reviewScore'],
-        'reviewCount': e['reviewCount'],
+      return data.map((e) {
+        final id = (e['_id'] ?? e['id'] ?? '').toString();
+        // Hydrate from explore list to get static details (name, logo, ratings)
+        final exploreData = provider.exploreFirms.firstWhere(
+          (f) => (f['_id'] ?? f['id']) == id,
+          orElse: () => <String, dynamic>{},
+        );
+        final merged = {...exploreData, ...e};
+
+        return {
+          'id': id,
+          'name': merged['companyName'] ?? 'Bilinmeyen',
+          'points': (merged['points'] ?? 0).toString(),
+          'stamps': merged['stamps'] ?? 0,
+          'stampsTarget': merged['stampsTarget'] ?? 6,
+          'giftsCount': merged['giftsCount'] ?? 0,
+          'value': '0.00',
+          'color': _parseColor(merged['cardColor'] as String?),
+          'icon': _parseIcon(merged['cardIcon'] as String?),
+          'city': merged['city'],
+          'district': merged['district'],
+          'neighborhood': merged['neighborhood'],
+          'logo': merged['logo'],
+          'image': merged['image'],
+          'reviewScore': parseRating(merged['reviewScore'] ?? merged['rating'] ?? merged['avgRating'] ?? merged['averageRating']),
+          'reviewCount': parseReviewCount(merged['reviewCount'] ?? merged['ratingCount'] ?? merged['reviewsCount']),
+          'rating': parseRating(merged['rating'] ?? merged['reviewScore']),
+          'ratingCount': parseReviewCount(merged['ratingCount'] ?? merged['reviewCount']),
+        };
       }).toList();
     }
 
     // Authenticated: show real wallet
-    final provider = listen
-        ? context.watch<BusinessProvider>()
-        : context.read<BusinessProvider>();
     final data = provider.myFirms;
 
     if (provider.isLoading && data.isEmpty) {
@@ -388,8 +408,10 @@ class _HomeScreenState extends State<HomeScreen> {
       'neighborhood': e['neighborhood'],
       'logo': e['logo'],
       'image': e['image'],
-      'reviewScore': e['reviewScore'],
-      'reviewCount': e['reviewCount'],
+      'reviewScore': parseRating(e['reviewScore'] ?? e['rating'] ?? e['avgRating'] ?? e['averageRating']),
+      'reviewCount': parseReviewCount(e['reviewCount'] ?? e['ratingCount'] ?? e['reviewsCount']),
+      'rating': parseRating(e['rating'] ?? e['reviewScore']),
+      'ratingCount': parseReviewCount(e['ratingCount'] ?? e['reviewCount']),
     }).toList();
 
     if (mapped.isEmpty) {
@@ -716,7 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildBannerState1(BuildContext context, bool isTr) {
     final lang = Provider.of<LanguageProvider>(context, listen: false);
     return GestureDetector(
-      onTap: () => context.push('/explore-cafes'),
+      onTap: () => context.push('/add-firm'),
       child: Center(
         child: Container(
           width: MediaQuery.of(context).size.width * 0.92,
@@ -1295,7 +1317,7 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: imageUrl != null
+              child: imageUrl.isNotEmpty
                 ? Image.network(
                     imageUrl,
                     fit: BoxFit.cover,
@@ -1438,7 +1460,7 @@ class _HomeScreenState extends State<HomeScreen> {
               // Tile 1: "Bölgendeki Kafeler" (Figma: 172x172 r=16 gradient #FFFDF7→#F9E6CC, border #76410B/0.5)
               Expanded(
                 child: GestureDetector(
-                  onTap: () => context.push('/explore-cafes'),
+                  onTap: () => context.push('/add-firm'),
                   child: Container(
                     height: 172,
                     decoration: BoxDecoration(

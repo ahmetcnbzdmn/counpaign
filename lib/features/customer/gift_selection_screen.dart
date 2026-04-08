@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
+import '../../core/widgets/guest_auth_dialog.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/widgets/auto_text.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -78,9 +80,15 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
 
 
   Future<void> _redeemGift(dynamic gift) async {
+    // Guests can browse but cannot spend — show auth dialog
+    if (context.read<GuestProvider>().isGuest) {
+      GuestAuthDialog.show(context, message: 'Puan harcamak için giriş yapmalısın.');
+      return;
+    }
+
     final lang = Provider.of<LanguageProvider>(context, listen: false);
     final api = context.read<ApiService>();
-    
+
     // 1. Confirmation Dialog
     final isTr = lang.locale.languageCode == 'tr';
     final confirm = await showDialog<bool>(

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -115,10 +116,13 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     final existing = prefs.getString(_installationIdKey);
     if (existing != null && existing.isNotEmpty) return existing;
-    // Generate new UUID
-    final id = DateTime.now().microsecondsSinceEpoch.toRadixString(36) +
-        '-' +
-        (prefs.hashCode ^ DateTime.now().millisecondsSinceEpoch).toRadixString(36);
+    // Generate cryptographically secure UUID v4
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+    bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant bits
+    final hex = bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final id = '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20, 32)}';
     await prefs.setString(_installationIdKey, id);
     return id;
   }

@@ -5,18 +5,52 @@ import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../theme/app_theme.dart';
 
-String? resolveImageUrl(String? path) {
-  if (path == null || path.isEmpty) return null;
+String resolveImageUrl(String? path) {
+  if (path == null || path.isEmpty) return '';
   if (path.startsWith('http')) return path;
   
-  final base = ApiConfig.baseUrl.replaceAll(RegExp(r'/api$'), '');
+  // Remove /api and optional trailing slash to get the domain root
+  String base = ApiConfig.baseUrl.replaceAll(RegExp(r'/api/?$'), '');
   
-  // Ensure we don't have double slashes or missing slashes
-  if (path.startsWith('/')) {
-    return '$base$path';
-  } else {
-    return '$base/$path';
+  // Ensure base doesn't end with / and path doesn't start with / for clean concatenation
+  if (base.endsWith('/')) base = base.substring(0, base.length - 1);
+  
+  String cleanPath = path;
+  if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+  
+  return '$base/$cleanPath';
+}
+
+double parseRating(dynamic data) {
+  if (data == null) return 0.0;
+  if (data is num) return data.toDouble();
+  
+  if (data is Map) {
+    final score = data['score'] ?? data['rating'] ?? data['average'] ?? data['avg'] ?? data['value'];
+    if (score != null) return parseRating(score);
   }
+  
+  if (data is String) {
+    return double.tryParse(data) ?? 0.0;
+  }
+  
+  return 0.0;
+}
+
+int parseReviewCount(dynamic data) {
+  if (data == null) return 0;
+  if (data is num) return data.toInt();
+  
+  if (data is Map) {
+    final count = data['count'] ?? data['total'] ?? data['ratingCount'] ?? data['reviewCount'];
+    if (count != null) return parseReviewCount(count);
+  }
+  
+  if (data is String) {
+    return int.tryParse(data) ?? 0;
+  }
+  
+  return 0;
 }
 
 

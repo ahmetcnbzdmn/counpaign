@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/theme_provider.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/providers/guest_provider.dart';
+import '../../core/widgets/guest_auth_dialog.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -29,15 +31,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final auth = context.watch<AuthProvider>();
+    final guestProvider = context.watch<GuestProvider>();
     final user = auth.currentUser;
-    
+    final isGuest = guestProvider.isGuest && user == null;
+
     const bgColor = Color(0xFFEBEBEB);
     const cardColor = Colors.white;
     const textColor = Color(0xFF131313);
     const primaryBrand = Color(0xFF76410B);
 
     // Initial Loading or No User
-    if (auth.isLoading && user == null) {
+    if (auth.isLoading && user == null && !isGuest) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
@@ -114,23 +118,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 16),
                     
                     // Name
-                    Text(user?.fullName ?? context.read<LanguageProvider>().translate('guest_user'), style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold)),
+                    Text(
+                      isGuest ? 'Misafir Kullanıcı' : (user?.fullName ?? ''),
+                      style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
                     const SizedBox(height: 4),
-                    Text(user?.email ?? "", style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 14)),
-                    
+                    Text(
+                      isGuest
+                          ? '${guestProvider.usagesLeft} QR hakkınız kaldı'
+                          : (user?.email ?? ''),
+                      style: TextStyle(
+                        color: isGuest ? const Color(0xFFF9C06A) : textColor.withValues(alpha: 0.5),
+                        fontSize: 14,
+                        fontWeight: isGuest ? FontWeight.w600 : FontWeight.normal,
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
-                    
-                    // Edit Button
+
+                    // Kayıt Ol (guest) veya Profili Düzenle (member)
                     Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF9C06A), // Main yellow theme
+                        color: const Color(0xFFF9C06A),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: ElevatedButton.icon(
-                        onPressed: () => context.push('/edit-profile'),
-                        icon: const Icon(Icons.edit_rounded, size: 16),
+                        onPressed: () {
+                          if (isGuest) {
+                            GuestAuthDialog.show(context);
+                          } else {
+                            context.push('/edit-profile');
+                          }
+                        },
+                        icon: Icon(isGuest ? Icons.person_add_rounded : Icons.edit_rounded, size: 16),
                         label: Text(
-                          context.watch<LanguageProvider>().translate('edit_profile'),
+                          isGuest ? 'Kayıt Ol' : context.watch<LanguageProvider>().translate('edit_profile'),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -221,7 +243,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                            onTap: () async {
                              // Reset theme to default (Light)
                              themeProvider.toggleTheme(false); 
+                             
+                             await guestProvider.clear(deleteFromServer: false);
                              await auth.logout();
+                             
+                             if (context.mounted) {
+                               context.go('/login');
+                             }
                            }
                          ),
                          const SizedBox(height: 12),

@@ -412,6 +412,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      textCapitalization: TextCapitalization.words,
       style: TextStyle(color: textColor),
       validator: (val) => val == null || val.isEmpty ? lang.translate('fill_all_fields') : null,
       decoration: InputDecoration(

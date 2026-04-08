@@ -4,7 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/providers/business_provider.dart';
-
+import '../../core/providers/auth_provider.dart';
+import '../../core/providers/guest_provider.dart';
 import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/providers/language_provider.dart';
@@ -35,8 +36,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CampaignProvider>().fetchAllCampaigns();
-      context.read<BusinessProvider>().fetchMyFirms();
       context.read<BusinessProvider>().fetchExploreFirms();
+      if (!context.read<AuthProvider>().isAuthenticated) return;
+      context.read<BusinessProvider>().fetchMyFirms();
     });
     _searchController.addListener(_onSearchChanged);
   }
@@ -237,17 +239,32 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             child: RefreshIndicator(
               color: yellow,
               onRefresh: () async {
+                final isAuth = context.read<AuthProvider>().isAuthenticated;
                 await Future.wait([
                   context.read<CampaignProvider>().fetchAllCampaigns(),
-                  context.read<BusinessProvider>().fetchMyFirms(),
-                  context.read<BusinessProvider>().fetchExploreFirms(),
+                  if (isAuth) context.read<BusinessProvider>().fetchMyFirms(),
+                  if (isAuth) context.read<BusinessProvider>().fetchExploreFirms(),
                 ]);
               },
-              child: Consumer2<CampaignProvider, BusinessProvider>(
-                builder: (context, campProvider, bizProvider, child) {
+              child: Consumer3<CampaignProvider, BusinessProvider, GuestProvider>(
+                builder: (context, campProvider, bizProvider, guestProvider, child) {
                   var campaigns = campProvider.allCampaigns;
 
-                  final allFirms = [...bizProvider.myFirms, ...bizProvider.exploreFirms];
+                  final isAuth = context.read<AuthProvider>().isAuthenticated;
+                  final guestWalletIds = guestProvider.wallet
+                      .map((f) => (f['_id'] ?? f['id'] ?? '').toString())
+                      .toSet();
+
+                  bool isInWallet(c) {
+                    if (isAuth) return bizProvider.isFirmInWallet(c.businessId);
+                    return guestWalletIds.contains(c.businessId);
+                  }
+
+                  final allFirms = [
+                    ...bizProvider.myFirms,
+                    ...bizProvider.exploreFirms,
+                    ...guestProvider.wallet,
+                  ];
                   final firmMap = <String, dynamic>{};
                   for (var f in allFirms) {
                     final id1 = f['_id']?.toString();
@@ -258,9 +275,9 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
 
                   if (!_isFiltered) {
                     if (_selectedTabIndex == 1) {
-                      campaigns = campaigns.where((c) => bizProvider.isFirmInWallet(c.businessId)).toList();
+                      campaigns = campaigns.where(isInWallet).toList();
                     } else if (_selectedTabIndex == 2) {
-                      campaigns = campaigns.where((c) => !bizProvider.isFirmInWallet(c.businessId)).toList();
+                      campaigns = campaigns.where((c) => !isInWallet(c)).toList();
                     }
                   } else {
                     campaigns = campaigns.where((c) => c.businessId == widget.firmId).toList();
@@ -471,7 +488,7 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                             color: deepBrown,
                             fontWeight: FontWeight.bold,
                             fontSize: 11,
-                          ),
+                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
                         ),
                       ),
                       Container(

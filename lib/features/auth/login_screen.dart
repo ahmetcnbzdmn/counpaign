@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
+import 'package:counpaign/core/providers/guest_provider.dart';
 import 'package:counpaign/core/providers/language_provider.dart';
 import 'package:go_router/go_router.dart';
 
@@ -34,6 +35,29 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _activePageIndex = widget.initialPageIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAccountDeleted());
+  }
+
+  void _checkAccountDeleted() {
+    final auth = context.read<AuthProvider>();
+    if (auth.accountWasDeleted) {
+      auth.clearAccountDeletedFlag();
+      showCustomPopup(
+        context,
+        message: context.read<LanguageProvider>().translate('account_deleted_notice'),
+        type: PopupType.error,
+      );
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LoginScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialPageIndex != widget.initialPageIndex) {
+      setState(() {
+        _activePageIndex = widget.initialPageIndex;
+      });
+    }
   }
   String? _selectedGender;
   DateTime? _selectedBirthDate;
@@ -119,6 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
   void _submit() async {
     final auth = context.read<AuthProvider>();
     final lang = context.read<LanguageProvider>();
+    final guestProvider = context.read<GuestProvider>();
+    final String? guestId = guestProvider.isGuest ? guestProvider.guestId : null;
 
     // Haptic Feedback for premium feel
     HapticFeedback.mediumImpact();
@@ -128,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
          if (_phoneController.text.isEmpty || _passwordController.text.isEmpty) {
            throw Exception(lang.translate('fill_all_fields_msg'));
          }
-         await auth.login(_phoneController.text, _passwordController.text);
+         await auth.login(_phoneController.text, _passwordController.text, guestId: guestId);
       } else { // Register
          if (_nameController.text.isEmpty || _surnameController.text.isEmpty ||
              _phoneController.text.isEmpty || _emailController.text.isEmpty ||
@@ -162,19 +188,23 @@ class _LoginScreenState extends State<LoginScreen> {
            password: _passwordController.text,
            gender: _selectedGender,
            birthDate: _selectedBirthDate,
+           guestId: guestId,
          );
 
          // SUCCESS: Send SMS & Navigate
-         await auth.sendSmsVerification(_phoneController.text);
+         await auth.sendSmsVerification(_phoneController.text, guestId: guestId);
 
          if (mounted) {
-           context.push('/verify-phone', extra: {
-             'phoneNumber': _phoneController.text,
-             'email': _emailController.text,
-             'password': _passwordController.text,
-             'name': _nameController.text,
-             'surname': _surnameController.text,
-           });
+          if (mounted) {
+            context.push('/verify-phone', extra: {
+              'phoneNumber': _phoneController.text,
+              'email': _emailController.text,
+              'password': _passwordController.text,
+              'name': _nameController.text,
+              'surname': _surnameController.text,
+              'guestId': guestId, // Pass the guestId here
+            });
+          }
          }
       }
     } catch (e) {
@@ -182,15 +212,20 @@ class _LoginScreenState extends State<LoginScreen> {
         String errorMessage = e.toString();
 
         if (e is DioException) {
-           final statusCode = e.response?.statusCode;
-           if (statusCode == 401 || statusCode == 400) {
-             errorMessage = lang.translate('invalid_credential');
-           } else if (statusCode == 404) {
-             errorMessage = lang.translate('user_not_found');
-           } else if (statusCode == 403) {
-             errorMessage = lang.translate('user_disabled');
+           final backendError = e.response?.data?['error'] ?? e.response?.data?['message'];
+           if (backendError != null && backendError is String && backendError.isNotEmpty) {
+               errorMessage = backendError;
            } else {
-             errorMessage = lang.translate('server_error_prefix');
+               final statusCode = e.response?.statusCode;
+               if (statusCode == 401 || statusCode == 400) {
+                 errorMessage = lang.translate('invalid_credential');
+               } else if (statusCode == 404) {
+                 errorMessage = lang.translate('user_not_found');
+               } else if (statusCode == 403) {
+                 errorMessage = lang.translate('user_disabled');
+               } else {
+                 errorMessage = lang.translate('server_error_prefix');
+               }
            }
         } else if (e is FirebaseAuthException) {
            switch (e.code) {
@@ -382,9 +417,9 @@ class _LoginScreenState extends State<LoginScreen> {
                        if (_activePageIndex == 1) ...[
                          Row(
                            children: [
-                             Expanded(child: _buildModernTextField(controller: _nameController, hint: lang.translate('name'), icon: Icons.person)),
+                             Expanded(child: _buildModernTextField(controller: _nameController, hint: lang.translate('name'), icon: Icons.person, capitalization: TextCapitalization.words)),
                              const SizedBox(width: 12),
-                             Expanded(child: _buildModernTextField(controller: _surnameController, hint: lang.translate('surname'), icon: Icons.person_outline)),
+                             Expanded(child: _buildModernTextField(controller: _surnameController, hint: lang.translate('surname'), icon: Icons.person_outline, capitalization: TextCapitalization.words)),
                            ],
                          ),
                          const SizedBox(height: 16),
@@ -554,30 +589,79 @@ class _LoginScreenState extends State<LoginScreen> {
 
                        const SizedBox(height: 24),
 
-                       // Toggle Login/Register
-                       Center(
-                         child: GestureDetector(
-                           onTap: () {
-                             setState(() {
-                               _activePageIndex = _activePageIndex == 0 ? 1 : 0;
-                             });
-                           },
-                           child: Container(
-                             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                             decoration: BoxDecoration(
-                               color: textColor.withValues(alpha: 0.05),
-                               borderRadius: BorderRadius.circular(30),
-                             ),
-                             child: Text(
-                               _activePageIndex == 0 ? lang.translate('no_account') : lang.translate('already_member'),
-                               style: TextStyle(
-                                 color: textColor.withValues(alpha: 0.5),
-                                 fontWeight: FontWeight.w500,
-                               ),
-                             ),
-                           ),
-                         ),
-                       ),
+                        // Üyeliksiz Devam Et - Moved above and made more prominent
+                        if (_activePageIndex == 0) ...[
+                          Center(
+                            child: Container(
+                              width: MediaQuery.of(context).size.width * 0.7,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF9C06A).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: const Color(0xFFF9C06A).withOpacity(0.4), width: 1.5),
+                              ),
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () async {
+                                  try {
+                                    final auth = context.read<AuthProvider>();
+                                    final guest = context.read<GuestProvider>();
+                                    await guest.startGuestSession();
+                                    auth.enterGuestMode();
+                                    if (mounted) context.go('/home');
+                                  } catch (_) {
+                                    final auth = context.read<AuthProvider>();
+                                    auth.enterGuestMode();
+                                    if (mounted) context.go('/home');
+                                  }
+                                },
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        lang.translate('continue_as_guest'),
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF76410B),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF76410B)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ],
+
+                        // Toggle Login/Register
+                        Center(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _activePageIndex = _activePageIndex == 0 ? 1 : 0;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                              decoration: BoxDecoration(
+                                color: textColor.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              child: Text(
+                                _activePageIndex == 0 ? lang.translate('no_account') : lang.translate('already_member'),
+                                style: TextStyle(
+                                  color: textColor.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                      ],
                    ),
                  ),
@@ -641,6 +725,7 @@ class _LoginScreenState extends State<LoginScreen> {
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
     List<TextInputFormatter>? inputFormatters,
+    TextCapitalization capitalization = TextCapitalization.none,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -651,6 +736,7 @@ class _LoginScreenState extends State<LoginScreen> {
         controller: controller,
         obscureText: isPassword,
         keyboardType: keyboardType,
+        textCapitalization: capitalization,
         style: const TextStyle(color: Color(0xFF131313), fontWeight: FontWeight.w500),
         cursorColor: const Color(0xFFF9C06A),
         decoration: InputDecoration(

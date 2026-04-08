@@ -36,7 +36,7 @@ class ApiService {
             // No token at all (guest mode) - skip refresh entirely
             final currentToken = await _storageService.getToken();
             if (currentToken == null || currentToken.isEmpty) {
-              onUnauthorized?.call();
+              onUnauthorized?.call(isAccountDeleted: false);
               return handler.next(e);
             }
 
@@ -61,7 +61,7 @@ class ApiService {
               try {
                 final refreshDio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
                 final refreshResponse = await refreshDio.post(
-                  '/auth/refresh-token',
+                  'auth/refresh-token',
                   data: {'refreshToken': refreshToken},
                 );
 
@@ -90,7 +90,10 @@ class ApiService {
             }
             _requestQueue.clear();
             _isRefreshing = false;
-            onUnauthorized?.call();
+
+            // Check if specific deletion error from backend
+            final bool isDeleted = e.response?.data?['error'] == 'ACCOUNT_DELETED';
+            onUnauthorized?.call(isAccountDeleted: isDeleted);
           }
           return handler.next(e);
         },
@@ -102,40 +105,41 @@ class ApiService {
   }
 
   // Callback to handle 401 errors (e.g. trigger logout)
-  VoidCallback? onUnauthorized;
+  // isAccountDeleted: true if the backend explicitly returned ACCOUNT_DELETED
+  void Function({bool isAccountDeleted})? onUnauthorized;
 
   Dio get client => _dio;
 
   // Wallet / Firm Methods
   Future<List<dynamic>> getAvailableFirms() async {
-    final response = await _dio.get('/wallet/explore');
+    final response = await _dio.get('wallet/explore');
     return response.data as List<dynamic>;
   }
 
   Future<List<dynamic>> getNewestBusinesses() async {
-    final response = await _dio.get('/wallet/explore/newest');
+    final response = await _dio.get('wallet/explore/newest');
     return response.data as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> getBusinessById(String id) async {
-    final response = await _dio.get('/wallet/explore/$id');
+    final response = await _dio.get('wallet/explore/$id');
     return response.data as Map<String, dynamic>;
   }
 
   Future<void> addFirm(String businessId) async {
-    await _dio.post('/wallet/add', data: {'businessId': businessId});
+    await _dio.post('wallet/add', data: {'businessId': businessId});
   }
 
   Future<void> removeFirm(String businessId) async {
-    await _dio.post('/wallet/remove', data: {'businessId': businessId});
+    await _dio.post('wallet/remove', data: {'businessId': businessId});
   }
 
   Future<void> reorderWallet(List<String> orderedIds) async {
-    await _dio.post('/wallet/reorder', data: {'order': orderedIds});
+    await _dio.post('wallet/reorder', data: {'order': orderedIds});
   }
 
   Future<List<dynamic>> getMyFirms() async {
-    final response = await _dio.get('/wallet/my');
+    final response = await _dio.get('wallet/my');
     return response.data as List<dynamic>;
   }
 
@@ -164,12 +168,12 @@ class ApiService {
   }
   // Account Management
   Future<void> deleteAccount(String password) async {
-    await _dio.delete('/customer/profile', data: {'password': password});
+    await _dio.delete('customer/profile', data: {'password': password});
   }
 
   // Simulation Methods (for development/demo)
   Future<Map<String, dynamic>> simulateProcessTransaction(String customerId, String businessId) async {
-    final response = await _dio.post('/transactions/process', data: {
+    final response = await _dio.post('transactions/process', data: {
       'customerId': customerId,
       'businessId': businessId,
       'type': 'STAMP'
@@ -178,7 +182,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> simulateRedeemGift(String customerId, String businessId) async {
-    final response = await _dio.post('/transactions/process', data: {
+    final response = await _dio.post('transactions/process', data: {
       'customerId': customerId,
       'businessId': businessId,
       'type': 'GIFT_REDEEM'
@@ -187,12 +191,12 @@ class ApiService {
   }
 
   Future<List<dynamic>> getTransactionHistory(String businessId) async {
-    final response = await _dio.get('/transactions/history/$businessId');
+    final response = await _dio.get('transactions/history/$businessId');
     return response.data as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> simulateAddPoints(String customerId, String businessId, int value) async {
-    final response = await _dio.post('/transactions/process', data: {
+    final response = await _dio.post('transactions/process', data: {
       'customerId': customerId,
       'businessId': businessId,
       'type': 'POINT',
@@ -219,7 +223,7 @@ class ApiService {
   Future<Map<String, dynamic>> scanBusinessQR(String token, {String? expectedBusinessId, double? latitude, double? longitude, String? guestId}) async {
     try {
       final response = await _dio.post(
-        '/qr/validate',
+        'qr/validate',
         data: {
           'token': token,
           if (expectedBusinessId != null) 'expectedBusinessId': expectedBusinessId,
@@ -242,18 +246,22 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> checkConfirmationStatus(String token) async {
-    final response = await _dio.get('/qr/status/customer/$token');
+    final response = await _dio.get('qr/status/customer/$token');
     return response.data as Map<String, dynamic>;
+  }
+
+  Future<void> customerCancelQR(String pollToken) async {
+    await _dio.post('qr/customer-cancel', data: {'pollToken': pollToken});
   }
 
   // Gift Methods
   Future<List<dynamic>> getBusinessGifts(String businessId) async {
-    final response = await _dio.get('/gifts/business/$businessId');
+    final response = await _dio.get('gifts/business/$businessId');
     return response.data as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> prepareRedemption(String businessId, String giftId, {String type = 'POINT'}) async {
-    final response = await _dio.post('/gifts/prepare-redemption', data: {
+    final response = await _dio.post('gifts/prepare-redemption', data: {
       'businessId': businessId,
       'giftId': giftId,
       'redemptionType': type
@@ -262,11 +270,11 @@ class ApiService {
   }
 
   Future<void> cancelRedemption(String token) async {
-    await _dio.post('/gifts/cancel-redemption', data: {'token': token});
+    await _dio.post('gifts/cancel-redemption', data: {'token': token});
   }
 
   Future<Map<String, dynamic>> redeemGift(String businessId, String giftId) async {
-    final response = await _dio.post('/gifts/redeem', data: {
+    final response = await _dio.post('gifts/redeem', data: {
       'businessId': businessId,
       'giftId': giftId
     });
@@ -276,70 +284,70 @@ class ApiService {
 
   // Participation Methods
   Future<List<dynamic>> getMyParticipations() async {
-    final response = await _dio.get('/participations/my');
+    final response = await _dio.get('participations/my');
     return response.data as List<dynamic>;
   }
 
   Future<void> joinCampaign(String campaignId) async {
-    await _dio.post('/participations/join/$campaignId');
+    await _dio.post('participations/join/$campaignId');
   }
 
   // Product / Menu Methods
   Future<List<dynamic>> getBusinessProducts(String businessId) async {
-    final response = await _dio.get('/products/$businessId');
+    final response = await _dio.get('products/$businessId');
     return response.data as List<dynamic>;
   }
 
   // Notification Methods
   Future<void> updateFcmToken(String token) async {
     try {
-      await _dio.post('/users/update-fcm-token', data: {'fcmToken': token});
+      await _dio.post('users/update-fcm-token', data: {'fcmToken': token});
     } catch (_) {
     }
   }
   Future<List<dynamic>> getUserNotifications() async {
-    final response = await _dio.get('/notifications/user');
+    final response = await _dio.get('notifications/user');
     return response.data as List<dynamic>;
   }
 
   Future<void> markNotificationAsRead(String notificationId) async {
-    await _dio.put('/notifications/$notificationId/read');
+    await _dio.put('notifications/$notificationId/read');
   }
 
   Future<void> deleteNotification(String notificationId) async {
     // Soft delete - marks as deleted but keeps in DB for admin panel
-    await _dio.put('/notifications/$notificationId/soft-delete');
+    await _dio.put('notifications/$notificationId/soft-delete');
   }
 
   // ===== GUEST SESSION =====
 
   Future<Map<String, dynamic>> createGuestSession({String? deviceId}) async {
-    final response = await _dio.post('/guest/session', data: {
+    final response = await _dio.post('guest/session', data: {
       if (deviceId != null) 'deviceId': deviceId,
     });
     return response.data;
   }
 
   Future<Map<String, dynamic>> getGuestSession(String guestId) async {
-    final response = await _dio.get('/guest/session/$guestId');
+    final response = await _dio.get('guest/session/$guestId');
     return response.data;
   }
 
   Future<List<dynamic>> getGuestTransactions(String guestId) async {
-    final response = await _dio.get('/guest/transactions/$guestId');
+    final response = await _dio.get('guest/transactions/$guestId');
     return response.data as List<dynamic>;
   }
 
   Future<void> deleteGuestSession(String guestId) async {
-    await _dio.post('/guest/session/$guestId/delete');
+    await _dio.delete('guest/session/$guestId');
   }
 
   Future<void> addToGuestWallet(String guestId, String businessId) async {
-    await _dio.post('/guest/wallet/add', data: {'guestId': guestId, 'businessId': businessId});
+    await _dio.post('guest/wallet/add', data: {'guestId': guestId, 'businessId': businessId});
   }
 
   Future<void> removeFromGuestWallet(String guestId, String businessId) async {
-    await _dio.post('/guest/wallet/remove', data: {'guestId': guestId, 'businessId': businessId});
+    await _dio.post('guest/wallet/remove', data: {'guestId': guestId, 'businessId': businessId});
   }
 }
 

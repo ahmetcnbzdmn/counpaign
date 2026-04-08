@@ -25,13 +25,17 @@ class WalletCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final langProvider = context.watch<LanguageProvider>();
 
-    final int stampCount = firm['stamps'] ?? 0;
+    final int rawStampCount = firm['stamps'] ?? 0;
     final int target = firm['stampsTarget'] ?? 8;
+    // Show stamps within the current cycle (e.g. 24 stamps with target 10 → 4/10)
+    final int stampCount = (target > 0) ? rawStampCount % target : rawStampCount;
     final String points = firm['points']?.toString() ?? '0';
     final String firmName = firm['name'] ?? 'KAFE';
     final int giftsCount = firm['giftsCount'] ?? 0;
-    final double reviewScore = (firm['reviewScore'] ?? 0.0).toDouble();
-    final int reviewCount = firm['reviewCount'] ?? 0;
+    
+    // Robust parsing for ratings
+    final double reviewScore = parseRating(firm['reviewScore'] ?? firm['rating'] ?? firm['avgRating'] ?? firm['averageRating']);
+    final int reviewCount = parseReviewCount(firm['reviewCount'] ?? firm['ratingCount'] ?? firm['reviewsCount']);
 
     final double fillProgress = (target > 0) ? (stampCount / target).clamp(0.0, 1.0) : 0.0;
 
@@ -294,11 +298,11 @@ class WalletCard extends StatelessWidget {
     // --- Build firm logo from backend ---
     Widget logoWidget;
     final rawLogo = firm['logo'] ?? firm['image'] ?? firm['logoUrl'];
-    final String? resolved = (rawLogo != null && rawLogo.toString().isNotEmpty)
+    final String resolved = (rawLogo != null && rawLogo.toString().isNotEmpty)
         ? resolveImageUrl(rawLogo.toString())
-        : null;
+        : '';
 
-    if (resolved != null) {
+    if (resolved.isNotEmpty) {
       logoWidget = ClipOval(
         child: Image.network(resolved, width: 24, height: 24, fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => const Icon(Icons.store_rounded, color: AppTheme.deepBrown, size: 20)),
