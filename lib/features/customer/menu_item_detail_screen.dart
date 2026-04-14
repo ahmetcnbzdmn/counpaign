@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/widgets/swipe_back_detector.dart';
 import '../../core/widgets/auto_text.dart';
 
@@ -73,7 +74,7 @@ class MenuItemDetailScreen extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     imageUrl != null
-                        ? Image.network(imageUrl, fit: BoxFit.cover,
+                        ? SmartNetworkImage(url: imageUrl, fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) => Container(color: accentColor.withValues(alpha: 0.3)))
                         : Container(
                             color: accentColor.withValues(alpha: 0.3),
@@ -107,24 +108,26 @@ class MenuItemDetailScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             if (discount > 0) ...[
-                              Text(
-                                '${price.toInt()}₺',
-                                style: GoogleFonts.outfit(
+                              tlText(
+                                '${price.toInt()}',
+                                GoogleFonts.outfit(
                                   fontSize: 14,
                                   color: deepBrown.withValues(alpha: 0.6),
                                   decoration: TextDecoration.lineThrough,
                                   fontWeight: FontWeight.w500,
-                                ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                ),
+                                suffix: true,
                               ),
                               const SizedBox(width: 6),
                             ],
-                            Text(
-                              '${effectivePrice.toInt()}₺',
-                              style: GoogleFonts.outfit(
+                            tlText(
+                              '${effectivePrice.toInt()}',
+                              GoogleFonts.outfit(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
                                 color: deepBrown,
-                              ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                              ),
+                              suffix: true,
                             ),
                           ],
                         ),
@@ -158,8 +161,8 @@ class MenuItemDetailScreen extends StatelessWidget {
                             if (businessLogo != null) ...[
                               ClipRRect(
                                 borderRadius: BorderRadius.circular(10),
-                                child: Image.network(
-                                  resolveImageUrl(businessLogo) ?? '',
+                                child: SmartNetworkImage(
+                                  url: resolveImageUrl(businessLogo) ?? '',
                                   width: 20,
                                   height: 20,
                                   fit: BoxFit.cover,
@@ -281,14 +284,15 @@ class MenuItemDetailScreen extends StatelessWidget {
                                   color: textColor.withValues(alpha: 0.6),
                                 ),
                               ),
-                              Text(
-                                '${price.toInt()}₺',
-                                style: GoogleFonts.outfit(
+                              tlText(
+                                '${price.toInt()}',
+                                GoogleFonts.outfit(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                   color: discount > 0 ? textColor.withValues(alpha: 0.4) : textColor,
                                   decoration: discount > 0 ? TextDecoration.lineThrough : null,
-                                ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                ),
+                                suffix: true,
                               ),
                             ],
                           ),
@@ -313,13 +317,14 @@ class MenuItemDetailScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                Text(
-                                  '-${discount.toInt()}₺',
-                                  style: GoogleFonts.outfit(
+                                tlText(
+                                  '-${discount.toInt()}',
+                                  GoogleFonts.outfit(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color: const Color(0xFF2E7D32),
-                                  ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                  ),
+                                  suffix: true,
                                 ),
                               ],
                             ),
@@ -337,13 +342,14 @@ class MenuItemDetailScreen extends StatelessWidget {
                                     color: textColor,
                                   ),
                                 ),
-                                Text(
-                                  '${effectivePrice.toInt()}₺',
-                                  style: GoogleFonts.outfit(
+                                tlText(
+                                  '${effectivePrice.toInt()}',
+                                  GoogleFonts.outfit(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
                                     color: deepBrown,
-                                  ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                  ),
+                                  suffix: true,
                                 ),
                               ],
                             ),

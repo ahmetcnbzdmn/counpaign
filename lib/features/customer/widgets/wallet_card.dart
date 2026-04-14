@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../../core/widgets/smart_network_image.dart';
 import '../../../core/providers/language_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/ui_utils.dart';
@@ -283,7 +284,7 @@ class WalletCard extends StatelessWidget {
               top: 0,
               right: 0,
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: constraints.maxWidth * 0.65),
+                constraints: BoxConstraints(maxWidth: (constraints.maxWidth * 0.65).clamp(0.0, 240.0)),
                 child: _buildFirmTag(context, firmName, reviewScore, reviewCount, langProvider),
               ),
             ),
@@ -304,7 +305,7 @@ class WalletCard extends StatelessWidget {
 
     if (resolved.isNotEmpty) {
       logoWidget = ClipOval(
-        child: Image.network(resolved, width: 24, height: 24, fit: BoxFit.cover,
+        child: SmartNetworkImage(url: resolved, width: 24, height: 24, fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => const Icon(Icons.store_rounded, color: AppTheme.deepBrown, size: 20)),
       );
     } else {

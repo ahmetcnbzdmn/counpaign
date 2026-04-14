@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/api_service.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/providers/guest_provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -296,41 +297,54 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
 
     } catch (e) {
       if (!mounted) return;
-      
-      String errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('scan_error_title');
-      
+
+      final lang = Provider.of<LanguageProvider>(context, listen: false);
+      String errorMessage = lang.translate('scan_error_title');
+      // Whether to navigate home after dismissing the error popup
+      bool goHomeAfter = false;
+
       // Improved Error Handling
       if (e.toString().contains("GUEST_LIMIT_REACHED")) {
           if (mounted) _showForcedAuthDialog(context);
           return;
       } else if (e.toString().contains("SCAN_IN_PROGRESS")) {
-          errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('scan_in_progress_error');
+          // User can retry — stay on scanner
+          errorMessage = lang.translate('scan_in_progress_error');
       } else if (e.toString().contains("FIRM_MISMATCH")) {
-          errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('firm_mismatch_error')}$_expectedBusinessName";
+          errorMessage = "${lang.translate('firm_mismatch_error')}$_expectedBusinessName";
+          goHomeAfter = true;
       } else if (e.toString().contains("NO_CAMPAIGN")) {
-          // Extract message portion from Exception string (e.g. Exception: NO_CAMPAIGN:Firm XYZ işletmesinin ...)
           try {
              errorMessage = e.toString().split("NO_CAMPAIGN:")[1].trim();
           } catch (_) {
-             errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('no_active_campaigns_popup');
+             errorMessage = lang.translate('no_active_campaigns_popup');
           }
+          goHomeAfter = true;
       } else if (e.toString().contains("404") || e.toString().contains("Invalid or expired")) {
-         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('expired_qr_error');
-      } else if (e.toString().contains("400")) { 
-         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('invalid_qr_error');
+         errorMessage = lang.translate('expired_qr_error');
+         goHomeAfter = true;
+      } else if (e.toString().contains("400")) {
+         errorMessage = lang.translate('invalid_qr_error');
+         goHomeAfter = true;
       } else if (e.toString().contains("401")) {
-         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('session_error');
+         errorMessage = lang.translate('session_error');
+         goHomeAfter = true;
       } else if (e.toString().contains("CANCELLED_BY_HOST")) {
-         errorMessage = Provider.of<LanguageProvider>(context, listen: false).translate('kod_iptal_edildi');
+         errorMessage = lang.translate('kod_iptal_edildi');
       } else {
-         errorMessage = "${Provider.of<LanguageProvider>(context, listen: false).translate('error')}: $e";
+         errorMessage = "${lang.translate('error')}: $e";
+         goHomeAfter = true;
       }
 
-      showCustomPopup(
+      await showCustomPopup(
         context,
         message: errorMessage,
         type: PopupType.error,
       );
+
+      if (mounted && goHomeAfter) {
+        context.go('/home');
+      }
     } finally {
       // Cooldown to prevent Android from instantly scanning the same QR causing an infinite loop of error dialogs
       await Future.delayed(const Duration(milliseconds: 2500));
@@ -551,11 +565,11 @@ class _CustomerScannerScreenState extends State<CustomerScannerScreen> {
                            ),
                            child: _expectedBusinessLogo != null
                              ? ClipOval(
-                                 child: Image.network(
-                                   resolveImageUrl(_expectedBusinessLogo)!,
+                                 child: SmartNetworkImage(
+                                   url: resolveImageUrl(_expectedBusinessLogo)!,
                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(Icons.local_cafe, color: Colors.white, size: 24),
-                               ),
+                                   errorBuilder: (_, __, ___) => const Icon(Icons.local_cafe, color: Colors.white, size: 24),
+                                 ),
                                )
                              : const Icon(Icons.local_cafe, color: Colors.white, size: 24),
                          ),

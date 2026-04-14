@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:intl/intl.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/utils/ui_utils.dart';
@@ -63,52 +62,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery, maxWidth: 800);
-    if (image != null) {
-      await _cropImage(image.path);
+    try {
+      // Pick and immediately resize — no UCropActivity (avoids Android 14 gesture interception)
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null && mounted) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _newProfileImageBase64 = base64Encode(bytes);
+          _profileImageBytes = bytes;
+        });
+      }
+    } catch (e) {
+      debugPrint('Image pick error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.read<LanguageProvider>().translate('an_error_occurred'))),
+        );
+      }
     }
-  }
-
-  Future<void> _cropImage(String path) async {
-    final lang = context.read<LanguageProvider>();
-    final croppedFile = await ImageCropper().cropImage(
-      sourcePath: path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      uiSettings: [
-        AndroidUiSettings(
-          toolbarTitle: lang.translate('crop_image'),
-          toolbarColor: const Color(0xFF76410B),
-          toolbarWidgetColor: Colors.white,
-          lockAspectRatio: true,
-          cropStyle: CropStyle.circle,
-          activeControlsWidgetColor: const Color(0xFFF9C06A),
-          dimmedLayerColor: Colors.black.withValues(alpha: 0.8),
-          cropGridColor: const Color(0xFFF9C06A),
-          cropFrameColor: const Color(0xFFF9C06A),
-        ),
-        IOSUiSettings(
-          title: lang.translate('crop_image'),
-          doneButtonTitle: lang.translate('done'),
-          cancelButtonTitle: lang.translate('cancel'),
-          cropStyle: CropStyle.circle,
-          aspectRatioLockEnabled: true,
-          aspectRatioPickerButtonHidden: true,
-          resetButtonHidden: true,
-        ),
-      ],
-    );
-
-    if (croppedFile != null) {
-      final bytes = await xFileToBytes(croppedFile);
-      setState(() {
-        _newProfileImageBase64 = base64Encode(bytes);
-        _profileImageBytes = bytes;
-      });
-    }
-  }
-
-  Future<Uint8List> xFileToBytes(CroppedFile file) async {
-    return await file.readAsBytes();
   }
 
   void _saveProfile() async {

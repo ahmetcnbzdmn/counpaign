@@ -9,6 +9,7 @@ import '../../core/widgets/swipe_back_detector.dart';
 
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/providers/language_provider.dart';
 
 class CampaignDetailScreen extends StatelessWidget {
@@ -66,7 +67,7 @@ class CampaignDetailScreen extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             campaign.headerImage != null
-                ? Image.network(resolveImageUrl(campaign.headerImage)!, fit: BoxFit.cover)
+                ? SmartNetworkImage(url: resolveImageUrl(campaign.headerImage)!, fit: BoxFit.cover)
                 : Container(color: accentColor),
             // Gradient to help transition
             Positioned.fill(
@@ -181,35 +182,78 @@ class CampaignDetailScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (campaign.discountAmount > 0) ...[
-                                  Text(
-                                    '₺${campaign.totalPrice.toStringAsFixed(0)}',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 12,
-                                      color: textColor.withValues(alpha: 0.5),
-                                      decoration: TextDecoration.lineThrough,
-                                      fontWeight: FontWeight.w500,
-                                    ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                  // Strikethrough original price
+                                  Text.rich(
+                                    TextSpan(children: [
+                                      TextSpan(
+                                        text: '₺',
+                                        style: TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontSize: 12,
+                                          color: textColor.withValues(alpha: 0.5),
+                                          decoration: TextDecoration.lineThrough,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: campaign.totalPrice.toStringAsFixed(0),
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 12,
+                                          color: textColor.withValues(alpha: 0.5),
+                                          decoration: TextDecoration.lineThrough,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ]),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
-                                  Text(
-                                    '₺${campaign.discountedPrice.toStringAsFixed(0)}',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 18,
-                                      color: deepBrown,
-                                      fontWeight: FontWeight.bold,
-                                    ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                  // Discounted price
+                                  Text.rich(
+                                    TextSpan(children: [
+                                      TextSpan(
+                                        text: '₺',
+                                        style: TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontSize: 18,
+                                          color: deepBrown,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: campaign.discountedPrice.toStringAsFixed(0),
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 18,
+                                          color: deepBrown,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ]),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ] else
-                                  Text(
-                                    '₺${campaign.totalPrice.toStringAsFixed(0)}',
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 18,
-                                      color: textColor,
-                                      fontWeight: FontWeight.bold,
-                                    ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                                  // Normal price (no discount)
+                                  Text.rich(
+                                    TextSpan(children: [
+                                      TextSpan(
+                                        text: '₺',
+                                        style: TextStyle(
+                                          fontFamily: 'Roboto',
+                                          fontSize: 18,
+                                          color: textColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: campaign.totalPrice.toStringAsFixed(0),
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 18,
+                                          color: textColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ]),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -237,7 +281,8 @@ class CampaignDetailScreen extends StatelessWidget {
               _buildSectionTitle(Provider.of<LanguageProvider>(context).translate('about_campaign')),
               const SizedBox(height: 12),
               AutoText(
-                campaign.content,
+                // Replace ₺ with 'TL' to avoid Outfit font missing glyph on Android/Impeller
+                campaign.content.replaceAll('₺', 'TL'),
                 style: GoogleFonts.outfit(fontSize: 15, color: textColor.withValues(alpha: 0.7), height: 1.6),
               ),
               const SizedBox(height: 32),

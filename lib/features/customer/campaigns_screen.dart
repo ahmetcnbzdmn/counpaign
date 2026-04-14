@@ -10,6 +10,7 @@ import '../../core/models/campaign_model.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 
 class CampaignsScreen extends StatefulWidget {
   final String? firmId;
@@ -397,8 +398,8 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                 topRight: Radius.circular(22),
               ),
               child: headerUrl != null
-                  ? Image.network(
-                      headerUrl,
+                  ? SmartNetworkImage(
+                      url: headerUrl,
                       width: double.infinity,
                       height: 160,
                       fit: BoxFit.cover,
@@ -419,16 +420,14 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                       Container(
                         width: 20,
                         height: 20,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
                           color: yellow.withValues(alpha: 0.15),
-                          image: logoUrl != null
-                              ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover)
-                              : null,
                         ),
-                        child: logoUrl == null
-                            ? Icon(Icons.storefront_rounded, color: deepBrown, size: 12)
-                            : null,
+                        child: logoUrl != null
+                            ? SmartNetworkImage(url: logoUrl, fit: BoxFit.cover)
+                            : Icon(Icons.storefront_rounded, color: deepBrown, size: 12),
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -478,18 +477,18 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: yellow.withValues(alpha: 0.5)),
                         ),
-                        child: AutoText(
-                          campaign.discountAmount > 0
-                              ? '₺${campaign.discountAmount.toStringAsFixed(0)} ${lang.translate('discount_label')}'
-                              : campaign.bundleName.isNotEmpty
-                                  ? campaign.bundleName
-                                  : lang.translate('campaign_label'),
-                          style: GoogleFonts.outfit(
-                            color: deepBrown,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
-                        ),
+                        child: campaign.discountAmount > 0
+                            // Discount badge: ₺ must render correctly on Android
+                            ? tlText(
+                                '${campaign.discountAmount.toStringAsFixed(0)} ${lang.translate('discount_label')}',
+                                GoogleFonts.outfit(color: deepBrown, fontWeight: FontWeight.bold, fontSize: 11),
+                              )
+                            : AutoText(
+                                campaign.bundleName.isNotEmpty
+                                    ? campaign.bundleName
+                                    : lang.translate('campaign_label'),
+                                style: GoogleFonts.outfit(color: deepBrown, fontWeight: FontWeight.bold, fontSize: 11),
+                              ),
                       ),
                       Container(
                         width: 36,

@@ -4,6 +4,7 @@ import '../../core/services/api_service.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/utils/location_helper.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/providers/auth_provider.dart';
@@ -481,7 +482,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                                             clipBehavior: Clip.antiAlias,
                                             decoration: BoxDecoration(color: yellow.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
                                             child: (firm['logo'] != null || firm['image'] != null)
-                                                ? Image.network(resolveImageUrl(firm['logo'] ?? firm['image']) ?? '', fit: BoxFit.cover,
+                                                ? SmartNetworkImage(url: resolveImageUrl(firm['logo'] ?? firm['image']) ?? '', fit: BoxFit.cover,
                                                     errorBuilder: (_, __, ___) => Icon(_getIcon(firm['cardIcon']), color: deepBrown, size: 25))
                                                 : Icon(_getIcon(firm['cardIcon']), color: deepBrown, size: 25),
                                           ),
@@ -596,7 +597,7 @@ class _AddFirmScreenState extends State<AddFirmScreen> {
                                     clipBehavior: Clip.antiAlias,
                                     decoration: BoxDecoration(color: yellow.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(18)),
                                     child: (firm['logo'] != null || firm['image'] != null)
-                                        ? Image.network(resolveImageUrl(firm['logo'] ?? firm['image']) ?? '', fit: BoxFit.cover,
+                                        ? SmartNetworkImage(url: resolveImageUrl(firm['logo'] ?? firm['image']) ?? '', fit: BoxFit.cover,
                                             errorBuilder: (_, __, ___) => Icon(_getIcon(firm['cardIcon']), color: deepBrown, size: 27))
                                         : Icon(_getIcon(firm['cardIcon']), color: deepBrown, size: 27),
                                   ),

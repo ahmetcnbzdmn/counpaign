@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/guest_provider.dart';
 import '../../core/services/api_service.dart';
@@ -302,20 +303,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                           offset: const Offset(0, -3), // Moving the whole row slightly up
                           child: Row(
                             children: [
-                              Container(
-                                width: 20, // Reduced logo size slightly more
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(4),
-                                  image: DecorationImage(
-                                    image: NetworkImage(
-                                      () {
-                                        final raw = widget.businessData['logo'] ?? widget.businessData['image'];
-                                        return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
-                                      }()
-                                    ),
-                                    fit: BoxFit.cover,
-                                  ),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: SmartNetworkImage(
+                                  url: () {
+                                    final raw = widget.businessData['logo'] ?? widget.businessData['image'];
+                                    return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
+                                  }(),
+                                  width: 20,
+                                  height: 20,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -615,8 +612,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
               borderRadius: BorderRadius.circular(12),
             ),
             child: imageUrl != null
-                ? Image.network(
-                    imageUrl,
+                ? SmartNetworkImage(
+                    url: imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(color: Colors.grey[200]),
                   )
@@ -657,24 +654,26 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       if (discount > 0) ...[
-                        Text(
-                          '${price.toStringAsFixed(0)}₺',
-                          style: GoogleFonts.outfit(
+                        tlText(
+                          price.toStringAsFixed(0),
+                          GoogleFonts.outfit(
                             color: Colors.grey,
                             fontSize: 11,
                             decoration: TextDecoration.lineThrough,
-                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                          ),
+                          suffix: true,
                         ),
                         const SizedBox(width: 4),
                       ],
                       Flexible(
-                        child: Text(
-                          '${(price - discount).toStringAsFixed(0)}₺',
-                          style: GoogleFonts.outfit(
+                        child: tlText(
+                          (price - discount).toStringAsFixed(0),
+                          GoogleFonts.outfit(
                             color: Colors.black,
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                          ),
+                          suffix: true,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -883,13 +882,14 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                     if (logoUrl.isNotEmpty)
                       Container(
                         width: 48, height: 48,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
                           boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
                           border: Border.all(color: Colors.white, width: 2),
                         ),
+                        child: SmartNetworkImage(url: logoUrl, fit: BoxFit.cover),
                       )
                     else
                       Container(
@@ -1517,8 +1517,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                   ],
                 ),
                 child: campaign.headerImage != null
-                    ? Image.network(
-                        resolveImageUrl(campaign.headerImage)!,
+                    ? SmartNetworkImage(
+                        url: resolveImageUrl(campaign.headerImage)!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const SizedBox(),
                       )
@@ -1541,21 +1541,16 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
                       // Business name placeholder in Figma "The Stock", here using campaign.businessName
                       Row(
                         children: [
-                          Container(
-                            width: 16, // Slighly bigger logo
-                            height: 16, // Slighly bigger logo
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(2),
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                  () {
-                                    // Image resolving logic
-                                    final raw = widget.businessData['logo'] ?? widget.businessData['image'];
-                                    return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
-                                  }()
-                                ),
-                                fit: BoxFit.cover,
-                              ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: SmartNetworkImage(
+                              url: () {
+                                final raw = widget.businessData['logo'] ?? widget.businessData['image'];
+                                return resolveImageUrl(raw) ?? 'https://placehold.co/100.png';
+                              }(),
+                              width: 16,
+                              height: 16,
+                              fit: BoxFit.cover,
                             ),
                           ),
                           const SizedBox(width: 6),

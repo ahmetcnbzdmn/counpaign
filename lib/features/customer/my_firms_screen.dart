@@ -7,6 +7,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/guest_provider.dart';
 import '../../core/providers/campaign_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/config/api_config.dart';
@@ -475,20 +476,18 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                             leading: Container(
                               width: 50,
                               height: 50,
+                              clipBehavior: Clip.antiAlias,
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 color: Colors.white,
                                 border: Border.all(color: yellow.withValues(alpha: 0.4), width: 1.5),
-                                image: logoUrl.isNotEmpty
-                                    ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover)
-                                    : null,
                                 boxShadow: [
                                   BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2)),
                                 ],
                               ),
-                              child: logoUrl.isEmpty
-                                  ? const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 24)
-                                  : null,
+                              child: logoUrl.isNotEmpty
+                                  ? SmartNetworkImage(url: logoUrl, fit: BoxFit.cover)
+                                  : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 24),
                             ),
                             title: Text(
                               firm['companyName'] ?? '',

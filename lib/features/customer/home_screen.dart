@@ -6,6 +6,7 @@ import 'gift_selection_screen.dart';
 import '../../core/providers/auth_provider.dart' as app;
 import 'package:go_router/go_router.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/services/api_service.dart';
 import '../../core/models/campaign_model.dart';
 import '../../core/widgets/icons/takeaway_cup_icon.dart';
@@ -717,8 +718,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 4),
                   Text(
                     usagesLeft > 0
-                        ? '$usagesLeft ${lang.locale.languageCode == 'tr' ? 'ücretsiz hakkınız kaldı' : 'free scans remaining'}'
-                        : lang.locale.languageCode == 'tr' ? 'Tüm haklarınızı kullandınız — kayıt olun!' : 'All free scans used — register!',
+                        ? '$usagesLeft ${lang.translate('guest_qr_remaining')}'
+                        : lang.translate('guest_qr_all_used'),
                     style: GoogleFonts.outfit(
                       color: const Color(0xFF131313).withValues(alpha: 0.65),
                       fontSize: 12,
@@ -1016,13 +1017,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           if (logoUrl != null && logoUrl.isNotEmpty)
-                            Container(
-                              width: 16,
-                              height: 16,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
-                              ),
+                            ClipOval(
+                              child: SmartNetworkImage(url: logoUrl, width: 16, height: 16, fit: BoxFit.cover),
                             )
                           else
                             Image.asset('assets/images/splash_logo.png', width: 16, height: 16, errorBuilder: (_, __, ___) => const SizedBox(width: 16, height: 16)),
@@ -1318,8 +1314,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: imageUrl.isNotEmpty
-                ? Image.network(
-                    imageUrl,
+                ? SmartNetworkImage(
+                    url: imageUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => _buildPlaceholder(),
                   )
@@ -1338,16 +1334,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       Row(
                         children: [
                           if (logoUrl != null)
-                            Container(
-                              width: 20,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: DecorationImage(
-                                  image: NetworkImage(logoUrl),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
+                            ClipOval(
+                              child: SmartNetworkImage(url: logoUrl, width: 20, height: 20, fit: BoxFit.cover),
                             )
                           else
                             const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF131313)),
@@ -1605,14 +1593,17 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        // Hand holding coffee (Figma: left=57, top=60, 112x112)
+                        // Hand holding coffee — centered horizontally for responsive layout
                         Positioned(
-                          left: 57, top: 60,
-                          child: Image.asset(
-                            'assets/images/hand_coffee.png',
-                            width: 112, height: 112,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
+                          left: 0, right: 0, top: 60, bottom: 0,
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: Image.asset(
+                              'assets/images/hand_coffee.png',
+                              width: 112, height: 112,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => const SizedBox(),
+                            ),
                           ),
                         ),
                       ],

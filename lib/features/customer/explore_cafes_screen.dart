@@ -9,6 +9,7 @@ import '../../core/services/api_service.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 
 class ExploreCafesScreen extends StatefulWidget {
   const ExploreCafesScreen({super.key});
@@ -92,8 +93,8 @@ class _ExploreCafesScreenState extends State<ExploreCafesScreen> {
       ),
       clipBehavior: Clip.antiAlias,
       child: resolvedUrl.isNotEmpty
-          ? Image.network(
-              resolvedUrl,
+          ? SmartNetworkImage(
+              url: resolvedUrl,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => Icon(fallbackIcon, color: const Color(0xFF76410B), size: size * 0.45),
             )

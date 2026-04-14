@@ -57,10 +57,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bildirim okundu olarak işaretlendi'),
+          SnackBar(
+            content: Text(context.read<LanguageProvider>().translate('notification_marked_read')),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -88,10 +88,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bildirim silindi'),
+          SnackBar(
+            content: Text(context.read<LanguageProvider>().translate('notification_deleted')),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -172,7 +172,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     itemBuilder: (context, index) {
                       final item = _notifications[index];
                       final notificationId = item['_id'] ?? '';
-                      final title = item['title'] ?? 'Bildirim';
+                      final title = item['title'] ?? lang.translate('notification_default_title');
                       final body = item['body'] ?? '';
                       final time = _formatDate(item['createdAt']);
                       final isRead = item['isRead'] ?? false;
@@ -207,7 +207,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               const Icon(Icons.delete_rounded, color: Colors.white, size: 28),
                               const SizedBox(width: 8),
                               Text(
-                                'Sil',
+                                lang.translate('swipe_delete'),
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -230,7 +230,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               Text(
-                                isRead ? 'Okundu' : 'Okundu İşaretle',
+                                isRead ? lang.translate('status_read') : lang.translate('swipe_mark_read'),
                                 style: GoogleFonts.outfit(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -312,7 +312,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        'Okundu',
+                                        lang.translate('status_read'),
                                         style: GoogleFonts.outfit(
                                           color: Colors.green.withValues(alpha: 0.6),
                                           fontSize: 10,

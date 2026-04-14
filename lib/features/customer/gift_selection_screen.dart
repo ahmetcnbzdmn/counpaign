@@ -9,6 +9,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/guest_provider.dart';
 import '../../core/widgets/guest_auth_dialog.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/widgets/auto_text.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'scanner_screen.dart';
@@ -436,8 +437,8 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: resolvedLogo != null
-                              ? Image.network(
-                                  resolvedLogo,
+                              ? SmartNetworkImage(
+                                  url: resolvedLogo,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, __, ___) => Image.asset('assets/images/logo.png', fit: BoxFit.cover),
                                 )
@@ -666,8 +667,8 @@ class _GiftSelectionScreenState extends State<GiftSelectionScreen> with SingleTi
                       children: [
                         if (gift['image'] != null && gift['image'].toString().isNotEmpty)
                           Positioned.fill(
-                            child: Image.network(
-                              resolveImageUrl(gift['image']) ?? '',
+                            child: SmartNetworkImage(
+                              url: resolveImageUrl(gift['image']) ?? '',
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => const Center(child: Icon(Icons.coffee_rounded, size: 40, color: Color(0xFF77410C))),
                             ),

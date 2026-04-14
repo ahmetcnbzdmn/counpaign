@@ -7,6 +7,7 @@ import '../../core/providers/auth_provider.dart';
 import '../../core/providers/guest_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   const OrderHistoryScreen({super.key});
@@ -321,19 +322,17 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                   children: [
                                     Container(
                                       width: 50, height: 50,
+                                      clipBehavior: Clip.antiAlias,
                                       decoration: BoxDecoration(
                                         color: color.withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(12),
-                                        image: (logoUrl != null && logoUrl.isNotEmpty) 
-                                           ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
-                                           : null,
                                       ),
-                                      child: (logoUrl == null || logoUrl.isEmpty) 
-                                         ? Padding(
+                                      child: (logoUrl != null && logoUrl.isNotEmpty)
+                                         ? SmartNetworkImage(url: logoUrl, fit: BoxFit.cover)
+                                         : Padding(
                                              padding: const EdgeInsets.all(8.0),
                                              child: Image.asset('assets/images/splash_logo.png', fit: BoxFit.contain, errorBuilder: (_, __, ___) => Icon(icon, color: color)),
-                                           )
-                                         : null,
+                                           ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(

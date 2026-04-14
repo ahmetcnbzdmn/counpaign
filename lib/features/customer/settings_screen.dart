@@ -32,6 +32,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final auth = context.watch<AuthProvider>();
     final guestProvider = context.watch<GuestProvider>();
+    final lang = context.watch<LanguageProvider>();
     final user = auth.currentUser;
     final isGuest = guestProvider.isGuest && user == null;
 
@@ -119,13 +120,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     
                     // Name
                     Text(
-                      isGuest ? 'Misafir Kullanıcı' : (user?.fullName ?? ''),
+                      isGuest ? lang.translate('guest_user') : (user?.fullName ?? ''),
                       style: GoogleFonts.outfit(color: textColor, fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       isGuest
-                          ? '${guestProvider.usagesLeft} QR hakkınız kaldı'
+                          ? '${guestProvider.usagesLeft} ${lang.translate('guest_qr_remaining')}'
                           : (user?.email ?? ''),
                       style: TextStyle(
                         color: isGuest ? const Color(0xFFF9C06A) : textColor.withValues(alpha: 0.5),
@@ -152,7 +153,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         },
                         icon: Icon(isGuest ? Icons.person_add_rounded : Icons.edit_rounded, size: 16),
                         label: Text(
-                          isGuest ? 'Kayıt Ol' : context.watch<LanguageProvider>().translate('edit_profile'),
+                          isGuest ? lang.translate('register_guest_btn') : lang.translate('edit_profile'),
                           style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(

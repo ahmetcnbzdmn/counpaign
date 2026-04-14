@@ -9,6 +9,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/widgets/auto_text.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import 'menu_item_detail_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -262,7 +263,7 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             // Cover Image or Default Gradient
             if (hasCover)
-               Image.network(coverUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container())
+               SmartNetworkImage(url: coverUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Container())
             else
                Container(
                  decoration: BoxDecoration(
@@ -302,13 +303,14 @@ class _MenuScreenState extends State<MenuScreen> {
                 if (logoUrl.isNotEmpty)
                    Container(
                      width: 90, height: 90,
+                     clipBehavior: Clip.antiAlias,
                      decoration: BoxDecoration(
                        shape: BoxShape.circle,
                        color: Colors.white,
-                       image: DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover),
                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.12), blurRadius: 15, offset: const Offset(0, 5))],
                        border: Border.all(color: Colors.white, width: 4),
                      ),
+                     child: SmartNetworkImage(url: logoUrl, fit: BoxFit.cover),
                    )
                 else 
                    Container(
@@ -537,8 +539,8 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             Positioned.fill(
               child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
+                  ? SmartNetworkImage(
+                      url: imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (_,__,___) => Container(color: AppTheme.cardBackground),
                     )
@@ -570,20 +572,20 @@ class _MenuScreenState extends State<MenuScreen> {
                           color: AppTheme.primaryColor,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          '₺${(product['price'] as num) - (product['discount'] ?? 0)}',
-                          style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                        child: tlText(
+                          '${((product['price'] as num) - (product['discount'] ?? 0)).toInt()}',
+                          GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14),
                         ),
                       ),
                       if ((product['discount'] ?? 0) > 0) ...[
                         const SizedBox(width: 8),
-                        Text(
-                          '₺${product['price']}',
-                          style: GoogleFonts.outfit(
+                        tlText(
+                          '${product['price']}',
+                          GoogleFonts.outfit(
                             color: Colors.white.withValues(alpha: 0.6),
                             fontSize: 12,
                             decoration: TextDecoration.lineThrough,
-                          ).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                          ),
                         ),
                       ],
                     ],
@@ -656,8 +658,8 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     child: imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
+                        ? SmartNetworkImage(
+                            url: imageUrl,
                             fit: BoxFit.cover,
                             errorBuilder: (_,__,___) => Container(color: const Color(0xFFF5F5F5)),
                           )
@@ -673,9 +675,10 @@ class _MenuScreenState extends State<MenuScreen> {
                       borderRadius: BorderRadius.circular(20), // Pill shape
                       boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
                     ),
-                    child: Text(
-                      '${(((product['price'] as num) - (product['discount'] ?? 0)).toInt())}₺',
-                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13).copyWith(fontFamilyFallback: const ['Roboto', 'sans-serif']),
+                    child: tlText(
+                      '${(((product['price'] as num) - (product['discount'] ?? 0)).toInt())}',
+                      GoogleFonts.outfit(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
+                      suffix: true,
                     ),
                   ),
                 ),

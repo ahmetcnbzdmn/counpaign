@@ -5,6 +5,28 @@ import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
 import '../theme/app_theme.dart';
 
+/// Renders a price with ₺ symbol where ₺ uses Roboto font (guaranteed to have ₺ on Android).
+/// [suffix]: true = "100₺" format, false = "₺100" format (default).
+Widget tlText(String amount, TextStyle style, {bool suffix = false, int? maxLines, TextOverflow? overflow}) {
+  final tlStyle = TextStyle(
+    fontFamily: 'Roboto',
+    fontSize: style.fontSize,
+    fontWeight: style.fontWeight,
+    color: style.color,
+    decoration: style.decoration,
+    decorationColor: style.decorationColor,
+  );
+  return Text.rich(
+    TextSpan(
+      children: suffix
+          ? [TextSpan(text: amount, style: style), TextSpan(text: '₺', style: tlStyle)]
+          : [TextSpan(text: '₺', style: tlStyle), TextSpan(text: amount, style: style)],
+    ),
+    maxLines: maxLines,
+    overflow: overflow,
+  );
+}
+
 String resolveImageUrl(String? path) {
   if (path == null || path.isEmpty) return '';
   if (path.startsWith('http')) return path;

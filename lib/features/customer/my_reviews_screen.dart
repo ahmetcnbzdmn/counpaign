@@ -6,6 +6,7 @@ import '../../core/services/api_service.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/smart_network_image.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/config/api_config.dart';
 
@@ -207,20 +208,18 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                               Container(
                                 width: 44, height: 44,
                                 margin: const EdgeInsets.only(right: 12),
+                                clipBehavior: Clip.antiAlias,
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   shape: BoxShape.circle,
-                                  image: logoUrl.isNotEmpty 
-                                    ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
-                                    : null,
                                   border: Border.all(color: textColor.withValues(alpha: 0.1)),
                                   boxShadow: [
                                     BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
                                   ],
                                 ),
-                                child: logoUrl.isEmpty 
-                                  ? const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20)
-                                  : null,
+                                child: logoUrl.isNotEmpty
+                                  ? SmartNetworkImage(url: logoUrl, fit: BoxFit.cover)
+                                  : const Icon(Icons.storefront_rounded, color: AppTheme.deepBrown, size: 20),
                               ),
                               Expanded(
                                 child: Column(
@@ -301,20 +300,18 @@ class _MyReviewsScreenState extends State<MyReviewsScreen> {
                   children: [
                     Container(
                       width: 50, height: 50,
+                      clipBehavior: Clip.antiAlias,
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        image: logoUrl.isNotEmpty 
-                          ? DecorationImage(image: NetworkImage(logoUrl), fit: BoxFit.cover) 
-                          : null,
                         border: Border.all(color: textColor.withValues(alpha: 0.1)),
                         boxShadow: [
                            BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
                         ],
                       ),
-                      child: logoUrl.isEmpty 
-                        ? const Icon(Icons.history_rounded, color: AppTheme.deepBrown, size: 24)
-                        : null,
+                      child: logoUrl.isNotEmpty
+                        ? SmartNetworkImage(url: logoUrl, fit: BoxFit.cover)
+                        : const Icon(Icons.history_rounded, color: AppTheme.deepBrown, size: 24),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
