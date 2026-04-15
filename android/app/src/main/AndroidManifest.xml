@@ -5,20 +5,17 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     
-    <!-- Image Picker / Camera Permissions -->
+    <!-- Camera: required for QR scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-    <!-- Gallery access: Android <= 12 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32"/>
-    <!-- Gallery access: Android 13+ -->
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <!-- READ_MEDIA_IMAGES / READ_EXTERNAL_STORAGE removed: image_picker uses
+         the Android Photo Picker (system UI) which requires no storage permission. -->
 
     <application
         android:label="counpaign"
         android:name="${applicationName}"
         android:usesCleartextTraffic="false"
-        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"
