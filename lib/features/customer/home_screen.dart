@@ -69,7 +69,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Always fetch campaigns and explore firms (public endpoints)
-      cp.fetchAllCampaigns();
+      cp.fetchAllCampaigns(
+        customerId: auth.currentUser?.id,
+        guest: auth.currentUser?.id == null,
+      );
       bp.fetchExploreFirms();
 
       // Skip auth-required API calls if not logged in (guest or unauthenticated)
@@ -89,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
           for (var i = 0; i < firms.length; i++) {
             if (!mounted) break;
             if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
-            cp.fetchCampaigns(firms[i]['id']);
+            cp.fetchCampaigns(firms[i]['id'], customerId: auth.currentUser?.id);
           }
         }
       } catch (e) {
@@ -538,15 +541,35 @@ class _HomeScreenState extends State<HomeScreen> {
           child: RefreshIndicator(
           color: AppTheme.primaryColor,
           onRefresh: () async {
-             final isAuth = context.read<app.AuthProvider>().isAuthenticated;
+             final auth = context.read<app.AuthProvider>();
+             final isAuth = auth.isAuthenticated;
              final biz = context.read<BusinessProvider>();
              final camp = context.read<CampaignProvider>();
+             final cid = auth.currentUser?.id;
              await Future.wait([
                if (isAuth) biz.fetchMyFirms(),
                biz.fetchExploreFirms(),
-               camp.fetchAllCampaigns(),
+               camp.fetchAllCampaigns(
+                 customerId: cid,
+                 guest: cid == null,
+               ),
                _loadPendingReviews(),
              ]);
+
+             // Per-business cache'i de yenile (hedefli kampanyaların
+             // müşteriden kaldırıldığında ana sayfada da düşmesi için)
+             if (!mounted) return;
+             _campaignFetchAttempted.clear();
+             final firms = biz.myFirms;
+             for (var i = 0; i < firms.length; i++) {
+               if (!mounted) break;
+               if (i > 0) await Future.delayed(const Duration(milliseconds: 150));
+               camp.fetchCampaigns(
+                 firms[i]['id'],
+                 customerId: cid,
+                 guest: cid == null,
+               );
+             }
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(parent: ClampingScrollPhysics()),
@@ -1073,7 +1096,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (currentFirmId != null && !isEmptyWallet && campaigns.isEmpty && !campaignProvider.isLoading && !_campaignFetchAttempted.contains(currentFirmId)) {
       _campaignFetchAttempted.add(currentFirmId);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) context.read<CampaignProvider>().fetchCampaigns(currentFirmId);
+        if (mounted) {
+          final _cid = context.read<app.AuthProvider>().currentUser?.id;
+          context.read<CampaignProvider>().fetchCampaigns(currentFirmId, customerId: _cid, guest: _cid == null);
+        }
       });
     }
 
@@ -1641,9 +1667,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 await bp.fetchMyFirms();
                 if (context.mounted) {
                   final cp = context.read<CampaignProvider>();
+                  final customerId = context.read<app.AuthProvider>().currentUser?.id;
                   for (var i = 0; i < bp.myFirms.length; i++) {
                     if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
-                    cp.fetchCampaigns(bp.myFirms[i]['id']);
+                    cp.fetchCampaigns(bp.myFirms[i]['id'], customerId: customerId);
                   }
                 }
               }
@@ -1754,9 +1781,10 @@ class _HomeScreenState extends State<HomeScreen> {
               await bp.fetchMyFirms();
               if (context.mounted) {
                 final cp = context.read<CampaignProvider>();
+                final customerId = context.read<app.AuthProvider>().currentUser?.id;
                 for (var i = 0; i < bp.myFirms.length; i++) {
                   if (i > 0) await Future.delayed(const Duration(milliseconds: 300));
-                  cp.fetchCampaigns(bp.myFirms[i]['id']);
+                  cp.fetchCampaigns(bp.myFirms[i]['id'], customerId: customerId);
                 }
               }
             }

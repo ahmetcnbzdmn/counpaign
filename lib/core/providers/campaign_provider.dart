@@ -31,12 +31,12 @@ class CampaignProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> fetchAllCampaigns() async {
+  Future<void> fetchAllCampaigns({String? customerId, bool guest = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final data = await _apiService.getAllCampaigns();
+      final data = await _apiService.getAllCampaigns(customerId: customerId, guest: guest);
       _globalCampaigns = data.map((json) => CampaignModel.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {
@@ -47,12 +47,12 @@ class CampaignProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchCampaigns(String businessId) async {
+  Future<void> fetchCampaigns(String businessId, {String? customerId, bool guest = false}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final data = await _apiService.getCampaignsByBusiness(businessId);
+      final data = await _apiService.getCampaignsByBusiness(businessId, customerId: customerId, guest: guest);
       _businessCampaigns[businessId] = data.map((json) => CampaignModel.fromJson(json)).toList();
       notifyListeners();
     } catch (e) {

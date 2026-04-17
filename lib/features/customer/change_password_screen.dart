@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../core/providers/auth_provider.dart' as app;
 import '../../core/providers/language_provider.dart';
 import '../../core/utils/ui_utils.dart';
+import '../../core/widgets/password_strength_indicator.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -33,9 +34,19 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Future<void> _updatePassword() async {
     if (!_formKey.currentState!.validate()) return;
-    
-    final auth = context.read<app.AuthProvider>();
+
     final lang = context.read<LanguageProvider>();
+    final auth = context.read<app.AuthProvider>();
+
+    // Tüm şifre şartlarını zorla
+    if (!PasswordStrength.of(_newPasswordController.text).meetsAll) {
+      showCustomPopup(
+        context,
+        message: lang.translate('pwd_requirements_not_met'),
+        type: PopupType.error,
+      );
+      return;
+    }
 
     try {
       await auth.changePassword(
@@ -134,8 +145,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final lang = context.watch<LanguageProvider>();
     final auth = context.watch<app.AuthProvider>();
 
-    final bool passwordsMatch = _newPasswordController.text.isNotEmpty && 
+    final bool passwordsMatch = _newPasswordController.text.isNotEmpty &&
                          _newPasswordController.text == _confirmPasswordController.text;
+    final bool meetsAllReqs = PasswordStrength.of(_newPasswordController.text).meetsAll;
+    final bool canSubmit = passwordsMatch && meetsAllReqs;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -215,6 +228,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   return null;
                 },
               ),
+
+              // Şifre gücü göstergesi
+              PasswordStrengthIndicator(
+                password: _newPasswordController.text,
+                textColor: textColor,
+              ),
+
               const SizedBox(height: 20),
 
               _buildField(
@@ -265,9 +285,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 height: 56,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: passwordsMatch ? accentColor : Colors.grey.shade400,
+                    color: canSubmit ? accentColor : Colors.grey.shade400,
                     borderRadius: BorderRadius.circular(16),
-                    boxShadow: passwordsMatch ? [
+                    boxShadow: canSubmit ? [
                       BoxShadow(
                         color: accentColor.withValues(alpha: 0.3),
                         blurRadius: 12,
@@ -276,7 +296,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ] : [],
                   ),
                   child: ElevatedButton(
-                    onPressed: (auth.isLoading || !passwordsMatch) ? null : _updatePassword,
+                    onPressed: (auth.isLoading || !canSubmit) ? null : _updatePassword,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,

@@ -36,7 +36,11 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CampaignProvider>().fetchAllCampaigns();
+      final customerId = context.read<AuthProvider>().currentUser?.id;
+      context.read<CampaignProvider>().fetchAllCampaigns(
+        customerId: customerId,
+        guest: customerId == null,
+      );
       context.read<BusinessProvider>().fetchExploreFirms();
       if (!context.read<AuthProvider>().isAuthenticated) return;
       context.read<BusinessProvider>().fetchMyFirms();
@@ -240,9 +244,13 @@ class _CampaignsScreenState extends State<CampaignsScreen> {
             child: RefreshIndicator(
               color: yellow,
               onRefresh: () async {
-                final isAuth = context.read<AuthProvider>().isAuthenticated;
+                final auth = context.read<AuthProvider>();
+                final isAuth = auth.isAuthenticated;
                 await Future.wait([
-                  context.read<CampaignProvider>().fetchAllCampaigns(),
+                  context.read<CampaignProvider>().fetchAllCampaigns(
+                    customerId: auth.currentUser?.id,
+                    guest: auth.currentUser?.id == null,
+                  ),
                   if (isAuth) context.read<BusinessProvider>().fetchMyFirms(),
                   if (isAuth) context.read<BusinessProvider>().fetchExploreFirms(),
                 ]);

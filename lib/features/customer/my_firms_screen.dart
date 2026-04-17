@@ -418,7 +418,8 @@ class _MyFirmsScreenState extends State<MyFirmsScreen> {
                                                 try {
                                                   await context.read<BusinessProvider>().removeFirm(firm['id'], passwordController.text);
                                                   if (context.mounted) {
-                                                    context.read<CampaignProvider>().fetchAllCampaigns();
+                                                    final _cid = context.read<AuthProvider>().currentUser?.id;
+                                                    context.read<CampaignProvider>().fetchAllCampaigns(customerId: _cid, guest: _cid == null);
                                                     Navigator.of(context).pop(true);
                                                   }
                                                 } catch (e) {

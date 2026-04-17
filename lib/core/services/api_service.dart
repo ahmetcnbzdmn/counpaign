@@ -205,17 +205,31 @@ class ApiService {
     return response.data as Map<String, dynamic>;
   }
 
-  Future<List<dynamic>> getAllCampaigns() async {
+  Map<String, dynamic>? _campaignQuery(String? customerId, bool guest) {
+    if (customerId != null && customerId.isNotEmpty) {
+      return {'customerId': customerId};
+    }
+    if (guest) return {'guest': 'true'};
+    return null;
+  }
+
+  Future<List<dynamic>> getAllCampaigns({String? customerId, bool guest = false}) async {
     try {
-      final response = await client.get(ApiConfig.getCampaigns);
+      final response = await client.get(
+        ApiConfig.getCampaigns,
+        queryParameters: _campaignQuery(customerId, guest),
+      );
       return response.data;
     } catch (e) {
       rethrow;
     }
   }
 
-  Future<List<dynamic>> getCampaignsByBusiness(String businessId) async {
-    final response = await _dio.get('${ApiConfig.businessCampaigns}/$businessId');
+  Future<List<dynamic>> getCampaignsByBusiness(String businessId, {String? customerId, bool guest = false}) async {
+    final response = await _dio.get(
+      '${ApiConfig.businessCampaigns}/$businessId',
+      queryParameters: _campaignQuery(customerId, guest),
+    );
     return response.data as List<dynamic>;
   }
 

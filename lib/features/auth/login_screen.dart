@@ -9,6 +9,7 @@ import '../../core/utils/ui_utils.dart';
 import 'package:counpaign/core/providers/auth_provider.dart';
 import 'package:counpaign/core/providers/guest_provider.dart';
 import 'package:counpaign/core/providers/language_provider.dart';
+import 'package:counpaign/core/widgets/password_strength_indicator.dart';
 import 'package:go_router/go_router.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -35,7 +36,14 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _activePageIndex = widget.initialPageIndex;
+    // Şifre alanı değiştikçe güç & eşleşme göstergesi rebuild olsun
+    _passwordController.addListener(_onPasswordChanged);
+    _confirmPasswordController.addListener(_onPasswordChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAccountDeleted());
+  }
+
+  void _onPasswordChanged() {
+    if (mounted) setState(() {});
   }
 
   void _checkAccountDeleted() {
@@ -66,6 +74,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
+    _confirmPasswordController.removeListener(_onPasswordChanged);
     _nameController.dispose();
     _surnameController.dispose();
     _phoneController.dispose();
@@ -170,6 +180,11 @@ class _LoginScreenState extends State<LoginScreen> {
          final emailRegex = RegExp(r"^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$");
          if (!emailRegex.hasMatch(_emailController.text)) {
            throw Exception(lang.translate('invalid_email_msg'));
+         }
+
+         // Tüm şifre şartlarını zorla (8+ karakter, büyük harf, rakam, özel karakter)
+         if (!PasswordStrength.of(_passwordController.text).meetsAll) {
+           throw Exception(lang.translate('pwd_requirements_not_met'));
          }
 
          if (_passwordController.text != _confirmPasswordController.text) {
@@ -516,10 +531,53 @@ class _LoginScreenState extends State<LoginScreen> {
                        ],
 
                        _buildModernTextField(controller: _passwordController, hint: lang.translate('password'), icon: Icons.lock_outline_rounded, isPassword: true),
-                       
+
+                       // Şifre gücü göstergesi — yalnızca kayıt modunda
+                       if (_activePageIndex == 1)
+                         PasswordStrengthIndicator(
+                           password: _passwordController.text,
+                           textColor: textColor,
+                         ),
+
                        if (_activePageIndex == 1) ...[
                          const SizedBox(height: 16),
                          _buildModernTextField(controller: _confirmPasswordController, hint: lang.translate('confirm_password'), icon: Icons.lock_reset_rounded, isPassword: true),
+                         // Eşleşme göstergesi — yalnızca confirm doluyken
+                         if (_confirmPasswordController.text.isNotEmpty)
+                           Padding(
+                             padding: const EdgeInsets.only(top: 10, left: 4),
+                             child: Builder(
+                               builder: (_) {
+                                 final match = _passwordController.text ==
+                                     _confirmPasswordController.text;
+                                 final color = match
+                                     ? const Color(0xFF43A047)
+                                     : const Color(0xFFE53935);
+                                 return Row(
+                                   children: [
+                                     Icon(
+                                       match
+                                           ? Icons.check_circle_rounded
+                                           : Icons.error_rounded,
+                                       size: 14,
+                                       color: color,
+                                     ),
+                                     const SizedBox(width: 6),
+                                     Text(
+                                       match
+                                           ? lang.translate('passwords_match')
+                                           : lang.translate('passwords_dont_match'),
+                                       style: TextStyle(
+                                         color: color,
+                                         fontSize: 12,
+                                         fontWeight: FontWeight.w700,
+                                       ),
+                                     ),
+                                   ],
+                                 );
+                               },
+                             ),
+                           ),
                        ],
                        
                        const SizedBox(height: 8),

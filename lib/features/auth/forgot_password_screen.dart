@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/ui_utils.dart';
 import '../../core/providers/auth_provider.dart';
 import '../../core/providers/language_provider.dart';
+import '../../core/widgets/password_strength_indicator.dart';
 
 enum ResetStep { phone, otp, newPassword }
 
@@ -24,6 +25,29 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   ResetStep _currentStep = ResetStep.phone;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Şifre alanları değiştikçe güç & eşleşme göstergesi rebuild olsun
+    _passwordController.addListener(_onPasswordChanged);
+    _confirmPasswordController.addListener(_onPasswordChanged);
+  }
+
+  void _onPasswordChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _passwordController.removeListener(_onPasswordChanged);
+    _confirmPasswordController.removeListener(_onPasswordChanged);
+    _phoneController.dispose();
+    _otpController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
 
   void _sendSms() async {
     final lang = context.read<LanguageProvider>();
@@ -86,8 +110,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     final pass = _passwordController.text;
     final confirm = _confirmPasswordController.text;
 
-    if (pass.length < 6) {
-      showCustomPopup(context, message: lang.translate('password_min_6_msg'), type: PopupType.error);
+    // Tüm şifre şartlarını zorla (8+ karakter, büyük harf, rakam, özel karakter)
+    if (!PasswordStrength.of(pass).meetsAll) {
+      showCustomPopup(
+        context,
+        message: lang.translate('pwd_requirements_not_met'),
+        type: PopupType.error,
+      );
       return;
     }
 
@@ -197,6 +226,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     icon: Icons.vpn_key_outlined,
                     isPassword: true,
                   ),
+                  // Şifre gücü göstergesi
+                  PasswordStrengthIndicator(
+                    password: _passwordController.text,
+                    textColor: textColor,
+                  ),
                   const SizedBox(height: 16),
                   _buildInput(
                     controller: _confirmPasswordController,
@@ -204,6 +238,42 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     icon: Icons.check_circle_outline,
                     isPassword: true,
                   ),
+                  // Eşleşme göstergesi
+                  if (_confirmPasswordController.text.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10, left: 4),
+                      child: Builder(
+                        builder: (_) {
+                          final match = _passwordController.text ==
+                              _confirmPasswordController.text;
+                          final color = match
+                              ? const Color(0xFF43A047)
+                              : const Color(0xFFE53935);
+                          return Row(
+                            children: [
+                              Icon(
+                                match
+                                    ? Icons.check_circle_rounded
+                                    : Icons.error_rounded,
+                                size: 14,
+                                color: color,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                match
+                                    ? lang.translate('passwords_match')
+                                    : lang.translate('passwords_dont_match'),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
                 ],
 
                 const SizedBox(height: 40),
@@ -256,23 +326,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   Widget _buildButton(LanguageProvider lang) {
+    // Yeni şifre adımındayken: tüm şartlar + eşleşme sağlanmalı
+    final bool canSubmitPassword = _currentStep != ResetStep.newPassword ||
+        (PasswordStrength.of(_passwordController.text).meetsAll &&
+            _passwordController.text.isNotEmpty &&
+            _passwordController.text == _confirmPasswordController.text);
+    final bool disabled = _isLoading || !canSubmitPassword;
+
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFFF9C06A),
+          color: disabled ? Colors.grey.shade400 : const Color(0xFFF9C06A),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFF9C06A).withValues(alpha: 0.4),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: disabled
+              ? []
+              : [
+                  BoxShadow(
+                    color: const Color(0xFFF9C06A).withValues(alpha: 0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
         ),
         child: ElevatedButton(
-          onPressed: _isLoading ? null : () {
+          onPressed: disabled ? null : () {
             if (_currentStep == ResetStep.phone) {
               _sendSms();
             } else if (_currentStep == ResetStep.otp) {

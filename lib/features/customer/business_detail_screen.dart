@@ -57,7 +57,8 @@ class _BusinessDetailScreenState extends State<BusinessDetailScreen> {
 
     // Fetch campaigns and menu products for this business
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CampaignProvider>().fetchCampaigns(_businessId);
+      final _cid = context.read<AuthProvider>().currentUser?.id;
+      context.read<CampaignProvider>().fetchCampaigns(_businessId, customerId: _cid, guest: _cid == null);
       context.read<BusinessProvider>().setContextFirm(_businessId, widget.businessData['name'] ?? '', {
         'expectedBusinessId': _businessId,
         'expectedBusinessName': widget.businessData['name'] ?? '',
